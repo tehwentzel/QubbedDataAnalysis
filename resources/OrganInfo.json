@@ -1,16 +1,16 @@
 {
-    "GTVp": {
+    "_GTVp": {
         "description": "primary Gross Tumor Volume. Usually the largest and most important tumor. Used to plan radiation treatment",
-        "alt_names": ["GTV primary","GTV-P", "GTV_p", "GTV_P", "GTV P"],
+        "alt_names": ["GTVp", "GTV primary","GTV-P", "GTV_p", "GTV_P", "GTV P"],
         "related_symptoms": [],
         "region": "NA",
         "tissue_type": "gtv",
         "positional_modifiers": [],
         "bilateral": false
     },
-    "GTVn": {
+    "_GTVn": {
         "description": "nodal Gross Tumor Volumes. Smaller tumors that can be numerous.",
-        "alt_names": ["GTV node", "GTV-N", "GTVn1", "GTV nodes", "GTV-N1", "GTV_N1", "GTV N", "GTV-NR", "GTV-NL"],
+        "alt_names": ["GTVn", "GTV node", "GTV-N", "GTVn1", "GTV nodes", "GTV-N1", "GTV_N1", "GTV N", "GTV-NR", "GTV-NL"],
         "related_symptoms": [],
         "region": "NA",
         "tissue_type": "gtv",
@@ -326,7 +326,7 @@
         },  
     "Musc_Masseter": {
         "description": "",
-        "alt_names": [],
+        "alt_names": ["Masseter_M"],
         "related_symptoms": [],
         "region": "NA",
         "tissue_type": "muscle",
@@ -335,7 +335,7 @@
         },  
     "Bone_Mastoid": {
         "description": "",
-        "alt_names": [],
+        "alt_names": ["Mastoid"],
         "related_symptoms": [],
         "region": "NA",
         "tissue_type": "bone",
