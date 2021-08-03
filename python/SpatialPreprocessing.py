@@ -42,7 +42,29 @@ class OrganData():
         'Musc_Masseter',
         'Tongue',
         'Musc_Sclmast',
-        'Test'
+        'Cricoid',
+        'Cricopharyngeus',
+        'Esophagus_U',
+        'Musc_Geniogloss',
+        'Glottic_Area',
+        'Hardpalate',
+        'Bone_Hyoid',
+        'Lips_Lower',
+        'Lips_Upper',
+        'Mandible',
+        'Palate_Soft',
+        'Musce_Constrict_S',
+        'SpinalCord_Cerv',
+        'Larynx_SG',
+        'Cartlg_Thyroid',
+        'Lens',
+        'Bracial_Plex',
+        'Pterygoid_Lat',
+        'Bone_Mastoid',
+        'Pterygoid_Med',
+        'Parotid',
+        'Eye',
+        'Glnd_Submand'
     ]
 
     def __init__(
