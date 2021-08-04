@@ -59,12 +59,22 @@ def get_spatial_gtv_array(sdict, key, agg = None, filter_string = 'GTV'):
     default = get_default_shape(patients, key)
     #since we have an arbiratry # of gtvs, we need an aggregator
     if agg is None:
-        agg = np.nanmin
+        if 'distance' in key:
+            agg = np.nanmin
+        if 'volume' in key or 'dose' in key:
+            agg = np.nanmax
+        else:
+            #just take the value from the largest tumore
+            agg = lambda x: x[0]
     val_list = []
-    for pid, p in patients.items():
+    pids = sorted(patients.keys())
+    for i, pid in enumerate(pids):
+        p = patients.get(pid)
         gtvs = [v for k,v in p.items() if filter_string in k]
+        #sort by largest so we can use
+        gtvs = sorted(gtvs, key = lambda x: x.get('volume',0))
         if(len(gtvs) < 1):
-            print(pid, p.keys())
+            print('missing gtvs', pid, p.keys())
             print()
         gtv_vals = aggregate_gtv_entry(gtvs, key, agg)
         if gtv_vals is not None:
@@ -76,7 +86,7 @@ def get_spatial_gtv_array(sdict, key, agg = None, filter_string = 'GTV'):
 def notnan(a):
     return np.ma.array(a, mask = np.isnan(a))
 
-def merged_spatial_array(sdict, key, replace_nan = True, **kwargs):
+def merged_spatial_array(sdict, key, replace_nan = False, keep_third_dim = True, **kwargs):
     #creates a merged array with the aggregated gtv at the ned
     oar_array = get_spatial_oar_array(sdict, key)
     gtv_array = get_spatial_gtv_array(sdict, key, **kwargs)
@@ -85,6 +95,8 @@ def merged_spatial_array(sdict, key, replace_nan = True, **kwargs):
     if replace_nan:
         arr = np.nan_to_num(arr)
     #should be n_patients x (n_organs + gtv) x data_dims (nothing, 3 or n_organs)
+    if keep_third_dim and arr.ndim < 3:
+        arr = np.expand_dims(arr, axis = -1)
     return arr
 
 def multikey_merged_spatial_array(sdict, keys,  **kwargs):

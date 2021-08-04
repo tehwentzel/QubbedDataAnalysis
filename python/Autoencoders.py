@@ -11,9 +11,9 @@ class OrganAutoEncoder(nn.Module):
     
     def __init__(self,
                 input_size,
-                hidden_dims = [300,100,20,100,300],
-                init_dropout = .5,
-                embedding_dropout = .1,
+                hidden_dims = [500,100,20,100,500],
+                init_dropout = .7,
+                embedding_dropout = .2,
                 penult_dropout = .1
                 ):
         
@@ -39,12 +39,13 @@ class OrganAutoEncoder(nn.Module):
             layers.append(hidden)
             if self.hidden_dims[i+1] <= embedding_size:
                 layers.append(nn.Dropout(p=self.embedding_dropout))
+                layers.append(nn.BatchNorm1d(self.hidden_dims[i+1]))
             layers.append(nn.ReLU())
         penultimate_dropout = nn.Dropout(p=self.penult_dropout)
         final = nn.Linear(self.hidden_dims[-1], self.input_size)
         final_activation = nn.LeakyReLU(.2)
         layers.append(final)
-        layers.append(final_activation)
+#         layers.append(final_activation)
         return nn.Sequential(*layers)
         
     def forward(self,x):
@@ -53,7 +54,7 @@ class OrganAutoEncoder(nn.Module):
         xout = self.flatten(x)
         xout = self.dropout_layer(xout)
         xout = self.hidden_layers(xout)
-        return xout.reshape(x.shape)
+        return torch.nan_to_num(xout.reshape(x.shape))
     
 class Normalizer():
 
@@ -63,8 +64,8 @@ class Normalizer():
         self.fit(x)
 
     def fit(self, x):
-        self.std = np.nanstd(x, axis = 0)
-        self.mean = np.nanmean(x, axis = 0)
+        self.std = np.std(np.nan_to_num(x), axis = 0)
+        self.mean = np.mean(np.nan_to_num(x), axis = 0)
 
     def transform(self, x):
         x = (x - self.mean)/(self.std + .0001)
@@ -86,7 +87,7 @@ def nan_mse_loss(ypred, y):
     out = (ypred[~mask] - y[~mask])**2
     loss = out.mean()
     return loss
-    
+
 def np_to_torch(x):
 #     x = x.reshape((x.shape[0],-1))
     x = torch.tensor(x).float()
