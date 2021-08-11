@@ -36,7 +36,7 @@ class DataInputer():
         ddict = {}
         for k in keys:
             ddict[k] = self.inpute_spatial_array(data,k)
-            ddict[k+'_missing'] = data[key]['original'].isnan()
+            ddict[k+'_missing'] = np.isnan(data[k]['original'])
         return ddict
     
     def save_autoencoder_error_report(self, autoencoder_results):

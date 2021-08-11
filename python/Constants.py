@@ -9,6 +9,7 @@ class Const():
     
     organ_info_json = resource_dir + "OrganInfo.json"
     symptom_info_json = resource_dir + "symptoms.json"
+    organ_model_dir = resource_dir + 'models/'
     
     processed_organ_json = data_dir + "patient_organ_data.json"
     camprt_organs = ['Esophagus',
