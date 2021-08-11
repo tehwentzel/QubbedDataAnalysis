@@ -1,7 +1,83 @@
 import numpy as np
 import pandas as pd
 import Utils
+import matplotlib.pyplot as plt
+from Autoencoders import *
 
+class DataInputer():
+    #class that takes in the original data and formats it into arrays
+    #uses an autoencoder to inpute missing values and denoise the data
+    def __init__(self,
+                 keys = None,
+                 autoencoder_kwargs = {},
+                 denoise_alpha = .1,
+                ):
+        self.keys = keys
+        self.autoencoder_kwargs = autoencoder_kwargs
+        self.denoise_alpha = denoise_alpha
+        self.autoencoder_error_report = None
+        
+    def get_keys(self,pdata):
+        patients = pdata['patients']
+        keys = set([])
+        for pid, pentry in patients.items():
+            for organ, odata in pentry.items():
+                k = set(odata.keys())
+                keys = keys.union(k)
+        return keys
+        
+    def get_formatted_arrays(self, pdata):
+        if self.keys is None:
+            keys = self.get_keys(pdata)
+        else:
+            keys = self.keys
+        data = autoencode(pdata, keys)
+        self.save_autoencoder_error_report(data)
+        ddict = {}
+        for k in keys:
+            ddict[k] = self.inpute_spatial_array(data,k)
+            ddict[k+'_missing'] = data[key]['original'].isnan()
+        return ddict
+    
+    def save_autoencoder_error_report(self, autoencoder_results):
+        #means should be slightly higher because nans are filled in
+        report = []
+        for k,v in autoencoder_results.items():
+            entry = {'key': k}
+            mre = numpy_nan_reconstruction_error(v['denoised'],v['original'])
+            entry['_mean_reconstruction_error (%)'] = mre
+            for kk,vv in v.items():
+                mean = np.round(np.nanmean(vv),5)
+                std = np.round(np.nanstd(vv),5)
+                numnan = np.isnan(vv).sum()
+                entry['mean_' + kk] = mean
+                entry['std_' + kk] = std
+                entry['shape_' + kk] = vv.shape
+                entry['num_nan_' + kk] = numnan
+            report.append(entry)
+        self.autoencoder_error_report = pd.DataFrame(report).set_index('key')
+        return
+        
+    def error_report(self):
+        if self.autoencoder_error_report is not None:
+            return self.autoencoder_error_report
+        else:
+            print("no autoencoder has been run")
+            
+    def inpute_spatial_array(self, autoencoded_dict, key):
+        #quick wrapper
+        d = autoencoded_dict
+        return self.inpute_nan(d[key]['original'].copy(), d[key]['denoised'].copy()) 
+    
+    def inpute_nan(self, original, denoised):
+        alpha = self.denoise_alpha
+        out = ((1-alpha)*original) + (alpha*denoised)
+        nan_args = np.argwhere(np.isnan(original))
+        if nan_args.shape[0] > 0:
+            out[nan_args] = denoised[nan_args]
+        return out
+
+#stuff for converting from a json format to formatted arrays for each value
 def get_default_shape(pdict, key):
     default = None
     for pid, odata in pdict.items():
@@ -116,3 +192,114 @@ def multikey_merged_spatial_array(sdict, keys,  **kwargs):
         else:
             merged_array = np.append(merged_array, array, axis=2)
     return merged_array, original_dims
+
+#stuff for training autoencoder 
+def nan_mse_loss(ypred, y):
+    #ignores loss in the autoencoder for missing values
+    y = torch.flatten(y)
+    ypred = torch.flatten(ypred)
+    mask = torch.isnan(y)
+    out = (ypred[~mask] - y[~mask])**2
+    loss = out.mean()
+    return loss
+
+def np_to_torch(x):
+#     x = x.reshape((x.shape[0],-1))
+    x = torch.tensor(x).float()
+    return x
+    
+def train_autoencoder(autoencoder, x, model_path, 
+                      lr=.001,
+                      patience = 200,
+                      plot_hist = False,
+                      epochs = 10000,
+                     ):
+    optimizer = torch.optim.Adam(autoencoder.parameters(), lr = lr)
+    #this is the one that saves the best model during training
+    early_stopping = EarlyStopping(patience = patience, path=model_path)
+    losses = []
+    for epoch in range(epochs):
+        optimizer.zero_grad()
+        y_pred = autoencoder(x)
+        
+        loss = nan_mse_loss(y_pred, x)
+        loss.backward()
+        losses.append(loss.item())
+        optimizer.step()
+        torch.cuda.empty_cache()
+        early_stopping(loss.item(), autoencoder)
+        if early_stopping.early_stop:
+            print('training stopped on epoch', epoch - patience)
+            break
+    autoencoder.load_state_dict(torch.load(model_path))
+    if plot_hist:
+        print('initial_loss', nan_mse_loss(torch.zeros(x.shape),x))
+        print('best loss', early_stopping.best_score)
+        plt.plot(early_stopping.get_loss_history())
+    return autoencoder
+    
+def get_trained_autoencoder(x, 
+                      train = False,
+                      model_path = None, 
+                      **kwargs): 
+    #takes x np array in form n_items x (dims)
+    #assumes missing values are nan and ignores them in training
+    #saves model to model_path or default resources dir as autoencoder_<nitems>.pt
+    autoencoder = OrganAutoEncoder(x.reshape((x.shape[0],-1)).shape[-1])
+    
+    if model_path is None:
+        model_path = pytorch_model_name(x)
+        print("autoencoder path not set with original info needed for recreation")
+    if not train:
+        try: 
+            autoencoder.load_state_dict(torch.load(model_path))
+        except:
+            print("issue loading pretrained autoencoder",model_path,'training...')
+            autoencoder = train_autoencoder(autoencoder, x, model_path, **kwargs)
+    else:
+        autoencoder = train_autoencoder(autoencoder, x, model_path, **kwargs)
+        
+    autoencoder = autoencoder.eval()
+    return autoencoder
+
+def pytorch_model_name(x, keys = None):
+    name = Const.pytorch_model_dir + 'autoencoder' 
+    if keys is not None:
+        name += "_" + '_'.join(keys) 
+    else:
+        name += "_nokeys"
+    name += '_' + 'x'.join([str(s) for s in x.shape])
+    name += '.pt'
+    return name
+
+def autoencode(sdata, keys, **kwargs):
+    #convert things into a normalized float that works with torch
+    x_original, x_dims = multikey_merged_spatial_array(sdata,keys)
+    normalizer = Normalizer(x_original)
+    x = normalizer.transform(x_original)
+    x = torch.tensor(x).float()
+    
+    #make model name encode original settings to prevent confusion
+    model_path = pytorch_model_name(x, keys)
+    autoencoder = get_trained_autoencoder(x, model_path = model_path, **kwargs)
+    #check the final loss
+    x_encoded = autoencoder(x)
+    print(nan_mse_loss(x_encoded,x))
+    
+    x_out = x_encoded.cpu().detach().numpy()
+    x_out = normalizer.unnormalize(x_out)
+    out_arrays = {}
+    curr_pos = 0
+    for key, dim in x_dims:
+        next_pos = curr_pos + dim
+        x_key = x_out[:,:,curr_pos: next_pos]
+        x0_key = x_original[:,:, curr_pos: next_pos]
+        curr_pos = next_pos
+        out_arrays[key] = {'denoised': x_key, 'original': x0_key}
+    return out_arrays
+
+def numpy_nan_reconstruction_error(ypred, y):
+    y_mask = np.ma.masked_invalid(y)
+    ypred_mask = np.ma.array(ypred, mask = y_mask.mask)
+    out = np.abs(y_mask - ypred_mask)/np.abs(y_mask)
+    return 100*out.mean()

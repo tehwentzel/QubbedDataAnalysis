@@ -5,8 +5,9 @@ import simplejson
 from re import findall, match, sub
 import Utils
 from glob import glob
+from abc import ABC, abstractmethod
 
-class OrganData():
+class OrganData(ABC):
     
     additional_renames = {
         'Lt_Ant_Digastric_M': 'Musc_Digastric_LA',
@@ -68,13 +69,12 @@ class OrganData():
 #         'Eye',
         'Glnd_Submand'
     ]
-
-    def __init__(
-        self, 
-        organ_info_json = None, 
-        only_default_organs = True, 
-        data_type = np.float16
-    ):
+    
+    def __init__(self, 
+                 organ_info_json = None,
+                 only_default_organs = True,
+                 data_type = np.float16
+                ):
         self.default_organs = only_default_organs
         self.data_type = data_type
         organ_info_json = Const.organ_info_json if organ_info_json is None else organ_info_json
@@ -92,7 +92,7 @@ class OrganData():
             self.organ_dict = organ_dict
         self.organ_list = self.get_organ_list()
         self.num_organs = len(self.organ_list)
-    
+        
     def get_organ_list(self, skip_gtv = True):
         olist = []
         for organ,odata in self.organ_dict.items():
@@ -104,20 +104,6 @@ class OrganData():
             if len(pmods) < 1:
                 olist.append(organ)
         return sorted(olist)
-            
-    def oar_rename_dict(self):
-        #gives a dict for renaming organs in the old CAMPRt cohort with the new organ names
-        rename_dict = OrganData.additional_renames
-        for organ,odata in self.organ_dict.items():
-            for alt_name in odata['alt_names']:
-                pm = odata['positional_modifiers']
-                if len(pm) < 1:
-                    rename_dict[alt_name] = organ
-                else:
-                    for modifier in pm:
-                        alt_key = self.standardize_position_modifier(alt_name, modifier)
-                        rename_dict[alt_key] = organ + modifier
-        return rename_dict
     
     def standardize_position_modifier(self, old_basename, new_modifier):
         #just reconciling the way the positions are added between cohorts
@@ -132,6 +118,80 @@ class OrganData():
         elif('lt_' in lmod):
             new_name = new_name + '_L'
         return new_name
+
+    def oar_rename_dict(self):
+        #gives a dict for renaming organs in the old CAMPRt cohort with the new organ names
+        rename_dict = OrganData.additional_renames
+        for organ,odata in self.organ_dict.items():
+            for alt_name in odata['alt_names']:
+                pm = odata['positional_modifiers']
+                if len(pm) < 1:
+                    rename_dict[alt_name] = organ
+                else:
+                    for modifier in pm:
+                        alt_key = self.standardize_position_modifier(alt_name, modifier)
+                        rename_dict[alt_key] = organ + modifier
+        return rename_dict
+    
+    def format_gtvs(self, mdict):
+        gtvs = [(k,v) for k,v in mdict.items() if 'GTV' in k]
+        if len(gtvs) < 1:
+            return mdict
+        oars = rename_gtvs(gtvs)
+        for oname, odata in mdict.items():
+            if 'GTV' in oname:
+                continue
+            oars[oname] = odata
+        return oars
+    
+    def process_patient(self, dist_file,dose_file):
+        dose_dict= self.process_dose_file(dose_file)
+        merged_dict = self.process_distance_file(dist_file, dose_dict)
+        merged_dict= self.format_gtvs(merged_dict)
+        return merged_dict
+    
+    def is_valid_patient(self,p_entry):
+        #code for cleaning up patients that are just no good
+        has_gtv = False
+        for oar in p_entry.keys():
+            if 'GTV' in oar:
+                has_gtv = True
+                return has_gtv #delete this line if I want more stuff here
+            else:
+                has_gtv = False
+        return has_gtv
+    
+    def process_cohort_spatial_dict(self, spatial_files):
+        patients = {}
+        invalid_ids = []
+        for pid, entry in spatial_files.items():
+            try:
+                p_entry = self.process_patient(entry['distances'], entry['doses'])
+                if(self.is_valid_patient(p_entry)):
+                    patients[pid] = p_entry
+                else:
+                    invalid_ids.append(pid)
+            except Exception as e:
+                print('error reading patient', pid)
+                print(e)
+        if len(invalid_ids) > 1:
+            print("invalid patients", invalid_ids)
+        return {'organs': self.organ_list, 'patients': patients}
+    
+    @abstractmethod
+    def read_spatial_file(self, file):
+        pass
+   
+
+    @abstractmethod
+    def process_distance_file(self,file, centroid_dict, default_value = np.nan):
+        pass
+    
+    @abstractmethod
+    def process_dose_file(self, dose_file, default_value = np.nan):
+        pass
+    
+class CamprtOrganData(OrganData):
     
     def reconcile_organ_names(self, organ_dist_df, columns = None):
         #basically tries to standardize organ names accross datasets
@@ -145,13 +205,12 @@ class OrganData():
         #placeholder
         return organ_df.rename(OrganData.file_header_renames,axis=1)
     
-    
     def read_spatial_file(self, file):
         df = pd.read_csv(file)
         df = self.reconcile_organ_names(df)
         df = self.reconcile_cohort_columns(df)
         return df
-
+    
     def format_patient_distances(self, pdist_file):
         #read the file with the centroid info, and format it for the data
         #currently outputs a dict of {(organ1, organ2): distance} where organ1, organ2 are sorted alphaetically
@@ -233,39 +292,6 @@ class OrganData():
             oars[oname] = odata
         return oars
     
-    def process_patient(self, dist_file,dose_file):
-        dose_dict= self.process_dose_file(dose_file)
-        merged_dict = self.process_distance_file(dist_file, dose_dict)
-        merged_dict= self.format_gtvs(merged_dict)
-        return merged_dict
-    
-    def is_valid_patient(self,p_entry):
-        #code for cleaning up patients that are just no good
-        has_gtv = False
-        for oar in p_entry.keys():
-            if 'GTV' in oar:
-                has_gtv = True
-                return has_gtv #delete this line if I want more stuff here
-            else:
-                has_gtv = False
-        return has_gtv
-                
-    def process_cohort_spatial_dict(self, spatial_files):
-        patients = {}
-        invalid_ids = []
-        for pid, entry in spatial_files.items():
-            try:
-                p_entry = self.process_patient(entry['distances'], entry['doses'])
-                if(self.is_valid_patient(p_entry)):
-                    patients[pid] = p_entry
-                else:
-                    invalid_ids.append(pid)
-            except Exception as e:
-                print('error reading patient', pid)
-                print(e)
-        if len(invalid_ids) > 1:
-            print("invalid patients", invalid_ids)
-        return {'organs': self.organ_list, 'patients': patients}
     
 def rename_gtvs(gtvlist):
     #rename gtvs for a single patient
