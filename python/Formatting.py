@@ -26,12 +26,12 @@ class DataInputer():
                 keys = keys.union(k)
         return keys
         
-    def get_formatted_arrays(self, pdata):
+    def get_formatted_arrays(self, pdata,retrain=False):
         if self.keys is None:
             keys = self.get_keys(pdata)
         else:
             keys = self.keys
-        data = autoencode(pdata, keys)
+        data = autoencode(pdata, keys,train=retrain)
         self.save_autoencoder_error_report(data)
         ddict = {}
         for k in keys:
@@ -64,17 +64,19 @@ class DataInputer():
         else:
             print("no autoencoder has been run")
             
-    def inpute_spatial_array(self, autoencoded_dict, key):
+    def inpute_spatial_array(self, autoencoded_dict, key,clip=True):
         #quick wrapper
         d = autoencoded_dict
-        return self.inpute_nan(d[key]['original'].copy(), d[key]['denoised'].copy()) 
+        return self.inpute_nan(d[key]['original'].copy(), d[key]['denoised'].copy(),clip) 
     
-    def inpute_nan(self, original, denoised):
+    def inpute_nan(self, original, denoised,clip=True):
         alpha = self.denoise_alpha
         out = ((1-alpha)*original) + (alpha*denoised)
         nan_args = np.argwhere(np.isnan(original))
         if nan_args.shape[0] > 0:
             out[nan_args] = denoised[nan_args]
+        if clip:
+            out = out.clip(min=original.min(),max=original.max())
         return out
 
 #stuff for converting from a json format to formatted arrays for each value

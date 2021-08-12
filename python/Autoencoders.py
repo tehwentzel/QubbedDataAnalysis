@@ -42,7 +42,7 @@ class OrganAutoEncoder(nn.Module):
             layers.append(nn.ReLU())
         penultimate_dropout = nn.Dropout(p=self.penult_dropout)
         final = nn.Linear(self.hidden_dims[-1], self.input_size)
-        final_activation = nn.LeakyReLU(.2)
+        final_activation = nn.ReLU()
         layers.append(final)
 #         layers.append(final_activation)
         return nn.Sequential(*layers)
