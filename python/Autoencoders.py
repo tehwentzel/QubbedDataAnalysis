@@ -16,7 +16,7 @@ class OrganAutoEncoder(nn.Module):
                 penult_dropout = .1
                 ):
         
-        super(OrganAutoEncoder,self).__init__()
+        super().__init__()
             
         self.input_size = input_size
         self.init_dropout = init_dropout

@@ -29,8 +29,10 @@ class EarlyStopping:
         self.path = path
         
     def __call__(self, val_loss, model):
-
-        score = -val_loss
+        if np.isnan(val_loss):
+            score = -float('inf')
+        else:
+            score = -val_loss
         self.val_loss_history.append(val_loss)
         if self.best_score is None:
             self.best_score = score

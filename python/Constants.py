@@ -4,7 +4,7 @@ class Const():
     resource_dir = "../resources/" #public data (can be on github)
     pytorch_model_dir = resource_dir + "pytorch_models/"
     
-    mdasi_file = data_dir + "MDASI_72021.xlsx"
+    mdasi_folder = data_dir + "MDASI/"
     camprt_dir = data_dir + "CAMPRT_Centroids/"
     
     organ_info_json = resource_dir + "OrganInfo.json"
@@ -57,3 +57,11 @@ class Const():
          'Rt_Anterior_Seg_Eyeball',
          'Lower_Lip',
          'Upper_Lip']
+    
+    symptoms = ["pain", "fatigue", "nausea", "sleep", 
+                "distress", "sob", "memory", "appetite", 
+                "drowsy", "drymouth", "sad", "vomit", "numb", 
+                "mucus", "swallow", "choke", "voice", "skin", 
+                "constipation", "taste", "mucositis", "teeth", 
+                "activity", "mood", "work", "relations", "walking",
+                "enjoy"]
