@@ -60,13 +60,13 @@ class OrganData(ABC):
         'SpinalCord_Cerv',
         'Larynx_SG',
         'Cartlg_Thyroid',
-#         'Lens',
+        'Lens',
         'Brachial_Plex',
         'Pterygoid_Lat',
         'Bone_Mastoid',
         'Pterygoid_Med',
         'Parotid',
-#         'Eye',
+        'Eye',
         'Glnd_Submand'
     ]
     

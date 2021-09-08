@@ -1,7 +1,55 @@
 
 export const API_URL = 'http://127.0.0.1:8000/';//this is a bad way to do this.  Whatever the flask server is set to
 
-const DATA_FOLDER = '../../../data/';
-export const ORGAN_JSON = DATA_FOLDER + 'patient_organ_data.json';
-export const CAMPRT_JSON = 'DATA_FOLDER' + 'patient_data.json';
-export const MDASI_JSON = DATA_FOLDER + 'MDASI/';
+export const ORGAN_NAME_MAP = {
+    "Cricoid": "Cricoid_cartilage",
+    'Musc_Digastric_LA': 'Lt_Ant_Digastric_M',
+    'Musc_Digastric_RA': 'Rt_Ant_Digastric_M',
+    'Bone_Hyoid': 'Hyoid_bone',
+    'Bone_Mastoid_R': 'Rt_Mastoid',
+    'Bone_Mastoid_L': 'Lt_Mastoid',
+    'Brachial_Plex_R': 'Rt_Brachial_Plexus',
+    'Brachial_Plex_L': 'Lt_Brachial_Plexus',
+    'Cartlg_Thyroid': 'Thyroid_cartilage',
+    'Cricoid': 'Cricoid_cartilage',
+    'Cricopharyngeus': 'Cricopharyngeal_Muscle',
+    'Esophagus_U': 'Esophagus',
+    'Eye_R': 'Rt_Posterior_Seg_Eyeball',
+    'Eye_L': 'Lt_Posterior_Seg_Eyeball',
+    'Glnd_Submand_R': 'Rt_Submandibular_Gland',
+    'Glnd_Submand_L': 'Lt_Submandibular_Gland',
+    'Hardpalate': 'Hard_Palate',
+    'Larynx_SG': 'Supraglottic_Larynx',
+    'Lens_R': 'Rt_Anterior_Seg_Eyeball',
+    'Lens_L': 'Lt_Anterior_Seg_Eyeball',
+    'Lips_Lower': 'Lower_Lip',
+    'Lips_Upper': 'Upper_Lip',
+    'Musc_Constrict_I': 'IPC',
+    'Musc_Constrict_M': 'MPC',
+    'Musc_Constrict_S': 'SPC',
+    'Musc_Geniogloss': 'Genioglossus_M',
+    'Musc_Masseter_R': 'Rt_Masseter_M',
+    'Musc_Masseter_L': 'Lt_Masseter_M',
+    'Musc_Sclmast_R': 'Rt_Sternocleidomastoid_M',
+    'Musc_Sclmast_L': 'Lt_Sternocleidomastoid_M',
+    'Oral_Cavity': 'Extended_Oral_Cavity',
+    'Palate_Soft': 'Soft_Palate',
+    'Parotid_R': 'Rt_Parotid_Gland',
+    'Parotid_L': 'Lt_Parotid_Gland',
+    'Pterygoid_Lat_R': 'Rt_Lateral_Pterygoid_M',
+    'Pterygoid_Lat_L': 'Lt_Lateral_Pterygoid_M',
+    'Pterygoid_Med_R': 'Rt_Medial_Pterygoid_M',
+    'Pterygoid_Med_L': 'Lt_Medial_Pterygoid_M',
+    'SpinalCord_Cerv': 'Spinal_Cord',
+}
+
+export const ORGAN_RENDER_ORDER = {
+    "Tongue": -10,
+    "Genioglossus_M": -10,
+    "Lt_Ant_Digastric_M": -10,
+    "Rt_Ant_Digastric_M": -10,
+    "Mylogeniohyoid_M": -10,
+    "Extended_Oral_Cavity": -9,
+    "Larynx": -10,
+    "Suppraglottic_Larynx": -9
+}

@@ -227,8 +227,8 @@
         },
     "Tongue": {
         "description": "",
-        "alt_names": ["swallow","sores"],
-        "related_symptoms": [],
+        "alt_names": [],
+        "related_symptoms": ["swallow","sores"],
         "region": "NA",
         "tissue_type": "",
         "positional_modifiers": [],

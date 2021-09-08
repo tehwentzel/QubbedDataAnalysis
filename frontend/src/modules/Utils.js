@@ -3,47 +3,15 @@ import * as constants from './Constants';
 export default class Utils {
 
     static nameDict = {
-        cvap: 'Population',
-        urm_pct: 'Black/Hispanic (%)',
-        female_pct: 'Female (%)',
-        net_dem_president_votes: 'Net Dem. Votes (2016)',
-        is_blue: 'Voted Democrat (2016)',
-        median_hh_income: 'Median Income ($)',
-        lesscollege_pct: 'Education < Some College (%)',
-        lesshs_pct: 'Education < HighSchool (%)',
-        repgov: 'Net Votes for Republican Governer',
-        clf_unemploy_pct: 'Unemployment (%)',
-        mask_score: 'Self-Reported Mask Use (1-5)',
-        rural_urban_cc: 'Rural-Urban Continum Code',
-        cases_per_capita: 'Covid Cases (%)',
-        cases_per_captia_discrete: 'Covid Cases (Rank)',
-        deaths_per_capita: 'Covid Deaths (%)',
-        retweet_count: '# Retweets',
-        retweet_count_discrete: 'Retweets (Rank)',
-        is_vivid: 'Vivid',
-        tweetSentiment: 'sentiment',
-        qualityRatio: 'vividness',
-        tweetFrameVote: 'pol. party',
-        againstSah: 'RTs (-SAH)',
-        forSah: 'RTs (+SAH)',
-        positiveSentiment: 'Pos.',
-        negativeSentiment: 'Neg.',
-        neutralSentiment: 'None',
-        blueState: 'Dem.',
-        redState: 'Rep.',
-        vividQuality: 'Vivid',
-        genericQuality: 'Generic'
+        test: 'fomratTest'
     }
 
-    static getVarDisplayName(varName, valueLabel){
+    static getVarDisplayName(varName){
         var name;
         if(varName in this.nameDict){
             name = this.nameDict[varName]
         } else{
             name = this.unPythonCase(varName);
-        }
-        if(valueLabel !== undefined){
-            name = (valueLabel > 0)? name:'Not '+ name;
         }
         return name;
     }
@@ -162,6 +130,18 @@ export default class Utils {
         }
     }
 
+    static max(a,b){
+        return (a >= b)? a:b;
+    }
+
+    static isTumor(organName){
+        var gtvRegex = RegExp('GTV*');
+        return gtvRegex.test(organName);
+    }
+    static min(a,b){
+        return (a <= b)? a:b;
+    }
+
     static unPythonCase(string){
         //should convert snake_case to Snake Case.  untested. based on unCamelCase
         try{
@@ -218,40 +198,31 @@ export default class Utils {
         return vals
     }
 
-    static moveTTip(tTip, event){
+    static moveTTip(tTip, tipX, tipY){
         var tipBBox = tTip.node().getBoundingClientRect();
-        var tipX = event.pageX + 10;
-        var tipY = event.pageY + 10;
         if(tipBBox.width + tipX > window.innerWidth){
-            tipX = event.pageX - 10 - tipBBox.width;
+            tipX = tipX - 10 - tipBBox.width;
         }
         if(tipBBox.height + tipY > window.innerHeight){
-            tipY = event.pageY - 10 - tipBBox.height;
+            tipY = tipY- 10 - tipBBox.height;
         }
         tTip.style('left', tipX + 'px')
             .style('top', tipY + 'px')
-            .style('visibility', 'visible');
+            .style('visibility', 'visible')
+            .style('z-index', 1000);
+
+        console.log("Moving ttip", tipX, tipY)
     }
+
+    static moveTTipEvent(tTip, event){
+        var tipX = event.pageX + 10;
+        var tipY = event.pageY + 10;
+        this.moveTTips(tTip,tipX,tipY);
+    }
+
     
     static hideTTip(tTip){
         tTip.style('visibility', 'hidden')
     }
 
-    static formatText(text){
-        if(text.includes('cases')){
-            return (text.includes('per_capita')? 'Cases/Capita':'Cases');
-        } 
-        if(text.includes('deaths')){
-            return (text.includes('per_capita')? 'Deaths/Capita':'Deaths');
-        }
-        if(text.includes('retweet') || text.includes('rt_discrete')){
-            return 'retweets';
-        }
-        if(text === 'cvap'){
-            return 'Population'
-        }
-        if(text === 'is_blue'){
-            return 'Voted Dem in 2016 (y/n)'
-        }
-    }
 }

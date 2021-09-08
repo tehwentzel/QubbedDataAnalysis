@@ -2,6 +2,7 @@
   text-align: center;
   height: 95vh;
   width: 100vw;
+  margin: 0px;
 }
 
 .row{
@@ -11,13 +12,14 @@
 }
 
 #topRow{
-  height: 50vh;
-  background-color: rgba(0,0,250,.2);
+  height: 100%;
 }
 
-#bottomRow{
-  height: 50vh;
-  background-color: rgba(250,0,0,.2);
+
+.visComponent{
+  height: 100%;
+  width: 100%;
+  margin: 0px;
 }
 
 .fillSpace{
@@ -47,6 +49,18 @@
   padding: 0px!important;
 }
 
+#cell1{
+  background-color: rgba(250,0,0,.2);
+}
+
+#cell2{
+  background-color: rgba(0,0,250,.2);
+}
+
+.patientPlot{
+  height: 20em;
+  width: 16em;
+}
 
 .tooltip {	
   position: absolute;
