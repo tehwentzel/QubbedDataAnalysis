@@ -16,7 +16,7 @@ function getMaterialArray(renderer){
     const textureLoader = new THREE.TextureLoader();
     var materialArray = [];
     const getMaterial = (s) => {
-        let t = textureLoader.load('textures' + String(s) + '.png');
+        let t = textureLoader.load('textures/' + String(s) + '.png');
         if(renderer !== undefined){
             t.anisotropy = renderer.getMaxAnisotropy();
         }
@@ -125,9 +125,11 @@ export default function OrganView(props){
                     scalers.volume[organ] = scale;
                 }
             }else{
+                //this is what determins the color ranges that goes ino 
+                let range = [.5,1]
                 let scale = d3.scaleLinear()
-                    .domain([ex.min, ex.max])
-                    .range([0.2,1]);
+                    .domain([0, ex.max])
+                    .range([0,1]);
                     scalers[key] = scale;
             }
         }
@@ -152,6 +154,8 @@ export default function OrganView(props){
             }
             if(model !== undefined){
                 return model.clone().scale(scale,scale,scale);
+            } else{
+                console.log("missing organ model for", organName);
             }
             return;
         }

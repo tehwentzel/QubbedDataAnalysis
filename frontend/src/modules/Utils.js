@@ -210,8 +210,6 @@ export default class Utils {
             .style('top', tipY + 'px')
             .style('visibility', 'visible')
             .style('z-index', 1000);
-
-        console.log("Moving ttip", tipX, tipY)
     }
 
     static moveTTipEvent(tTip, event){

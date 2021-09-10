@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import { Scene, StereoCamera } from 'three';
 import Utils from '../modules/Utils.js';
 import useSVGCanvas from "./useSVGCanvas.js";
@@ -76,10 +76,13 @@ export default function PatientPlot3D(props){
     const [scene, setScene] = useState();
     const [controls, setControls] = useState();
     const [tTip, setTTip] = useState();
+    const [currBrushedOrgan,setCurrBrushedOrgan] = useState('');
+    const [onMouseMove, setOnMouseMove] = useState();
     // const [svg, height,width, tTip] = useSVGCanvas(mountRef);
 
-    const outlineSize = 5.5;
-    const nodeSize = 4;
+    const outlineSize = 4;
+    const brushedOrganOpacity = Utils.min(1.5*props.organMeshOpacity, 1);
+    const nodeSize = 2;
     const cameraDist = 500;
     const nodeGeometry = new THREE.SphereGeometry(nodeSize, 16);
 	const outlineGeometry = new THREE.SphereGeometry(outlineSize, 16);
@@ -90,9 +93,128 @@ export default function PatientPlot3D(props){
     const nodeColor = new THREE.Color().setHex(0xa0a0a0);
     const nodeBrushedColor = new THREE.Color().setHex(0xffffff);
     const cameraSyncInterval = 50;//how quickly (miliseconds?) the cameras update to sync across views
+    //materials for nodes at the centroids
+    const nodeMaterial = new THREE.MeshStandardMaterial({
+        color: nodeColor,
+        roughness: 0.5,
+        metalness: 0,
+        flatShading: true,
+    });
 
-    var currBrushedOrgan;
-    
+    const outlineMaterial = new THREE.MeshBasicMaterial({
+        color: 0x3d3d3d,
+        side: THREE.BackSide
+    });
+
+    const getOrganColor = (oName, od,rescalers)=>{
+        const key = 'mean_dose';
+        let val = od[key];
+        // console.log(val,rescalers[key]);
+        if(!val){
+            return "black";
+        }
+        else{
+            let scaler = rescalers[key];
+            let scaledVal = scaler(val);
+            if(Utils.isTumor(oName)){
+                return d3.interpolateGreys(scaledVal**.5).toString();
+            }
+            return d3.interpolateReds(scaledVal).toString();
+        }
+    }
+
+    const getOpacity = function(organName, organData, opacity){
+        return Utils.isTumor(organName)? tumorOpacity: opacity;
+    }
+
+    const unbrush = () =>{
+        if(!props.pData || !scene){ return; }
+        for(let [organName, organData] of Object.entries(props.pData)){
+            if(organName == props.brushedOrganName){continue;}
+            unbrushOrgan(organName);
+        }
+    }
+
+    const unbrushOrgan = function(organName){
+        if(!scene){ return; }
+        //brush organs on highlight
+        try{
+            let bMesh = scene.getObjectByName(organName+'Model');
+            let bNodeOutline = scene.getObjectByName(organName+'NodeOutline');
+            bMesh.material.opacity = getOpacity(organName,
+                props.pData[organName],
+                props.organMeshOpacity);
+            bNodeOutline.material.color = new THREE.Color(0x3d3d3d);
+
+            bNodeOutline.material.needsUpdate = true;
+            bMesh.material.needsUpdate = true;
+        } catch{}
+    }
+
+    const brush = function(organName){
+        if(!scene || !organName){return;}
+        try{
+            let mesh = scene.getObjectByName(organName+'Model');
+            let nodeOutline = scene.getObjectByName(organName+'NodeOutline');
+            let node = scene.getObjectByName(organName+'Node');
+            mesh.material.opacity = brushedOrganOpacity;
+            nodeOutline.material.color.set(new THREE.Color('white'));
+
+            mesh.needsUpdate = true;
+            nodeOutline.needsUpdate = true;
+        } catch{}
+    }
+
+    const handleMouseDown = function(){
+        //when you click on the item, make this the camera you sync to
+        if(camera !== undefined){
+            props.setMainCamera(camera);
+        }
+    }
+
+    const handleMouseMove = (e)=>{
+        //track mousemovement?
+        if(width <= 0 || height <= 0){return;}
+        if(e.target){
+            //I need a sperate thing for raycasting according to stack exchange?
+            mouseVector.x = (e.nativeEvent.offsetX / width) * 2 - 1;
+            mouseVector.y = -(e.nativeEvent.offsetY / height) * 2 + 1;
+            mouse.x = e.nativeEvent.clientX;
+            mouse.y = e.nativeEvent.clientY;
+
+            if(scene){
+                props.raycaster.setFromCamera(mouseVector,camera);
+                var intersects = props.raycaster.intersectObjects(scene.children);
+                var intersected = false;
+                if(intersects.length >= 1){
+                    for(let i of intersects){
+                        let obj = i.object;
+                        if(obj.userData.type === "organNode"){
+                            Utils.moveTTip(tTip, mouse.x, mouse.y);
+                            let oName = obj.userData.organName;
+                            let oData = props.pData[oName]
+                            let tipText = obj.userData.organName + '</br>' 
+                                + 'Mean Dose (Gy): ' + oData.mean_dose
+                                + '</br> Volume (cc): ' + oData.volume;
+                            tTip.html(tipText);
+                            intersected = true;
+                            if(props.brushedOrganName != obj.userData.organName){
+                                props.setBrushedOrganName(obj.userData.organName);
+                            }
+                            break;
+                        }
+                    }
+                }
+                if(!intersected){
+                    Utils.hideTTip(tTip);
+                    if(props.brushedOrganName !== ''){
+                        props.setBrushedOrganName('');
+                    }
+                } 
+            }
+        }
+    };
+
     useEffect( () => {
         //wait for mounting to calculate parent container size
         if(!mountRef.current){ return; }
@@ -110,6 +232,7 @@ export default function PatientPlot3D(props){
         setWidth(w);
         setTTip(tip);
     },[mountRef.current]);
+
     
     useEffect( () => {
         //setup camera
@@ -140,7 +263,7 @@ export default function PatientPlot3D(props){
 
         setRenderer(renderer);
         setCamera(camera);
-    },[height, width])
+    },[height, width]);
 
     useEffect(() => {
 
@@ -156,40 +279,7 @@ export default function PatientPlot3D(props){
         controls.maxDistance = 5000;
         controls.enablePan = false;
         controls.enableZoom = false;
-        
-        //materials for nodes at the centroids
-        const nodeMaterial = new THREE.MeshStandardMaterial({
-            color: nodeColor,
-            roughness: 0.5,
-            metalness: 0,
-            flatShading: true,
-        });
-    
-        const outlineMaterial = new THREE.MeshBasicMaterial({
-            color: 0x3d3d3d,
-            side: THREE.BackSide
-        });
 
-        const getOrganColor = function(organName, organData){
-            const key = 'mean_dose';
-            let val = organData[key];
-            // console.log(val,props.rescalers[key]);
-            if(!val){
-                return "black";
-            }
-            else{
-                let scaler = props.rescalers[key];
-                let scaledVal = scaler(val);
-                if(Utils.isTumor(organName)){
-                    return d3.interpolateGreys(scaledVal**.5).toString();
-                }
-                return d3.interpolateReds(scaledVal).toString();
-            }
-        }
-
-        const getOpacity = function(organName, organData){
-            return Utils.isTumor(organName)? tumorOpacity: props.organMeshOpacity;
-        }
         //calculate transform to center the organs around the origin and orient correctly
         var transformCentroid = getCentroidTransform(props.pData);
 
@@ -212,11 +302,10 @@ export default function PatientPlot3D(props){
 
         function makeOrganModel(organName, organData){
             let [x,y,z] = transformCentroid(organData.centroids);
-
-            let nodeColor = getOrganColor(organName, organData);
+            let nodeColor = getOrganColor(organName, organData,props.rescalers);
             let organMaterial = new THREE.MeshBasicMaterial({
                 color: new THREE.Color(nodeColor),
-                opacity: getOpacity(organName),
+                opacity: getOpacity(organName,organData,props.organMeshOpacity),
                 transparent: true,
                 depthTest: true,
                 depthWrite: true,
@@ -231,7 +320,6 @@ export default function PatientPlot3D(props){
             }
             let scaled;
             if(Utils.isTumor(organName)){
-                console.log('rescalers',props.rescalers)
                 let volScale = props.rescalers['volume']['GTV'];
                 let volume = organData['volume'];
                 if(volume){
@@ -298,7 +386,13 @@ export default function PatientPlot3D(props){
           }
         }, cameraSyncInterval);
         return () => clearInterval(interval);
-      }, [renderer, scene, camera,props.mainCamera]);
+    }, [renderer, scene, camera,props.mainCamera]);
+
+    useEffect(() => {
+        unbrush();
+        brush(props.brushedOrganName);
+    },[props.brushedOrganName]);
+
 
     useEffect(() => {
         //main animate loop
@@ -319,66 +413,7 @@ export default function PatientPlot3D(props){
         }
     
         animate();
-    },[renderer, scene, camera,props.mainCamera]);
-
-    useEffect(() => {
-        if(!scene || !props.brushedOrganName){ return; }
-        if(props.brushedOrganName !== ''){
-            let bName = props.brushedOrganName;
-            let mesh = scene.getObjectByName(bName+'Model');
-            let nodeOutline = scene.getObjectByName(bName+'NodeOutline');
-            let node = scene.getObjectByName(bName+'Node');
-            console.log("brush", props.brushedOrganName,mesh,nodeOutline,node);
-        }
-    },[props.brushedOrganName]);
-
-    const handleMouseDown = function(){
-        //when you click on the item, make this the camera you sync to
-        if(camera !== undefined){
-            props.setMainCamera(camera);
-        }
-    }
-
-    const handleMouseMove = function(e){
-        //track mousemovement?
-        if(width <= 0 || height <= 0){return;}
-        if(e.target){
-            //I need a sperate thing for raycasting according to stack exchange?
-            mouseVector.x = (e.nativeEvent.offsetX / width) * 2 - 1;
-            mouseVector.y = -(e.nativeEvent.offsetY / height) * 2 + 1;
-            mouse.x = e.nativeEvent.clientX;
-            mouse.y = e.nativeEvent.clientY;
-
-            if(scene){
-                props.raycaster.setFromCamera(mouseVector,camera);
-                var intersects = props.raycaster.intersectObjects(scene.children);
-                var intersected = false;
-                if(intersects.length >= 1){
-                    for(let i of intersects){
-                        let obj = i.object;
-                        if(obj.userData.type === "organNode"){
-                            Utils.moveTTip(tTip, mouse.x, mouse.y);
-                            let oName = obj.userData.organName;
-                            let oData = props.pData[oName]
-                            let tipText = obj.userData.organName + '</br>' 
-                                + 'Mean Dose (Gy): ' + oData.mean_dose
-                                + '</br> Volume (cc): ' + oData.volume;
-                            tTip.html(tipText);
-                            intersected = true;
-                            if(props.brushedOrganName != obj.userData.organName){
-                                props.setBrushedOrganName(obj.userData.organName);
-                            }
-                            break;
-                        }
-                    }
-                }
-                if(!intersected){
-                    Utils.hideTTip(tTip);
-                    props.setBrushedOrganName('');
-                } 
-            }
-        }
-    }
+    },[renderer, scene, camera,props.mainCamera,props.brushedOrganName]);
 
     return (
         <div ref={mountRef} className={props.className} 

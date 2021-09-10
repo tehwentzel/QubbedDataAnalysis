@@ -41,6 +41,11 @@ export const ORGAN_NAME_MAP = {
     'Pterygoid_Med_R': 'Rt_Medial_Pterygoid_M',
     'Pterygoid_Med_L': 'Lt_Medial_Pterygoid_M',
     'SpinalCord_Cerv': 'Spinal_Cord',
+    'Brainstem': 'Brainstem',
+    'Larynx': 'Larynx',
+    'Tongue': 'Tongue',
+    'Mandible': 'Mandible',
+    'Glottic_Area': 'Glottic_Area',
 }
 
 export const ORGAN_RENDER_ORDER = {
