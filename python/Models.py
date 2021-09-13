@@ -19,7 +19,7 @@ class Similarity(ABC):
                  #if > 1, will try to use multithreading with max n_jobs processes
                  n_jobs = 1
                 ):
-        self.normalize = False
+        self.normalize = normalize
         self.update_progress = update_progress
         self.n_jobs = n_jobs
         self.x_items = 0
@@ -31,7 +31,7 @@ class Similarity(ABC):
         pass
     
     @abstractmethod
-    def fit_data(self, data_dict):
+    def fit_data(self, distances,volumes):
         #this is called before pairwise similary, store necessary data structures here
         #should include setting self.x_items to number of patients
         #data dict is like {key: formatted_array, key: formatted_array...}
@@ -45,12 +45,7 @@ class Similarity(ABC):
             update_str += ': ' + str(sim)
         #end = '\r' makes it replace the previous print out instead of appending a line
         print(update_str, end='\r')
-        
-    def normalize_similarity(self, sim_array):
-        #scale to between 0 and 1, giving self-similarity a slight advantage
-        sim_array = Utils.minmax_scale(sim_array)
-        return sim_array
-    
+
     def get_similarity_matrix_singlethread(self):
         x_items = self.x_items
         similarity_array = np.zeros((x_items, x_items))
@@ -89,8 +84,24 @@ class Similarity(ABC):
                         self.show_update(p1,p2,sim)
         return similarity_array
     
-    def get_similarity_matrix(self, data_dict, multithread = True):
-        self.fit_data(data_dict)
+    def condense_matrix(self, m):
+        #converts a similarity/distance matrix to condensed form
+        #for scipy stuff, it should be converted to a distance matrix first
+        pdist = []
+        for i in range(m.shape[0]):
+            for ii in range(i+1, m.shape[0]):
+                pdist.append(m[i,ii])
+        return np.array(pdist)
+    
+    def sim_to_dist(self,m):
+        m = (m - m.min())/(m.max() - m.min())
+        return 1-m
+    
+    def sim_to_pdist(self,sim):
+        return self.condense_matrix(self.sim_to_dist(sim))
+    
+    def get_similarity_matrix(self, distances, volumes, multithread = True, condensed = False):
+        self.fit_data(distances,volumes)
         assert(self.x_items > 1)
         if self.n_jobs > 1 and multithread:
             try:
@@ -100,11 +111,12 @@ class Similarity(ABC):
                 sim = self.get_similarity_matrix_singlethread()
         else:
             sim = self.get_similarity_matrix_singlethread()
-            
         sim += sim.transpose()
         if self.normalize:
-            sim = self.normalize_similarity(sim)
+            sim = .99*Utils.minmax_scale(sim)
         np.fill_diagonal(sim, 1)
+        if condensed:
+            return self.condense_matrix(sim)
         return sim
      
 class TssimSimilarity(Similarity):
@@ -133,9 +145,9 @@ class TssimSimilarity(Similarity):
             sims[i] = sim
         return np.nanmean(sims)
     
-    def fit_data(self, data_dict):
-        self.dists = data_dict['distances']
-        self.vols = data_dict['volume']
+    def fit_data(self, distances, volumes):
+        self.dists = distances#data_dict['distances']
+        self.vols = volumes#data_dict['volume']
         self.adjacency_list = self.get_adjacency_list(self.dists)
         self.x_items = self.dists.shape[0]
 

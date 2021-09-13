@@ -103,12 +103,15 @@ def patient_organs_to_list(p_entry, key, organ_list, default):
         p_list.append(values)
     return p_list
 
+def get_sorted_pids(sdict):
+    return sorted(sdict['patients'].keys())
+
 def get_spatial_oar_array(sdict, key):
     #return n_patients x n_organs x n_values (if not a single thing)
     #doesn't include gtv
     patients = sdict['patients']
     organ_list = sdict['organs']
-    pids = sorted(patients.keys())
+    pids = get_sorted_pids(sdict)
     val_list = []
     default = get_default_shape(patients, key)
     for idx, pid in enumerate(pids):
@@ -169,7 +172,7 @@ def merged_spatial_array(sdict, key, replace_nan = False, keep_third_dim = True,
     oar_array = get_spatial_oar_array(sdict, key)
     gtv_array = get_spatial_gtv_array(sdict, key, **kwargs)
     gtv_array =np.expand_dims(gtv_array,axis=1)
-    arr = np.append(gtv_array, oar_array, axis = 1)
+    arr = np.append(oar_array, gtv_array,axis = 1)
     if replace_nan:
         arr = np.nan_to_num(arr)
     #should be n_patients x (n_organs + gtv) x data_dims (nothing, 3 or n_organs)

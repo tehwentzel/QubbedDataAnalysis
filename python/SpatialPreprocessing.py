@@ -34,104 +34,17 @@ class OrganData(ABC):
     mean_dose_col = 'mean_dose'
     centroid_cols = ['x','y','z']
     
-    default_organs = [
-        '_GTVp',
-        '_GTVn',
-        'Brainstem',
-        'Oral_Cavity',
-        'Larynx',
-        'Musc_Masseter',
-        'Tongue',
-        'Musc_Sclmast',
-        'Cricoid',
-        'Cricopharyngeus',
-        'Esophagus_U',
-        'Musc_Geniogloss',
-        'Glottic_Area',
-        'Hardpalate',
-        'Bone_Hyoid',
-        'Lips_Lower',
-        'Lips_Upper',
-        'Mandible',
-        'Palate_Soft',
-        'Musc_Constrict_S',
-        'Musc_Constrict_M',
-        'Musc_Constrict_I',
-        'SpinalCord_Cerv',
-        'Larynx_SG',
-        'Cartlg_Thyroid',
-        'Lens',
-        'Brachial_Plex',
-        'Pterygoid_Lat',
-        'Bone_Mastoid',
-        'Pterygoid_Med',
-        'Parotid',
-        'Eye',
-        'Glnd_Submand'
-    ]
-    
     def __init__(self, 
                  organ_info_json = None,
-                 only_default_organs = True,
                  data_type = np.float16
                 ):
-        self.default_organs = only_default_organs
         self.data_type = data_type
-        organ_info_json = Const.organ_info_json if organ_info_json is None else organ_info_json
-        with open(Const.organ_info_json) as f:
-            organ_dict = simplejson.load(f)
-            
-        if only_default_organs:
-            defaults = set(OrganData.default_organs).intersection(set(organ_dict.keys()))
-            excluded = set(OrganData.default_organs) - set(organ_dict.keys())
-            if len(excluded) > 0:
-                print("organs not found in resource file", excluded)
-            defaults = sorted(defaults)
-            self.organ_dict = {o:organ_dict[o] for o in defaults}
-        else:
-            self.organ_dict = organ_dict
+        
         self.organ_list = self.get_organ_list()
         self.num_organs = len(self.organ_list)
         
     def get_organ_list(self, skip_gtv = True):
-        olist = []
-        for organ,odata in self.organ_dict.items():
-            if skip_gtv and odata['tissue_type'] == 'gtv':
-                continue
-            pmods = odata['positional_modifiers']
-            for pm in pmods:
-                olist.append(organ+pm)
-            if len(pmods) < 1:
-                olist.append(organ)
-        return sorted(olist)
-    
-    def standardize_position_modifier(self, old_basename, new_modifier):
-        #just reconciling the way the positions are added between cohorts
-        new_name = old_basename
-        lmod = new_modifier.lower()
-        if('_r' in lmod):
-            new_name = 'Rt_' + new_name
-        elif('_l' in lmod):
-            new_name = 'Lt_' + new_name
-        elif('rt_' in lmod):
-            new_name = new_name + '_R'
-        elif('lt_' in lmod):
-            new_name = new_name + '_L'
-        return new_name
-
-    def oar_rename_dict(self):
-        #gives a dict for renaming organs in the old CAMPRt cohort with the new organ names
-        rename_dict = OrganData.additional_renames
-        for organ,odata in self.organ_dict.items():
-            for alt_name in odata['alt_names']:
-                pm = odata['positional_modifiers']
-                if len(pm) < 1:
-                    rename_dict[alt_name] = organ
-                else:
-                    for modifier in pm:
-                        alt_key = self.standardize_position_modifier(alt_name, modifier)
-                        rename_dict[alt_key] = organ + modifier
-        return rename_dict
+        return Const.organ_list
     
     def format_gtvs(self, mdict):
         gtvs = [(k,v) for k,v in mdict.items() if 'GTV' in k]
@@ -199,7 +112,7 @@ class CamprtOrganData(OrganData):
             organ_dist_df = organ_dist_df[columns]
         #check that this works idk
         organ_dist_df.replace(to_replace = r'_*GTV.*N', value = '_GTVn', regex = True, inplace = True)
-        return organ_dist_df.replace(self.oar_rename_dict())
+        return organ_dist_df#.replace(self.oar_rename_dict())
     
     def reconcile_cohort_columns(self, organ_df):
         #placeholder

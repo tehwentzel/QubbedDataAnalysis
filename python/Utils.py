@@ -1,5 +1,6 @@
 import simplejson
 import numpy as np
+import datetime
 
 def iterable(obj):
     try:
@@ -44,8 +45,11 @@ def np_converter(obj):
         return round(float(obj),5)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
-    elif isinstance(obj, datetime.datetime):
+    elif isinstance(obj, np.bool_):
+        return bool(obj)
+    elif isinstance(obj, datetime.datetime) or isinstance(obj, datetime.time):
         return obj.__str__()
+    print('np_converter cant encode obj of type', obj,type(obj))
     return obj
     
 def np_dict_to_json(d,destination_file, nan_to_null = False):   

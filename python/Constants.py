@@ -11,8 +11,15 @@ class Const():
     symptom_info_json = resource_dir + "symptoms.json"
     organ_model_dir = resource_dir + 'models/'
     
+    #dict/python version will save as nan, otherwise np will be null for javascript
     processed_organ_json = data_dir + "patient_organ_data.json"
-    camprt_organs = ['Esophagus',
+    denoised_organ_json = data_dir + "patient_organ_data_denoised.json"
+    denoised_organ_array_dict = data_dir + 'patient_ddict.json'
+    
+    organ_similarity_results_json = data_dir + 'patient_organ_similarity.json'
+    symptom_similarity_results_json = data_dir + 'patient_symptom_similarity.json'
+    
+    organ_list = ['Esophagus',
          'Spinal_Cord',
          'Lt_Brachial_Plexus',
          'Rt_Brachial_Plexus',
@@ -56,7 +63,9 @@ class Const():
          'Lt_Anterior_Seg_Eyeball',
          'Rt_Anterior_Seg_Eyeball',
          'Lower_Lip',
-         'Upper_Lip']
+         'Upper_Lip',
+         'GLottic_Area',
+                 ]
     
     symptoms = ["pain", "fatigue", "nausea", "sleep", 
                 "distress", "sob", "memory", "appetite", 
