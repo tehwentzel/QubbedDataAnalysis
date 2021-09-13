@@ -15,6 +15,8 @@ function App() {
 
   const [organData, setOrganData] = useState();
   const [symptomData, setSymptomData] = useState();
+  const [organClusters, setOrganClusters] = useState();
+  const [symptomClusters, setSymptomClusters] = useState();
   const [selectedPatient, setSelectedPatient] = useState(3);
 
   const fetchOrganData = async() => {
@@ -24,15 +26,32 @@ function App() {
     setOrganData(response.data);
   }
 
+  const fetchOrganClusters = async() => {
+    const response = await api.getOrganClusterJson();
+    console.log('Organ Clusters Loaded');
+    console.log(response.data)
+    setOrganClusters(response.data);
+  }
+
   const fetchSymptomData = async() => {
     const response = await api.getSymptomJson();
     console.log('Symptom Data Loaded');
     setSymptomData(response.data);
   }
 
+  const fetchSymptomClusters = async() => {
+    const response = await api.getSymptomClusterJson();
+    console.log('MDASI Clusters Loaded');
+    console.log(response.data)
+    setSymptomClusters(response.data);
+  }
+
+
   useEffect(() => {
     fetchOrganData();
+    fetchOrganClusters();
     fetchSymptomData();
+    fetchSymptomClusters();
   },[])
   
   return (

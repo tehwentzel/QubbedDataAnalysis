@@ -13,8 +13,19 @@ export default class DataService {
 
     async getOrganJson(){
         try{
-            const oDataResponse = await this.api.get('/organ_values');
+            const oDataResponse = await this.api.get('/organ_values_denoised');
             console.log('organ data');
+            console.log(oDataResponse);
+            return oDataResponse;
+        } catch(error){
+            console.log(error)
+        }
+    }
+
+    async getOrganClusterJson(){
+        try{
+            const oDataResponse = await this.api.get('/organ_clusters');
+            console.log('organ clusters');
             console.log(oDataResponse);
             return oDataResponse;
         } catch(error){
@@ -26,6 +37,17 @@ export default class DataService {
         try{
             const sDataResponse = await await this.api.get('/mdasi');
             console.log('symptom data');
+            console.log(sDataResponse);
+            return sDataResponse;
+        } catch(error){
+            console.log(error)
+        }
+    }
+
+    async getSymptomClusterJson(){
+        try{
+            const sDataResponse = await await this.api.get('/symptom_clusters');
+            console.log('symptom clusters');
             console.log(sDataResponse);
             return sDataResponse;
         } catch(error){

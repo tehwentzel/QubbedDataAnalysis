@@ -49,7 +49,8 @@ export default function OrganView(props){
     const materialArray = getMaterialArray();
 
     useEffect(() => {
-        const organs = Object.values(constants.ORGAN_NAME_MAP);
+        if(!props.organData){return;}
+        const organs = props.organData.organs;
         var meshes = {};
         for(let organ of organs){
             loader.load('models/' + organ + '.vtk', (geometry) => {
@@ -59,7 +60,7 @@ export default function OrganView(props){
             });
         }
         setOrganModels(meshes);
-    },[]);
+    },[props.organData]);
 
     useEffect(() => {
         if(!canvasRef.current){ return; }

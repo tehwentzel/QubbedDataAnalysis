@@ -33,15 +33,15 @@ def get_denoised_organ_data():
     return responsify(odict)
 
 @app.route('/organ_clusters',methods=['GET'])
-def get_organ_data():
+def get_organ_clusters():
     odict = read_json('../data/patient_organ_similarity.json')
     print('organ similarity', odict.keys())
     return responsify(odict)
 
 @app.route('/symptom_clusters',methods=['GET'])
-def get_organ_data():
+def get_symtpom_clusters():
     sdict = read_json('../data/patient_symptom_similarity.json')
-    print('symptom_similarity',, sdict.keys())
+    print('symptom_similarity',sdict.keys())
     return responsify(sdict)
 
 @app.route('/mdasi',methods=['GET'])
