@@ -64,7 +64,7 @@ class Const():
          'Rt_Anterior_Seg_Eyeball',
          'Lower_Lip',
          'Upper_Lip',
-         'GLottic_Area',
+         'Glottic_Area',
                  ]
     
     symptoms = ["pain", "fatigue", "nausea", "sleep", 

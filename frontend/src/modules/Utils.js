@@ -136,7 +136,7 @@ export default class Utils {
 
     static isTumor(organName){
         var gtvRegex = RegExp('GTV*');
-        return gtvRegex.test(organName);
+        return gtvRegex.test(organName.toUpperCase());
     }
     static min(a,b){
         return (a <= b)? a:b;

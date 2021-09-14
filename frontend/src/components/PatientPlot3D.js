@@ -19,6 +19,7 @@ function getRenderer(){
 }
 
 function getRenderOrder(organName){
+    if(Utils.isTumor(organName)){ return -10; }
     let order = constants.ORGAN_RENDER_ORDER[constants.ORGAN_NAME_MAP[organName]];
     if(order === undefined){
         order = constants.ORGAN_RENDER_ORDER[organName];
@@ -28,23 +29,26 @@ function getRenderOrder(organName){
     return order;
 }
 
+function flip(centroid){
+    //change these constants to "strecth" the image to make more space between organs
+    let [x,y,z] = centroid;
+    let fx = -1.5*x;//how much of an overbite
+    let fy = -2*z;//how tall the head is
+    let fz = -1.3*y;//how width the head is
+    return [fx, fy, fz];
+}
+
 function getCentroidTransform(pData){
     //returns a function that transforms the organs so they're centered and in the correct coordinate system
-    var upperBounds = {x: false, y: false, z: false};
-    var lowerBounds = {x: false, y: false, z: false};
-    const getMin = (a,b) => {return (a & a <= b)? a: b};
-    const getMax = (a,b) => {return (a & a > b)? a: b};
-
-    const flip = (centroid)=>{
-        //change these constants to "strecth" the image to make more space between organs
-        let [x,y,z] = centroid;
-        let fx = -1.2*y;//how much of an overbite
-        let fy = -2.2*z;//how tall the head is
-        let fz = -1.5*x;//how width the head is
-        return [fx, fy, fz];
-    }
+    let upperBounds = {x: false, y: false, z: false};
+    let lowerBounds = {x: false, y: false, z: false};
+    const getMin = (a,b) => {return (a & b & a <= b)? a: b};
+    const getMax = (a,b) => {return (a & b & a > b)? a: b};
+    console.log('computing centroids')
+    
 
     for(let [oName, oValues] of Object.entries(pData)){
+        if(Utils.isTumor(oName) || oValues.volume <= 0){continue;}
         let [x,y,z] = flip(oValues.centroids);
         upperBounds.x = getMax(upperBounds.x, x);
         upperBounds.y = getMax(upperBounds.y, y);
@@ -64,6 +68,15 @@ function getCentroidTransform(pData){
     return transformCentroid
 }
 
+function checkIfValid(oName, oData){
+    if(oName.includes('gtv_composite')){return false;}
+    // if(oData.volume <= 0){ return false; }
+    for(let pos of oData.centroids){
+        if(pos === undefined || pos === null){ return false; }
+    }
+    return true;
+}
+
 
 
 export default function PatientPlot3D(props){
@@ -78,6 +91,7 @@ export default function PatientPlot3D(props){
     const [tTip, setTTip] = useState();
     const [currBrushedOrgan,setCurrBrushedOrgan] = useState('');
     const [onMouseMove, setOnMouseMove] = useState();
+    const [titleComponent, setTitleComponent] = useState(<></>)
     // const [svg, height,width, tTip] = useSVGCanvas(mountRef);
 
     const outlineSize = 4;
@@ -233,12 +247,25 @@ export default function PatientPlot3D(props){
         setTTip(tip);
     },[mountRef.current]);
 
+    useEffect(() => {
+        //set stuff for the title here.  currently no details so just the patient info
+        let titleText = 'Patient: ' + props.pId;
+        let detailText = 'Similarity: ' + props.similarity.toFixed(2);
+        let title = (
+            <div className={'sceneTitle'}>
+                <div className={'sceneTitleLeft'}>{titleText}</div>
+                <div className={'sceneTitleRight'}>{detailText}</div>
+            </div>
+        )
+        setTitleComponent(title);
+    },[props.pId])
+
     
     useEffect( () => {
         //setup camera
         if(width <= 0 || height <= 0){ return; }
 
-        const sceneScale = 2; //how big the head is relative to the scene 2 is normal;
+        const sceneScale = 1.8; //how big the head is relative to the scene 2 is normal;
         var camera = new THREE.OrthographicCamera(
             -width/sceneScale,
             width/sceneScale,
@@ -311,12 +338,12 @@ export default function PatientPlot3D(props){
                 depthWrite: true,
                 depthFunc: THREE.LessEqualDepth
             });
-
-            let organModel = props.getOrganModel(organName,organScale);//actually a geomtery
+            var organModel = props.getOrganModel(organName,organScale);//actually a geomtery
             //use a bigger sphere is no organ
             if(organModel === undefined){
-                let s = 4;//how much bigger default sphere is than centroid
-                organModel = nodeGeometry.clone().scale(s,s,s);
+                let s = 5;//how much bigger default sphere is than centroid
+                organModel = new THREE.SphereGeometry(s*outlineSize,16);
+                organModel.name = organName;
             }
             let scaled;
             if(Utils.isTumor(organName)){
@@ -325,19 +352,20 @@ export default function PatientPlot3D(props){
                 if(volume){
                     //this just scales the tumor relative to the size of it
                     //as of 9/8/2021 this divides by the median value of the organ (GTVs)
-                    scaled = volScale(volume);
-                    let k = 7*scaled;//idk just a number to make it bigger
+                    let v = Utils.max(0.01,volume);
+                    scaled = volScale(v);
+                    let k = 3*Math.sqrt(scaled);//idk just a number to make it bigger
                     organModel = organModel.clone().scale(k,k,k)
                 }
             } else{
                 //scale model size relative to the median
                 let volScale = props.rescalers['volume'][organName];
                 let volume = organData['volume'];
-                if(!volume){
-                    volume = 1;
+                if(!volume || volume <= 0){
+                    volume = .01;
                 }
                 scaled = volScale(volume);
-                let k = scaled;
+                let k = Math.sqrt(scaled);
                 organModel = organModel.clone().scale(k,k,k);
             }
             let mesh = new THREE.Mesh(organModel, organMaterial);
@@ -347,7 +375,7 @@ export default function PatientPlot3D(props){
             mesh.position.z = z;
 
             mesh.rotation.x = -Math.PI / 2.0;
-            mesh.rotation.z = -Math.PI / 2;
+            mesh.rotation.z = -Math.PI;
 
             let renderOrder = getRenderOrder(organName);
             if(renderOrder !== undefined){
@@ -363,6 +391,8 @@ export default function PatientPlot3D(props){
         //place the organ centroids
         for(let [organName, organData] of Object.entries(props.pData)){
             // console.log(organName, organData);
+            //skip the combined gtv entry and if the organ is 0 volume
+            if(!checkIfValid(organName,organData)){ continue; }
             let organCenter = makeOrganCentroid(organName, organData);
             newScene.add(organCenter);
 
@@ -420,7 +450,7 @@ export default function PatientPlot3D(props){
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         >
-            {props.pId}
+        {titleComponent}
         </div>
     )
 }

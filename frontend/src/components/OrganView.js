@@ -23,7 +23,7 @@ function getMaterialArray(renderer){
         let material = new THREE.MeshBasicMaterial({map: t});
         materialArray.push(material);
     }
-    const files = ['anterior','posterior','superior','inferior','right','left']
+    const files = ['right','left','superior','inferior','anterior','posterior']
     for(let f of files){
         getMaterial(f);
     }
@@ -47,6 +47,8 @@ export default function OrganView(props){
     const loader = new VTKLoader(manager);
     const raycaster = new THREE.Raycaster();
     const materialArray = getMaterialArray();
+
+    const maxNeighbors = 3;//limit the # of neighbors shown for now for performance
 
     useEffect(() => {
         if(!props.organData){return;}
@@ -79,7 +81,6 @@ export default function OrganView(props){
 
     useEffect(() => {
         if(!props.organData){return;}
-        console.log("calcluating extents");
         //get the extents for getting color scales
         const keys = ['mean_dose','volume'];//not including volume
         var scalers = {};
@@ -98,7 +99,8 @@ export default function OrganView(props){
             for(let [oName, oEntry] of Object.entries(pEntry)){
                 for(let key of keys){
                     let val = oEntry[key];
-                    if(val === null || val === undefined){ continue; }
+                    //some values are negative?  This is probs a bug to fix
+                    if(val === null || val === undefined || val <= 0){ continue; }
                     if(key === 'volume'){
                         let name = Utils.isTumor(oName)? 'GTV': oName
                         if(extents.volume[name] === undefined){
@@ -114,6 +116,7 @@ export default function OrganView(props){
                 }
             }
         }
+        let temp = {}
         for(let [key, ex] of Object.entries(extents)){
             if(key ===  'volume'){
                 scalers.volume = {};
@@ -123,6 +126,7 @@ export default function OrganView(props){
                     let scale = function(d){ 
                         return d/median;
                     }
+                    temp[organ] = [median,ranges.max,ranges.min]
                     scalers.volume[organ] = scale;
                 }
             }else{
@@ -134,14 +138,27 @@ export default function OrganView(props){
                     scalers[key] = scale;
             }
         }
-        console.log('finished')
         setRescalers(scalers);
     },[props.organData])
 
     useEffect(() => {
-        if(!renderer || !props.organData || !props.selectedPatient || !organModels || !rescalers){ return; }
+        if(!renderer || !props.organData || !props.organClusters || !props.selectedPatient || !organModels || !rescalers){ return; }
 
-        const pList = [props.selectedPatient,props.selectedPatient+1]
+        let pList = [{id: props.selectedPatient, similarity: 1}];
+        let clusterData = props.organClusters.patients[props.selectedPatient];
+        try{
+            let neighbors = clusterData.neighbors;
+            let sims = clusterData.similarity;
+            let count = 0;
+            for(let n of neighbors){
+                if(count > maxNeighbors){break;}
+                let obj = {id: n, similarity: sims[count]}
+                pList.push(obj);
+                count += 1
+            }
+        } catch{
+            console.log('problem getting neighbors', props.organClusters.patients);
+        }
         const cameraPositionZ = 500;
 
         const getOrganModel = function(organName, scale=1){
@@ -154,6 +171,7 @@ export default function OrganView(props){
                 model = organModels[constants.ORGAN_NAME_MAP[organName]];
             }
             if(model !== undefined){
+                model.name = organName + 'Geometry';
                 return model.clone().scale(scale,scale,scale);
             } else{
                 console.log("missing organ model for", organName);
@@ -161,22 +179,25 @@ export default function OrganView(props){
             return;
         }
 
-        let pViews = pList.map((id,k) => {
+        let pViews = pList.map((obj,k) => {
+            let id = obj.id;
             let pEntry = props.organData.patients[id+""]
-            if(pEntry != undefined){
+            if(pEntry !== undefined){
                 return(
                     <PatientPlot3D
-                        className={'patientPlot'}
-                        key={k}
+                        className={'patientScene'}
+                        key={k+'_'+id}
                         pId={id}
                         pData = {pEntry}
                         raycaster={raycaster}
                         materialArray={materialArray}
                         mainCamera={mainCamera}
+                        similarity={obj.similarity}
                         cameraPositionZ={cameraPositionZ}
                         setMainCamera={setMainCamera}
                         getOrganModel={getOrganModel}
                         organMeshOpacity={organMeshOpacity}
+                        active={props.selectedPatient === id}
                         rescalers={rescalers}
                         brushedOrganName={brushedOrganName}
                         setBrushedOrganName={setBrushedOrganName}
@@ -185,10 +206,10 @@ export default function OrganView(props){
             }
         })
         setPatientViews(pViews)
-    }, [rescalers,props.selectedPatient,organModels,mainCamera,brushedOrganName])
+    }, [rescalers,props.selectedPatient,organModels,mainCamera,brushedOrganName,props.organClusters])
 
     return (
-        <div ref={canvasRef} className={"organViewCanvas"}>
+        <div ref={canvasRef} className={"col organViewCanvas"}>
         {patientViews}
         </div>
     )

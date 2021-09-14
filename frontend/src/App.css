@@ -51,15 +51,44 @@
 
 #cell1{
   background-color: rgba(250,0,0,.2);
+  height: 100%!important;
 }
 
 #cell2{
   background-color: rgba(0,0,250,.2);
+  height: 100%!important;
 }
 
-.patientPlot{
+.patientScene{
   height: 20em;
-  width: 16em;
+  width: 15em;
+  margin: .5em!important;
+	position: relative;
+	display: inline-block;
+	z-index: 1;
+	padding: 0em;
+	box-shadow: 0px 1px 1px 1px rgba(0, 0, 0, 0.25);
+}
+
+.sceneTitle{
+  width: 100%!important;
+  font-size: 1em;
+  width: 50%;
+  font-weight: bold;
+  padding: 0em;
+  margin: 0px;
+}
+
+.sceneTitleLeft{
+  display: inline-block;
+  width: 50%;
+  text-align: left;
+}
+
+.sceneTitleRight{
+  display: inline-block;
+  width: 50%;
+  text-align: right;
 }
 
 .tooltip {	
@@ -93,4 +122,10 @@
 *::-webkit-scrollbar-thumb {
   border-radius: 1px;
   -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5); 
+}
+
+.dropDownButton{
+  height: auto;
+  width: auto;
+  padding: .01px!important;
 }
