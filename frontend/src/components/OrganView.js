@@ -39,7 +39,7 @@ export default function OrganView(props){
     //I can use a global render later or delete idk
     const [renderer, setRenderer] = useState();
     const [mainCamera, setMainCamera] = useState();
-    const [organMeshOpacity, setOrganMeshOpacity] = useState(.2);//placeholder for future use with an opacity slider
+    const [organMeshOpacity, setOrganMeshOpacity] = useState(.25);//placeholder for future use with an opacity slider
     const [rescalers, setRescalers] = useState();
     const [brushedOrganName, setBrushedOrganName] = useState();
 
@@ -159,6 +159,8 @@ export default function OrganView(props){
         } catch{
             console.log('problem getting neighbors', props.organClusters.patients);
         }
+        // console.log("neighbors",pList.map(x=>x.id))
+        // console.log(pList.map(x=>x.similarity))
         const cameraPositionZ = 500;
 
         const getOrganModel = function(organName, scale=1){
@@ -174,7 +176,7 @@ export default function OrganView(props){
                 model.name = organName + 'Geometry';
                 return model.clone().scale(scale,scale,scale);
             } else{
-                console.log("missing organ model for", organName);
+                // console.log("missing organ model for", organName);
             }
             return;
         }

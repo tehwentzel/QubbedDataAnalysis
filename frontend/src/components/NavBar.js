@@ -16,15 +16,17 @@ export default function NavBar(props){
     const [patientOptions,setPatientOptions] = useState(<></>);
 
     const handleSelectPatient = (pid) => {
-        if(pid !== props.selectedPatient){
+        if(parseFloat(pid) !== parseFloat(props.selectedPatient)){
             props.setSelectedPatient(pid);
         }
     }
 
     useEffect(() => {
-        let pids = props.patientIds
+        let pids = props.patientIds;
         if(pids){
-            let opt = pids.map((d,i) => {
+            let ps = pids.map(x=>parseInt(x));
+            ps.sort((a,b)=>(parseFloat(a) - parseFloat(b)));
+            let opt = ps.map((d,i) => {
                 return(
                     <Dropdown.Item key={i} value={d} eventKey={d}
                         onClick={(e) => handleSelectPatient(d)}
@@ -35,14 +37,20 @@ export default function NavBar(props){
         }
     },[props.patientIds])
 
+    const makeButton = (options,title,className='dropDownButton')=>{
+        return(
+            <DropdownButton className={className} 
+                variant={'primary'}  
+                title={title}
+                >
+                    {options}
+            </DropdownButton>
+        )
+    }
+
     return (
         <Row className={'noGutter centerText'} fluid={'true'} md={12}>
-            <DropdownButton className={'dropDownButton'} 
-            variant={'primary'}  
-            title={'Patient ' + props.selectedPatient}
-            >
-                {patientOptions}
-            </DropdownButton>
+            {makeButton(patientOptions,'Patient ' + props.selectedPatient)}
         </Row>
     )
 }

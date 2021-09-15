@@ -108,6 +108,10 @@
   font-size: .7em!important;		
 }
 
+.dropdown-menu.show{
+  max-height: 50vh;
+  overflow-y: scroll!important;
+}
 
 *::-webkit-scrollbar {
   width: 2px;

@@ -21,6 +21,7 @@ function App() {
   const [symptomClusters, setSymptomClusters] = useState();
   const [selectedPatient, setSelectedPatient] = useState(3);
   const [patientIds, setPatientIds] = useState([3]);
+  const [selectedWindow, setSelectedWindow] = useState('organs');
 
   const fetchOrganData = async() => {
     const response = await api.getOrganJson();
@@ -73,6 +74,8 @@ function App() {
           selectedPatient={selectedPatient}
           patientIds={patientIds}
           setSelectedPatient={setSelectedPatient}
+          selectedWindow={selectedWindow}
+          setSelectedWindow={setSelectedWindow}
         />
         <Row id={'topRow'} className={'row noGutter'} lg={12}>
           <Container id={'cell1'} className={'vizComponent noGutter'} lg={12}>
