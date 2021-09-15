@@ -50,10 +50,12 @@ class DataInputer():
                 mean = np.round(np.nanmean(vv),5)
                 std = np.round(np.nanstd(vv),5)
                 numnan = np.isnan(vv).sum()
+                numneg = (vv < 0).sum()
                 entry['mean_' + kk] = mean
                 entry['std_' + kk] = std
                 entry['shape_' + kk] = vv.shape
                 entry['num_nan_' + kk] = numnan
+                entry['num_negative_' + kk] = numneg
             report.append(entry)
         self.autoencoder_error_report = pd.DataFrame(report).set_index('key')
         return
@@ -67,6 +69,7 @@ class DataInputer():
     def inpute_spatial_array(self, autoencoded_dict, key,clip=True):
         #quick wrapper
         d = autoencoded_dict
+        print(key)
         return self.inpute_nan(d[key]['original'].copy(), d[key]['denoised'].copy(),clip) 
     
     def inpute_nan(self, original, denoised,clip=True):
@@ -75,8 +78,14 @@ class DataInputer():
         nan_args = np.argwhere(np.isnan(original))
         if nan_args.shape[0] > 0:
             out[nan_args] = denoised[nan_args]
+        #set the bounds out the inputed data to those of the original data
+        #or zero if all positive with nans
+        #This basically catches small negatives that appear because of (?)
         if clip:
-            out = out.clip(min=original.min(),max=original.max())
+            cleanin = np.nan_to_num(original)
+            print(out.max(),out.min(),cleanin.max(),cleanin.min())
+            out = out.clip(min=cleanin.min(axis=0),max=cleanin.max(axis=0))
+            print(out.max(),out.min(),'\n')
         return out
 
 #stuff for converting from a json format to formatted arrays for each value
@@ -277,16 +286,18 @@ def pytorch_model_name(x, keys = None):
     name += '.pt'
     return name
 
-def autoencode(sdata, keys, **kwargs):
+def autoencode(sdata, keys,normalizer = None, **kwargs):
     #convert things into a normalized float that works with torch
     x_original, x_dims = multikey_merged_spatial_array(sdata,keys)
-    normalizer = Normalizer(x_original)
+    if normalizer is None:
+        normalizer = Normalizer(x_original)
     x = normalizer.transform(x_original)
     x = torch.tensor(x).float()
     
     #make model name encode original settings to prevent confusion
     model_path = pytorch_model_name(x, keys)
     autoencoder = get_trained_autoencoder(x, model_path = model_path, **kwargs)
+    print(autoencoder)
     #check the final loss
     x_encoded = autoencoder(x)
     print(nan_mse_loss(x_encoded,x))
