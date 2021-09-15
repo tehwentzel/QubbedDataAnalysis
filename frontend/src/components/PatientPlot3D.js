@@ -38,13 +38,13 @@ function flip(centroid){
     return [fx, fy, fz];
 }
 
-function getCentroidTransform(pData){
+function getCentroidTransform(pData,camera){
     //returns a function that transforms the organs so they're centered and in the correct coordinate system
     let upperBounds = {x: false, y: false, z: false};
     let lowerBounds = {x: false, y: false, z: false};
     const getMin = (a,b) => {return (a & b & a <= b)? a: b};
     const getMax = (a,b) => {return (a & b & a > b)? a: b};
-    console.log('computing centroids')
+    // console.log('computing centroids')
     
 
     for(let [oName, oValues] of Object.entries(pData)){
@@ -61,9 +61,29 @@ function getCentroidTransform(pData){
     }
     const getMed = (key) => {return (upperBounds[key] + lowerBounds[key])/ 2}
     let median = [getMed('x'), getMed('y'), getMed('z')];
-    let transformCentroid = (point) => {
+    let transformC = (point) => {
         let [x,y,z] = flip(point);
-        return [x - median[0], y - median[1], z - median[2]]
+        let newPoint = [x - median[0], y - median[1], z - median[2]];
+        return newPoint;
+    }
+    let getYLimit = (v) => {
+        let proj = getCameraCoords([getMed('x'),v.y,getMed('z')],camera);
+        // console.log("projection",proj[1])
+        return proj[1]
+    }
+
+    //This checks if the persons head is taller than the camera and shrinks to coords to fit
+    let maxPos = getYLimit(upperBounds);
+    let minPos = getYLimit(lowerBounds);
+    let yRange = Math.abs((maxPos + minPos)/2);
+    // console.log('yscale',yRange,maxPos,minPos)
+    let transformCentroid = (point) => {
+        let p = transformC(point);
+        if(yRange > 1){
+            // console.log('out of range');
+            p[1] /= yRange;
+        }
+        return p;
     }
     return transformCentroid
 }
@@ -77,6 +97,12 @@ function checkIfValid(oName, oData){
     return true;
 }
 
+function getCameraCoords(coords,camera){
+    let pos = new THREE.Vector3(coords[0],coords[1],coords[2]);
+    camera.updateMatrixWorld();
+    pos.project(camera);
+    return [pos.x,pos.y,pos.z]
+}
 
 
 export default function PatientPlot3D(props){
@@ -94,9 +120,9 @@ export default function PatientPlot3D(props){
     const [titleComponent, setTitleComponent] = useState(<></>)
     // const [svg, height,width, tTip] = useSVGCanvas(mountRef);
 
-    const outlineSize = 4;
-    const brushedOrganOpacity = Utils.min(1.5*props.organMeshOpacity, 1);
-    const nodeSize = 2;
+    const outlineSize = 5;
+    const brushedOrganOpacity = Utils.min(4*props.organMeshOpacity, .9);
+    const nodeSize = 4;
     const cameraDist = 500;
     const nodeGeometry = new THREE.SphereGeometry(nodeSize, 16);
 	const outlineGeometry = new THREE.SphereGeometry(outlineSize, 16);
@@ -105,8 +131,9 @@ export default function PatientPlot3D(props){
     const mouseVector = new THREE.Vector2(-500, -500);
     const mouse = new THREE.Vector2(-500,500);
     const nodeColor = new THREE.Color().setHex(0xa0a0a0);
-    const nodeBrushedColor = new THREE.Color().setHex(0xffffff);
+    // const nodeBrushedColor = new THREE.Color().setHex(0xffffff);
     const cameraSyncInterval = 50;//how quickly (miliseconds?) the cameras update to sync across views
+    const colorKey = 'mean_dose'
     //materials for nodes at the centroids
     const nodeMaterial = new THREE.MeshStandardMaterial({
         color: nodeColor,
@@ -121,11 +148,11 @@ export default function PatientPlot3D(props){
     });
 
     const getOrganColor = (oName, od,rescalers)=>{
-        const key = 'mean_dose';
+        const key = colorKey
         let val = od[key];
         // console.log(val,rescalers[key]);
-        if(!val){
-            return "black";
+        if(val===undefined || val === null){
+            val = 'blue';
         }
         else{
             let scaler = rescalers[key];
@@ -138,6 +165,7 @@ export default function PatientPlot3D(props){
     }
 
     const getOpacity = function(organName, organData, opacity){
+        if(organData[colorKey] === undefined || organData[colorKey] === null){ return opacity/2; }
         return Utils.isTumor(organName)? tumorOpacity: opacity;
     }
 
@@ -245,6 +273,7 @@ export default function PatientPlot3D(props){
         setHeight(h);
         setWidth(w);
         setTTip(tip);
+        // console.log("height widht",h,w)
     },[mountRef.current]);
 
     useEffect(() => {
@@ -258,7 +287,7 @@ export default function PatientPlot3D(props){
             </div>
         )
         setTitleComponent(title);
-    },[props.pId])
+    },[props.pId,props.similarity])
 
     
     useEffect( () => {
@@ -308,7 +337,7 @@ export default function PatientPlot3D(props){
         controls.enableZoom = false;
 
         //calculate transform to center the organs around the origin and orient correctly
-        var transformCentroid = getCentroidTransform(props.pData);
+        var transformCentroid = getCentroidTransform(props.pData,camera);
 
         function makeOrganCentroid(organName, organData){
             let [x,y,z] = transformCentroid(organData.centroids);
@@ -324,7 +353,13 @@ export default function PatientPlot3D(props){
             organSphere.add(outlineMesh);
 
             organSphere.userData.type = 'organNode';
+
+            // if(organName == 'Lt_Anterior_Seg_Eyeball' || organName === 'Esophagus'){
+                // console.log('coords', organName, getCameraCoords([x,y,z],camera),height/2,width/2);
+            // }
+            
             return organSphere;
+
         }
 
         function makeOrganModel(organName, organData){
@@ -392,6 +427,7 @@ export default function PatientPlot3D(props){
         for(let [organName, organData] of Object.entries(props.pData)){
             // console.log(organName, organData);
             //skip the combined gtv entry and if the organ is 0 volume
+            // if(Utils.isTumor(organName)){console.log(props.pId,organName,organData.mean_dose,organData.volume)}
             if(!checkIfValid(organName,organData)){ continue; }
             let organCenter = makeOrganCentroid(organName, organData);
             newScene.add(organCenter);
@@ -444,6 +480,14 @@ export default function PatientPlot3D(props){
     
         animate();
     },[renderer, scene, camera,props.mainCamera,props.brushedOrganName]);
+
+
+    useEffect(() => {
+        return () => {
+            if(!renderer){return;}
+            renderer.forceContextLoss();
+        }
+    },[renderer]);
 
     return (
         <div ref={mountRef} className={props.className} 
