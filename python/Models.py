@@ -1,6 +1,6 @@
 import numpy as np
 from abc import ABC, abstractmethod
-from Utils import *
+import Utils
 from multiprocessing import Pool, cpu_count
 import os
 import Metrics

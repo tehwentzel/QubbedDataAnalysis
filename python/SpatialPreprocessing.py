@@ -6,25 +6,37 @@ from re import findall, match, sub
 import Utils
 from glob import glob
 from abc import ABC, abstractmethod
+from Levenshtein import distance as levenshtein_distance
 
 class OrganData(ABC):
     
+    #probably depricated
     additional_renames = {
         'Lt_Ant_Digastric_M': 'Musc_Digastric_LA',
         'Rt_Ant_Digastric_M': 'Musc_Digastric_RA',
     }
     
     #should map columns to the ones in the lists below
+    #these are alo used for spellchecking
     file_header_renames = {
         'x coordinate': 'x',
         'y coordinate': 'y',
         'z coordinate': 'z',
         'ROI': 'roi',
         'Structure Volume': 'volume',
+        'Volume': 'volume',
         'Min Value': 'min_dose',
         'Max Value': 'max_dose',
-        'Mean Value': 'mean_dose'
+        'Max': 'max_dose',
+        'Min': 'min_dose',
+        'Mean': 'mean_dose',
+        'Mean Value': 'mean_dose',
+        'Mean doses': 'mean_dose',
+        'Minimum': 'min_dose',
+        'Maximum': 'max_dose',
     }
+    
+    #header names for the files
     
     roi_cols = ['Reference ROI','Target ROI']
     roi_dist_col = 'Eucledian Distance (mm)'
@@ -36,12 +48,18 @@ class OrganData(ABC):
     
     def __init__(self, 
                  organ_info_json = None,
-                 data_type = np.float16
+                 data_type = np.float16,
+                 spellcheck_columns = True,
+                 spellcheck_organs = True
                 ):
         self.data_type = data_type
         
         self.organ_list = self.get_organ_list()
         self.num_organs = len(self.organ_list)
+        #see if we run a spellcheck on the data
+        #robust to typos, but slow
+        self.spellcheck_columns = spellcheck_columns
+        self.spellcheck_organs = spellcheck_organs
         
     def get_organ_list(self, skip_gtv = True):
         return Const.organ_list
@@ -73,6 +91,59 @@ class OrganData(ABC):
             else:
                 has_gtv = False
         return has_gtv
+    
+    def best_spell_match(self,name,words):
+        #compare a word with a list of words
+        #get the closest word to source word based on edit distance
+        best_match = None
+        best_dist = np.inf
+        ldist = lambda x,y: levenshtein_distance(x.strip().lower(),y.strip.lower())
+        for word in words:
+            ld = levenshtein_distance(name,word)
+            if ld < best_dist:
+                best_dist = ld
+                best_match = word
+                if ld <= 0:
+                    break
+        return best_match, best_dist
+    
+    def spellcheck_cols(self, df, words,edit_distance = 3,print_out=False):
+        #changes the names of columns that are probably misspelling of the one's we're
+        #supposed to have (given by words)
+        if not Utils.iterable(words):
+            words = [words]
+        words = list(words)
+        cols = list(df.columns)
+        rename_dict = {}
+        for col in cols:
+            match, dist = self.best_spell_match(col,words)
+            if dist > 0 and dist < edit_distance:
+                rename_dict[col] = match
+                words.remove(match)
+        if print_out and len(rename_dict) > 0:
+            print('rename cols',rename_dict)
+        return df.rename(rename_dict,axis=1)
+    
+    def spellcheck_rows(self, df, rows, words,edit_distance=3,print_out=False):
+        #based on testing, edit distances > 3 makes similar organs get messed up
+        #(becuase sometimes Lt_<organ> is missing but Rt_<organ> isn't or something
+        if not Utils.iterable(words):
+            words = [words]
+        words = list(words)
+        row_words = df.loc[:,rows].values.astype('str').ravel().tolist()
+        rename_dict = {}
+        for rword in row_words:
+            match,dist = self.best_spell_match(rword,words)
+            if dist > 0 and dist < edit_distance:
+                rename_dict[rword] = match
+                words.remove(match)
+        df = df.rename(rename_dict)
+        if print_out and len(rename_dict) > 0:
+            skipprint = set(OrganData.file_header_renames.keys())
+            pdict = {k:v for k,v in rename_dict.items() if k not in skipprint}
+            print('renamed organs',pdict)
+        return df
+
     
     def process_cohort_spatial_dict(self, spatial_files):
         patients = {}
@@ -112,16 +183,34 @@ class CamprtOrganData(OrganData):
             organ_dist_df = organ_dist_df[columns]
         #check that this works idk
         organ_dist_df.replace(to_replace = r'_*GTV.*N', value = '_GTVn', regex = True, inplace = True)
+        #check organs if we're looking at at a centroid file
+        if self.spellcheck_organs:
+            cols_to_check = self.roi_cols
+            if self.centroid_roi_col in organ_dist_df.columns:
+                cols_to_check = [self.centroid_roi_col]
+            organ_dist_df = self.spellcheck_rows(organ_dist_df,
+                                                 cols_to_check,
+                                                 self.get_organ_list(),
+                                                 print_out=True
+                                                )
         return organ_dist_df#.replace(self.oar_rename_dict())
     
     def reconcile_cohort_columns(self, organ_df):
         #placeholder
-        return organ_df.rename(OrganData.file_header_renames,axis=1)
+        if self.spellcheck_columns:
+            organ_df = self.spellcheck_cols(organ_df, 
+                                            OrganData.file_header_renames.keys(),
+                                           print_out = True)
+        organ_df = organ_df.rename(OrganData.file_header_renames,axis=1)
+        organ_df = self.spellcheck_cols(organ_df,
+                                       OrganData.file_header_renames.values(),
+                                       print_out = True)
+        return organ_df
     
     def read_spatial_file(self, file):
         df = pd.read_csv(file)
-        df = self.reconcile_organ_names(df)
         df = self.reconcile_cohort_columns(df)
+        df = self.reconcile_organ_names(df)
         return df
     
     def format_patient_distances(self, pdist_file):
