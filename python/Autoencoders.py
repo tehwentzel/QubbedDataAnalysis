@@ -10,7 +10,7 @@ class OrganAutoEncoder(nn.Module):
     
     def __init__(self,
                 input_size,
-                hidden_dims = [100,100,20,100,100],
+                hidden_dims = [200,100,20,100,200],
                 init_dropout = .5,
                 embedding_dropout = .2,
                 penult_dropout = .2

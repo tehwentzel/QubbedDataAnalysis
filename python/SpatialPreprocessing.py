@@ -99,6 +99,9 @@ class OrganData(ABC):
         best_dist = np.inf
         ldist = lambda x,y: levenshtein_distance(x.strip().lower(),y.strip.lower())
         for word in words:
+            #Lt and Rt changes keep getting weird
+            if 'Lt' in name and 'Rt' in word or 'Rt' in name and 'Lt' in word:
+                continue
             ld = levenshtein_distance(name,word)
             if ld < best_dist:
                 best_dist = ld
@@ -115,11 +118,18 @@ class OrganData(ABC):
         words = list(words)
         cols = list(df.columns)
         rename_dict = {}
+#         for word in words:
+#             match, dist = self.best_spell_match(word, cols)
+#             if dist < edit_distance:
+#                 cols.remove(match)
+#                 if dist > 0:
+#                     rename_dict[match] = word
         for col in cols:
             match, dist = self.best_spell_match(col,words)
-            if dist > 0 and dist < edit_distance:
-                rename_dict[col] = match
+            if dist < edit_distance:
                 words.remove(match)
+                if col != match:
+                    rename_dict[col] = match
         if print_out and len(rename_dict) > 0:
             print('rename cols',rename_dict)
         return df.rename(rename_dict,axis=1)
@@ -132,11 +142,18 @@ class OrganData(ABC):
         words = list(words)
         row_words = df.loc[:,rows].values.astype('str').ravel().tolist()
         rename_dict = {}
+#         for word in words:
+#             match,dist = self.best_spell_match(word,row_words)
+#             if dist < edit_distance:
+#                 row_words.remove(match)
+#                 if dist > 0:
+#                     rename_dict[match] = word
         for rword in row_words:
             match,dist = self.best_spell_match(rword,words)
-            if dist > 0 and dist < edit_distance:
-                rename_dict[rword] = match
+            if dist < edit_distance:
                 words.remove(match)
+                if rword != match:
+                    rename_dict[rword] = match
         df = df.rename(rename_dict)
         if print_out and len(rename_dict) > 0:
             skipprint = set(OrganData.file_header_renames.keys())
