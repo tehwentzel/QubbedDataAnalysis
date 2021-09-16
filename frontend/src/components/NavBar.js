@@ -10,10 +10,36 @@ import Col from 'react-bootstrap/Col';
 import Dropdown from 'react-bootstrap/Dropdown';
 import DropdownButton from 'react-bootstrap/DropdownButton';
 
+function makeButton(options,title,className='dropDownButton'){
+    return(
+        <DropdownButton className={className} 
+            variant={'primary'}  
+            title={title}
+            >
+                {options}
+        </DropdownButton>
+    )
+}
+
+
 export default function NavBar(props){
 
-    console.log('navbar',props);
+    // console.log('navbar',props);
     const [patientOptions,setPatientOptions] = useState(<></>);
+    const viewOptions = ['organs','symptoms'];
+
+    const handleSelectWindow = (t) => {
+        if(props.selectedWindow !== t){
+            props.setSelectedWindow(t)
+        }
+    }
+    const selectViewOptions = viewOptions.map((d,i) => {
+        return (
+            <Dropdown.Item key={'viewOption'+i} value={d} eventKey={d}
+                        onClick={(e) => handleSelectWindow(d)}
+            >{d}</Dropdown.Item>
+        )
+    })
 
     const handleSelectPatient = (pid) => {
         if(parseFloat(pid) !== parseFloat(props.selectedPatient)){
@@ -28,7 +54,7 @@ export default function NavBar(props){
             ps.sort((a,b)=>(parseFloat(a) - parseFloat(b)));
             let opt = ps.map((d,i) => {
                 return(
-                    <Dropdown.Item key={i} value={d} eventKey={d}
+                    <Dropdown.Item key={'patientoption'+i} value={d} eventKey={d}
                         onClick={(e) => handleSelectPatient(d)}
                     >{d}</Dropdown.Item>
                 )
@@ -37,20 +63,10 @@ export default function NavBar(props){
         }
     },[props.patientIds])
 
-    const makeButton = (options,title,className='dropDownButton')=>{
-        return(
-            <DropdownButton className={className} 
-                variant={'primary'}  
-                title={title}
-                >
-                    {options}
-            </DropdownButton>
-        )
-    }
-
     return (
         <Row className={'noGutter centerText'} fluid={'true'} md={12}>
-            {makeButton(patientOptions,'Patient ' + props.selectedPatient)}
+            {makeButton(selectViewOptions,'View: ' + props.selectedWindow)}
+            {makeButton(patientOptions,'Patient: ' + props.selectedPatient)}
         </Row>
     )
 }

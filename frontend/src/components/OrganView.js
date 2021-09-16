@@ -51,8 +51,13 @@ export default function OrganView(props){
     const maxNeighbors = 3;//limit the # of neighbors shown for now for performance
 
     useEffect(() => {
-        if(!props.organData){return;}
-        const organs = props.organData.organs;
+        // if(!props.organData){return;}
+        var organs;
+        if(props.organData){
+            organs = props.organData.organs;
+        } else{
+            organs = constants.ORGANS_TO_SHOW;
+        }
         var meshes = {};
         for(let organ of organs){
             loader.load('models/' + organ + '.vtk', (geometry) => {

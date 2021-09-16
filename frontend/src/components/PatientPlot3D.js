@@ -75,13 +75,14 @@ function getCentroidTransform(pData,camera){
     //This checks if the persons head is taller than the camera and shrinks to coords to fit
     let maxPos = getYLimit(upperBounds);
     let minPos = getYLimit(lowerBounds);
-    let yRange = Math.abs((maxPos + minPos)/2);
+    let medianPos = Math.abs((maxPos + minPos)/2);
     // console.log('yscale',yRange,maxPos,minPos)
     let transformCentroid = (point) => {
         let p = transformC(point);
-        if(yRange > 1){
-            // console.log('out of range');
-            p[1] /= yRange;
+        p[1] = p[1] - medianPos;//correct y by average projection becuase it's weird
+        if(Math.abs(maxPos) >= 1){
+            //shrink heads that are super tall for some reason
+            p[1] = p[1]/Math.min(Math.abs(maxPos),Math.abs(minPos));
         }
         return p;
     }
