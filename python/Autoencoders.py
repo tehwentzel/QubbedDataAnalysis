@@ -6,6 +6,66 @@ import numpy as np
 from Formatting import *
 from Constants import Const
 
+class BasicDenoiser(nn.Module):
+    
+    def __init__(self,
+                input_size,
+                hidden_dims = [800,800],
+                init_dropout = .5,
+                embedding_dropout = 0.0,
+                penult_dropout = 0.0,
+                numpy_input = True,
+                ):
+        
+        super().__init__()
+            
+        self.input_size = input_size
+        self.init_dropout = init_dropout
+        self.hidden_dims = hidden_dims
+        self.embedding_dropout = embedding_dropout
+        self.penult_dropout = penult_dropout
+        
+        self.hidden_layers = self.init_hidden_layers()
+        self.dropout_layer = nn.Dropout(p=self.init_dropout)
+        self.flatten = nn.Flatten().cuda()
+        self.numpy_input = numpy_input
+        
+    def init_hidden_layers(self):
+        first = nn.Linear(self.input_size, self.hidden_dims[0])
+        layers = [first,nn.ReLU()]
+        embedding_size = min(*self.hidden_dims)
+        for i in range(len(self.hidden_dims)-1):
+            hidden = nn.Linear(self.hidden_dims[i], self.hidden_dims[i+1])
+            layers.append(hidden)
+            if self.hidden_dims[i+1] <= embedding_size:
+                layers.append(nn.Dropout(p=self.embedding_dropout))
+                layers.append(nn.BatchNorm1d(self.hidden_dims[i+1]))
+            layers.append(nn.ReLU())
+        penultimate_dropout = nn.Dropout(p=self.penult_dropout)
+        final = nn.Linear(self.hidden_dims[-1], self.input_size)
+        final_activation = nn.ReLU()#nn.LeakyReLU(.1)#nn.ReLU()#nn.Tanh()
+        layers.append(final)
+        layers.append(final_activation)
+        return nn.Sequential(*layers)
+
+    def set_bounds(self,xin,xout):
+        l = torch.min(xin,axis=0)[0]
+        u = torch.max(xin,axis=0)[0]
+        x = torch.max(torch.min(xout,u),l)
+        return x
+        
+    def forward(self,x):
+        #we keep in nans in the data so I can ignore them in the loss function
+        if self.numpy_input:
+            x = torch.tensor(x).float()
+        x = torch.nan_to_num(x)
+#         xout = self.flatten(xout)
+        xout = self.dropout_layer(x)
+        xout = self.hidden_layers(xout)
+#         xout = torch.nan_to_num(xout.reshape(x.shape))
+        xout = self.set_bounds(x,xout)
+        return xout
+
 class OrganAutoEncoder(nn.Module):
     
     def __init__(self,

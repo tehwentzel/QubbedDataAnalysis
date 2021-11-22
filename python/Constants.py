@@ -66,7 +66,7 @@ class Const():
          'Upper_Lip',
          'Glottic_Area',
                  ]
-    
+   
     symptoms = ["pain", "fatigue", "nausea", "sleep", 
                 "distress", "sob", "memory", "appetite", 
                 "drowsy", "drymouth", "sad", "vomit", "numb", 
@@ -74,3 +74,13 @@ class Const():
                 "constipation", "taste", "mucositis", "teeth", 
                 "activity", "mood", "work", "relations", "walking",
                 "enjoy"]
+    
+    symptom_category_map = {
+        'core': ['pain','fatigue','nausea','sleep',
+                 "distress", "sob", "memory", "appetite", 
+                "drowsy", "drymouth", "sad", "vomit", "numb"],
+        'interference': ["activity", "mood", "work", 
+                "relations", "walking","enjoy"],
+        'hnc': ["mucus", "swallow", "choke", "voice", "skin", 
+                "constipation", "taste", "mucositis", "teeth"],
+    }
