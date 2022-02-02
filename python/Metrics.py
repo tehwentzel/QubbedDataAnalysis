@@ -1,7 +1,7 @@
 import numpy as np
 from abc import ABC, abstractmethod
 from scipy.stats import wasserstein_distance
-from dtaidistance import dtw_ndim
+from dtaidistance import dtw_ndim, dtw
 from scipy.spatial.distance import cosine
 
 
@@ -49,14 +49,16 @@ class VectorizedSimilarity(ABC):
     
     def get_similarity_matrix(self,x,weights=None):
         x = x.astype('float')
-        assert(x.ndim == 3)
         n = x.shape[0]
         sims = np.zeros((n,n))
         for i in np.arange(n):
             x1 = x[i]
             for ii in np.arange(i+1,n):
                 x2 = x[ii]
-                sim = self.sim_2d(x1,x2,weights=weights)
+                if x.ndim == 2:
+                    sim = self.sim_1d(x1,x2)
+                else:
+                    sim = self.sim_2d(x1,x2,weights=weights)
                 sims[i,ii] = sim
             if self.update:
                 print('patient',i,'of',n,end='\r')
@@ -80,13 +82,13 @@ class VectorizedSimilarity(ABC):
             mean = (sims*weights).sum()/weights.sum()
             return mean
         if self.aggregate == 'max':
-            return sim.max()
+            return sims.max()
         if self.aggregate == 'min':
-            return sim.min()
+            return sims.min()
         if self.aggregate == 'median':
-            return sim.median()
+            return sims.median()
         if self.aggregate == 'mode':
-            return sim.mode()
+            return sims.mode()
         
 class Euclidean2D(VectorizedSimilarity):
     
@@ -112,6 +114,33 @@ class Wasserstein2d(VectorizedSimilarity):
         d = wasserstein_distance(x,y,weights,weights)
         return 1/(1+d)
     
+class DTWi2d(VectorizedSimilarity):
+            
+    def __init__(self, 
+                 window=None, 
+                 max_dist=None, 
+                 max_step=None,
+                 prune=False,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.window=window
+        self.max_dist=max_dist
+        self.max_step = max_step
+        self.prune=prune
+        
+    def sim_1d(self,x,y,weights=None):
+        x = x.ravel()
+        y = y.ravel()
+        d = dtw.distance_fast(x,y,
+                                 window=self.window,
+                                 max_dist=self.max_dist,
+                                 max_step=self.max_step,
+                                 use_pruning=self.prune,
+                                )
+        return 1/(1+d)
+   
+    
+    
 class DTWd2d(VectorizedSimilarity):
     
     def __init__(self, 
@@ -125,6 +154,8 @@ class DTWd2d(VectorizedSimilarity):
         self.max_dist=max_dist
         self.max_step = max_step
         self.prune=prune
+        if self.aggregate != 'average':
+            print('DTWd2d doesnt handle different aggregation, try DTWi2d (independent)')
     
     def sim_2d(self,x,y,weights=None):
         d = dtw_ndim.distance_fast(x,y,

@@ -34,6 +34,7 @@ class SimilarityClusterer(ClusterMixin, BaseEstimator):
         if type(self.fit_sim) == type(None) or type(self.fit_clusters) == type(None):
             print('trying to get sihouette score for unfitted clustering')
         d = 1/(1+self.fit_sim)
+        np.fill_diagonal(d,0)
         return silhouette_score(d,self.fit_clusters, metric='precomputed')
     
     def sim_to_pdist(self,sim):

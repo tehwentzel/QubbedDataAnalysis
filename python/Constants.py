@@ -6,7 +6,7 @@ class Const():
     
     mdasi_folder = data_dir + "MDASI/"
     camprt_dir = data_dir + "CAMPRT_Centroids/"
-    
+    mdasi_centroid_dir = data_dir + 'MDASI_Distances/'
     organ_info_json = resource_dir + "OrganInfo.json"
     symptom_info_json = resource_dir + "symptoms.json"
     organ_model_dir = resource_dir + 'models/'
@@ -24,8 +24,8 @@ class Const():
          'Lt_Brachial_Plexus',
          'Rt_Brachial_Plexus',
          'Cricopharyngeal_Muscle',
-         'Lt_thyroid_lobe',
-         'Rt_thyroid_lobe',
+#          'Lt_thyroid_lobe',
+#          'Rt_thyroid_lobe',
          'Cricoid_cartilage',
          'IPC',
          'MPC',
@@ -58,10 +58,10 @@ class Const():
          'Extended_Oral_Cavity',
          'Mandible',
          'Hard_Palate',
-         'Lt_Posterior_Seg_Eyeball',
-         'Rt_Posterior_Seg_Eyeball',
-         'Lt_Anterior_Seg_Eyeball',
-         'Rt_Anterior_Seg_Eyeball',
+#          'Lt_Posterior_Seg_Eyeball',
+#          'Rt_Posterior_Seg_Eyeball',
+#          'Lt_Anterior_Seg_Eyeball',
+#          'Rt_Anterior_Seg_Eyeball',
          'Lower_Lip',
          'Upper_Lip',
          'Glottic_Area',
@@ -84,3 +84,16 @@ class Const():
         'hnc': ["mucus", "swallow", "choke", "voice", "skin", 
                 "constipation", "taste", "mucositis", "teeth"],
     }
+    
+    symptom_domain_map = {
+    'swallowing': ['swallow','choke','teeth'], #dysphagia and aspiration
+    'salivary': ['taste','drymouth','taste'], #xerostomia, saliva, taste
+    'mucosal': ['mucositis','mucus'], #mucosoitis
+    'speech': ['voice'], #hoarseness,
+    'pain': ['pain'], #pain
+    'general': [
+        'fatigue','sleep','numb',
+        'nausea','vomit','appetite',
+        'mood','enjoy','sad','distress',
+               ], #weight loss, nausea, vomiting fatigue
+}
