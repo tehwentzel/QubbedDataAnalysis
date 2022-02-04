@@ -355,7 +355,7 @@ class RadDataset():
 #                     for organ, sub_pdf in pdf.groupby('ROI'):
 #                         dim2.append(sub_pdf.drop(['id','ROI'],axis=1).values.ravel())#,columns=colnames
                     values.append(dim2)
-            if as_df and keep_2d == False:
+            if as_df:
                 returndf = pd.DataFrame(np.array(values),index=pids,columns=colnames)
                 returndf.index.name = 'id'
                 return returndf

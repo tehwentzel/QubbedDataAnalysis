@@ -87,7 +87,7 @@ class Const():
     
     symptom_domain_map = {
     'swallowing': ['swallow','choke','teeth'], #dysphagia and aspiration
-    'salivary': ['taste','drymouth','taste'], #xerostomia, saliva, taste
+    'salivary': ['drymouth','taste'], #xerostomia, saliva, taste
     'mucosal': ['mucositis','mucus'], #mucosoitis
     'speech': ['voice'], #hoarseness,
     'pain': ['pain'], #pain
