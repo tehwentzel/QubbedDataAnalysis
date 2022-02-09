@@ -1,5 +1,6 @@
 import simplejson
 import numpy as np
+from Constants import Const
 import datetime
 
 def iterable(obj):
@@ -62,3 +63,8 @@ def np_dict_to_json(d,destination_file, nan_to_null = False):
     except Exception as e:
         print(e)
         return False
+   
+def load_organ_centroids():
+    with open(Const.data_dir + 'organ_centroid.json','r') as f:
+        test = simplejson.load(f)
+    return test

@@ -301,11 +301,15 @@ class RadDataset():
         clean_df = clean_df.sort_values(['id','ROI'],kind='mergesort')
         return clean_df
     
-    def get_value_array(self,cols,max_missing=None,input_median=True, rows='patients',keep_2d=True,as_df=False):
+    def get_value_array(self,cols,
+                        organ_list = None,
+                        max_missing=None,input_median=True, rows='patients',keep_2d=True,as_df=False):
         #returns a value array, with rows=patients, it will roll up the organs for a paeitn
         #keep_d2 set to false will return a 3d matrix where the second dimension is the organs in same order as organ list
         #as_df needs to be 2d, will include headers and ID
         #cols is the value arrays to inclue from
+        if organ_list is None:
+            organ_list = self.organ_list[:]
         if max_missing is not None:
             df = self.get_clean_dvh_df(max_missing=1000000000)
         else:
@@ -345,11 +349,12 @@ class RadDataset():
 #             for pid, pdf in subdf.groupby('id'):
 #                 pids.append(pid)
                 if keep_2d==True:
+                    pdf = pdf[pdf.ROI.apply(lambda x: x in organ_list)]
                     rows = pdf.drop(['id','ROI'],axis=1)
                     values.append(rows.values.ravel())
                 else:
                     dim2 = []
-                    for organ in self.organ_list:
+                    for organ in organ_list:
                         sub_pdf = pdf[pdf.ROI.apply(lambda x: x.lower()) == organ.lower()]
                         dim2.append(sub_pdf.drop(['id','ROI'],axis=1).values.ravel())
 #                     for organ, sub_pdf in pdf.groupby('ROI'):
