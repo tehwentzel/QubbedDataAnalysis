@@ -19,7 +19,7 @@ class Const():
     organ_similarity_results_json = data_dir + 'patient_organ_similarity.json'
     symptom_similarity_results_json = data_dir + 'patient_symptom_similarity.json'
     
-    organ_svg_files = [resource_dir + 'hnc_organs_' + s + '.svg' for s in ['left','center','right']]
+    organ_svg_files = [ "../resources/" + 'hnc_organs_' + s + '.svg' for s in ['left','center','right']]
     
     organ_list = [
         'Esophagus',#
@@ -43,7 +43,6 @@ class Const():
          'Rt_Masseter_M',
          'Lt_Sternocleidomastoid_M',
          'Lt_Mastoid',
-#          'Lt_Mastoid',
          'Lt_Parotid_Gland',
          'Lt_Submandibular_Gland',
          'Lt_Medial_Pterygoid_M',
@@ -70,6 +69,71 @@ class Const():
          'Upper_Lip',
          'Glottic_Area',
                  ]
+    
+    swallow_organs = [
+        'Cricopharyngeal_Muscle',
+            'Esophagus',
+            'IPC',
+            'MPC',
+            'SPC',
+            'Mylogeniohyoid_M',
+            'Supraglottic_Larynx',
+             'Larynx',
+            'Tongue',
+            'Rt_Masseter_M',
+            'Lt_Masseter_M',
+             'Rt_Ant_Digastric_M',
+             'Lt_Ant_Digastric_M',
+        'Rt_Medial_Pterygoid_M',
+             'Lt_Medial_Pterygoid_M',
+             'Rt_Lateral_Pterygoid_M',
+              'Lt_Lateral_Pterygoid_M',
+        ]
+    
+    symptom_organ_map = {
+        'swallow': [
+        'Cricopharyngeal_Muscle',
+#         'Esophagus',
+        'IPC',
+        'MPC',
+        'SPC',
+        'Mylogeniohyoid_M',
+#         'Tongue',
+        'Rt_Masseter_M',
+        'Lt_Masseter_M',
+        'Rt_Ant_Digastric_M',
+        'Lt_Ant_Digastric_M',
+        'Rt_Medial_Pterygoid_M',
+         'Lt_Medial_Pterygoid_M',
+         'Rt_Lateral_Pterygoid_M',
+         'Lt_Lateral_Pterygoid_M',
+        ],
+        'cns': [
+            'Brainstem',
+            'Spinal_Cord',
+            'Lt_Brachial_Plexus',
+            'Rt_Brachial_Plexus',
+            'Rt_Sternocleidomastoid_M',
+            'Lt_Sternocleidomastoid_M',
+        ],
+        'mouth':[
+            'Genioglossus_M',
+            'Soft_Palate',
+            'Hard_Palate',
+            'Tongue',
+            'Extended_Oral_Cavity',
+        ],
+        'throat': [
+            'Supraglottic_Larynx',
+             'Larynx',
+            'Glottic_Area',
+            'Hyoid_bone',
+            'Thyroid_cartilage',
+            'Cricopharyngeal_Muscle',
+             'Cricoid_cartilage',
+            'Esophagus',
+        ]
+    }
    
     symptoms = ["pain", "fatigue", "nausea", "sleep", 
                 "distress", "sob", "memory", "appetite", 

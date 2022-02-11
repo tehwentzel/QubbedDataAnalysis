@@ -23,17 +23,18 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1080"
-     inkscape:window-height="1857"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
      id="namedview26"
      showgrid="false"
-     inkscape:zoom="4.5138638"
-     inkscape:cx="72.354623"
-     inkscape:cy="105.00982"
-     inkscape:window-x="1912"
+     inkscape:zoom="2.4165554"
+     inkscape:cx="174.98004"
+     inkscape:cy="64.314736"
+     inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg5143" />
+     inkscape:current-layer="svg5143"
+     inkscape:document-rotation="0" />
   <defs
      id="defs5137" />
   <metadata
@@ -50,16 +51,8 @@
   </metadata>
   <path
      style="fill:none;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-     d="m 10.082039,31.328738 4.03395,-3.63846 2.76839,0.47458 0.71189,2.6893 -1.97743,1.97742 -2.8475,1.74014 -1.58193,-0.79097 -1.10737,-0.55368 z"
-     id="Rt_Submandibular_Gland" />
-  <path
-     style="fill:none;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
      d="m 6.8390689,34.809008 3.2429701,-3.48027 0.645594,-3.025802 -1.3208731,-1.499186 -1.918422,1.598398 -2.222069,2.878585 -0.750274,2.477608 0.424743,1.604337 z"
      id="Rt_Ant_Digastric_M" />
-  <path
-     style="fill:none;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-     d="m 8.4210089,23.893618 0.6328,-4.74582 2.8583701,0.93417 v 0 l -0.36644,3.53208 -3.1247301,0.27957"
-     id="Thyroid_cartilage" />
   <path
      style="fill:none;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
      d="m 9.0538089,19.147798 0.547979,-3.17165 5.1791011,-0.77598 0.29106,2.40808 v 1.86035 l -3.15977,0.61337 -2.8583701,-0.93417"
@@ -113,16 +106,8 @@
      id="Extended_Oral_Cavity" />
   <path
      style="fill:none;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-     d="m 27.187204,34.039898 -3.95509,-2.42685 -6.347735,-3.44819 v 0 L 15.595515,27.298452 15.82,26.108338 l 2.675119,-0.14202 5.143103,2.086038 5.110702,4.621032 -1.56172,1.36651"
-     id="Rt_Post_Digastric_M" />
-  <path
-     style="fill:none;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
      d="m 8.4210089,23.893618 -1.57628,1.16245 7.1387401,-0.1939 -0.84074,-1.10966 -1.59699,-0.13846 -3.1247301,0.27957"
      id="Hyoid_bone" />
-  <path
-     style="fill:none;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-     d="m 13.142729,23.752508 3.1338,-0.69252 -1.20457,-3.59139 -3.15977,0.61337 -0.36645,3.53208 1.59699,0.13846"
-     id="IPC" />
   <path
      style="fill:none;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
      d="m 12.867024,11.759145 3.026035,-2.1387775 0.54807,-2.07397 -3.71754,-1.02826 -3.9548502,0.94916 -0.0306,3.1987705 4.1288852,1.093077"
@@ -135,4 +120,40 @@
      style="fill:none;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
      d="m 33.867804,20.996938 -3.51203,1.50937 -1.81921,-5.77408 -1.34465,-7.5933105 0.31637,-3.16388 3.7241,0.4783 1.85456,12.1033905 z"
      id="Spinal_Cord" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     d="m 10.082038,31.328737 4.033951,-3.63846 2.76839,0.47458 0.71189,2.689302 -1.97743,1.977419 -2.8475,1.740141 v 0 l -1.547392,-2.105922 z"
+     id="Rt_Submandibular_Gland"
+     sodipodi:nodetypes="ccccccccc" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="m 16.884379,28.164857 2.8473,-0.790657 3.500435,4.238847 -1.794385,1.270511 -1.70585,-1.13615 -2.13561,-0.893249 -0.71189,-2.689302"
+     id="MPC" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="m 19.541362,24.804908 0.190317,2.569292 3.500435,4.238847 1.447826,-5.475912 -4.631671,-7.62211 z"
+     id="IPC" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="m 12.771339,34.571719 -5.93227,0.237289 3.242969,-3.480271 1.141909,1.13706 1.547392,2.105922"
+     id="Mylogeniohyoid_M" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="m 20.048269,18.515025 -2.600402,-7.698468 -4.580843,0.942588 1.155125,2.197657 0.75874,1.243366 0.29106,4.268431 z"
+     id="Larynx"
+     sodipodi:nodetypes="ccccccc" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     d="m 8.421009,23.893618 0.727959,-2.842643 3.429323,0.839011 v 0 l 0.564438,1.862522 -4.72172,0.14111"
+     id="Thyroid_cartilage"
+     sodipodi:nodetypes="cccccc" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="m 19.541362,24.804908 v 0 l 0.506907,-6.289883 -4.976309,0.953572 -3.159781,0.613371 1.23055,3.67054 0.840741,1.10966 z"
+     id="Supraglottic_Larynx"
+     sodipodi:nodetypes="cccccccc" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="m 9.053809,19.147798 0.09516,1.903177 3.429322,0.839011 -0.666112,-1.808018 z"
+     id="Glottic_Area" />
 </svg>
