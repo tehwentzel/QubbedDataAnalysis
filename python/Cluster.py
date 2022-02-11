@@ -1,6 +1,7 @@
 from scipy.spatial.distance import squareform
 from scipy.cluster.hierarchy import fcluster, linkage
 from sklearn.base import ClusterMixin, BaseEstimator
+from sklearn.metrics import silhouette_score
 import numpy as np
 
 class SimilarityClusterer(ClusterMixin, BaseEstimator):
@@ -9,6 +10,8 @@ class SimilarityClusterer(ClusterMixin, BaseEstimator):
         self.link = link
         self.t = n_clusters
         self.criterion = criterion
+        self.fit_sim = None
+        self.fit_clusters = None
         
     def sim_linkage(self,sim):
         x = self.sim_to_pdist(sim)
@@ -22,7 +25,17 @@ class SimilarityClusterer(ClusterMixin, BaseEstimator):
     
     def fit_predict(self, x, y = None):
         l = self.sim_linkage(x)
-        return fcluster(l, self.t, criterion = self.criterion)
+        clusters = fcluster(l, self.t, criterion = self.criterion)
+        self.fit_sim = x
+        self.fit_clusters = clusters
+        return clusters
+    
+    def silhouette(self):
+        if type(self.fit_sim) == type(None) or type(self.fit_clusters) == type(None):
+            print('trying to get sihouette score for unfitted clustering')
+        d = 1/(1+self.fit_sim)
+        np.fill_diagonal(d,0)
+        return silhouette_score(d,self.fit_clusters, metric='precomputed')
     
     def sim_to_pdist(self,sim):
         sim = (sim - sim.min())/(sim.max() - sim.min())
@@ -36,3 +49,6 @@ class SimilarityClusterer(ClusterMixin, BaseEstimator):
             for ii in range(i+1, m.shape[0]):
                 pdist.append(m[i,ii])
         return np.array(pdist)
+    
+    def brief(self):
+        return 'simclust_' + str(self.link) + '_' + str(self.t) + '_' + str(self.criterion)
