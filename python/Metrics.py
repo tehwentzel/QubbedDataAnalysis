@@ -1,9 +1,8 @@
 import numpy as np
 from abc import ABC, abstractmethod
-from scipy.stats import wasserstein_distance
+from scipy.stats import wasserstein_distance, chi2_contingency, fisher_exact
 from dtaidistance import dtw_ndim, dtw
 from scipy.spatial.distance import cosine
-
 
 class VectorizedSimilarity(ABC):
     
@@ -227,3 +226,51 @@ def chi_squared_distance(x,y):
     eps = .000001
     d = ((x-y)**2/(x+y+eps)).sum()
     return d/5
+
+def masked_mse(true,pred,normalize=True):
+    y = np.ma.masked_invalid(true)
+    baseline = np.copy(y)**2
+    diff = ((y - pred)**2)
+    while diff.data.ndim > 1:
+        diff = diff.sum(axis=-1)
+        baseline = np.nansum(baseline,axis=-1)
+    diff = diff
+    diff = np.sqrt(diff)
+    baseline = np.sqrt(baseline)
+    if normalize:
+        diff = diff/baseline
+    return diff.data.mean()
+
+def masked_mae(true,pred,normalize=True):
+    y = np.ma.masked_invalid(true)
+    baseline = np.abs(np.copy(y))
+    diff = np.abs(y - pred)
+    while diff.data.ndim > 1:
+        diff = np.nansum(diff,axis=-1)
+        baseline = np.nansum(baseline,axis=-1)
+    diff = diff
+    baseline = baseline
+    if normalize:
+        diff = diff/baseline
+    return diff.data.mean()
+
+def contingency(v1,v2):
+    n_v1 = len(np.unique(v1))
+    n_v2 = len(np.unique(v2))
+    table = np.zeros((n_v1,n_v2))
+    for i, vv1 in enumerate(np.unique(v1)):
+        for ii,vv2 in enumerate(np.unique(v2)):
+            in_cell = (v1 == vv1) & (v2 == vv2)
+            table[i,ii] = in_cell.sum()
+    return table
+
+def boolean_fisher_exact(v1,v2):
+    ctable = contingency(v1,v2)
+    return fisher_exact(ctable)
+
+def vector_chi2(x,y):
+    x = x.ravel()
+    y = y.ravel()
+    ctable = contingency(x,y)
+    res = chi2_contingency(ctable)
+    return res[0], res[1]

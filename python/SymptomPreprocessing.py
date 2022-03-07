@@ -84,14 +84,18 @@ def format_symptoms(df,
     if to_keep is None:
         to_keep = ['id',
             'is_male','age',
-            'subsite','duration',
+            'subsite',
+#                    'duration',
             't_stage','n_stage',
             'is_ajcc_8th_edition',
             'hpv','rt','ic',
-            'nd','rt_type',
+#             'nd','rt_type',
             'concurrent','performance_score',
             'os','followup_days','chemotherapy',
-            'typetreatment','treatment2',
+#             'typetreatment','treatment2',
+             'M6_mbs_digest',
+              'baseline_mbs_digest',
+#                    'M60_mbs_digest',
                            ]
 #     for c in df.columns:
 #         print(c)
@@ -109,6 +113,46 @@ def format_symptoms(df,
         values = df.loc[:,scols].values.tolist()
         new_df['symptoms_'+s] = values
     return new_df
+
+def get_mdasi_symptom_states(df,
+                     symptom_prefix='symptoms',
+                     merge_symptoms=[],
+                    ):
+    df = df.copy()
+    if symptom_prefix is not None:
+        key = symptom_prefix + '_'
+    else:
+        key = 'symptom'  
+    candidates = [[c] for c in df.columns if key in c and 'original' not in c]
+    temp_df = df.copy()#df[[c[0] for c in candidates]]
+    
+    for sgroup in merge_symptoms:
+        added = [c[0] for c in candidates if np.any([s in c[0] for s in sgroup])]
+        candidates.append(added)
+        
+    def get_max_symptom(row,colnames,min_date=13,max_date = 300,baseline=False):
+        dates = row.dates
+        maxval = 0
+        for colname in colnames:
+            values = np.array(row[colname])
+            if baseline:
+                values = values - values[0]
+            values = [float(v) for d,v in zip(dates,values) if  (d >= min_date) and (d <= max_date) ]
+            maxval = max(np.max(values),maxval)
+        return float(maxval)
+    
+    for c in candidates:
+        name = key + '_'.join([k.replace(key,'').replace('_','') for k in c])
+        temp_df[name+'_max_all'] = df.apply(lambda x: get_max_symptom(x,c,0,300),axis=1)
+        temp_df[name+'_max_treatment'] = df.apply(lambda x: get_max_symptom(x,c,0,8),axis=1)
+        temp_df[name+'_max_post'] = df.apply(lambda x: get_max_symptom(x,c,13,300),axis=1)
+        temp_df[name+'_max_late'] = df.apply(lambda x: get_max_symptom(x,c,15,300),axis=1)
+        temp_df[name+'_max_change_all'] = df.apply(lambda x: get_max_symptom(x,c,0,300,True),axis=1)
+        temp_df[name+'_max_change_treatment'] = df.apply(lambda x: get_max_symptom(x,c,0,8,True),axis=1)
+        temp_df[name+'_max_change_post'] = df.apply(lambda x: get_max_symptom(x,c,13,300,True),axis=1)
+        temp_df[name+'_max_change_late'] = df.apply(lambda x: get_max_symptom(x,c,15,300,True),axis=1)
+        temp_df = temp_df.copy() #it gives me  a 'heavily fragmented' warning without this
+    return temp_df
 
 def format_mdasi_columns(df):
     cd = get_mdasi_rename_dict()
@@ -136,6 +180,16 @@ def filter_bad_mdasi_rows(df,missing_ratio_cutoff=.7):
     print('after drop count',df.shape[0])
     return df
     
+def add_binary_clinical_stuff(df):
+    df = df.copy()
+    df['t4'] = (df.t_stage == 't4').astype(int)
+    df['n3'] = ((df.n_stage == 'n3') + (df.n_stage == 'n2c')).astype(int)
+    df['BOT'] = (df.subsite == 'BOT').astype(int)
+    df['Tonsil'] = (df.subsite == 'Tonsil').astype(int)
+    df['old'] = (df.age >= df.age.quantile([.5]).values[0]).astype(int)
+    df['digest_increase'] = (df['M6_mbs_digest'] - df['baseline_mbs_digest'] > 0).astype(int)
+    return df
+
 def load_mdasi(file = None):
     if file is None:
         file = Const.mdasi_folder + 'MDASI_09092021.xlsx'
@@ -145,6 +199,8 @@ def load_mdasi(file = None):
         dframe = pd.read_csv(file)
     dframe =filter_bad_mdasi_rows(dframe)
     dframe = format_mdasi_columns(dframe)
+    dframe = add_binary_clinical_stuff(dframe)
+#     dframe = get_mdasi_symptom_states(dframe)
     return dframe
 
 def df_symptom_names(df,use_groups=False,use_domains=False,clean=False):
