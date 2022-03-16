@@ -215,7 +215,7 @@ export default class Utils {
     static moveTTipEvent(tTip, event){
         var tipX = event.pageX + 10;
         var tipY = event.pageY + 10;
-        this.moveTTips(tTip,tipX,tipY);
+        this.moveTTip(tTip,tipX,tipY);
     }
 
     

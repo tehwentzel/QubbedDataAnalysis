@@ -12,19 +12,64 @@
 }
 
 #topRow{
-  height: 100%;
+  height: 100vh;
 }
 
+.d3-component{
+  height: 100%;
+  width: 100%;
+  margin: 0px;
+  margin-top: 2px;
+  padding: 0px;
+  background-color: white;
+  transform-origin: 0, 0;
+}
+
+.Dose2dContainer{
+  width: calc(50vh - 1em)!important;
+  height: calc(25vh - 1em)!important;
+  margin: .5em;
+}
+
+.symptomPlotContainer{
+  width: calc(25vh - 1em)!important;
+  height: calc(25vh - 1em)!important;
+  margin: .5em;
+}
+
+.organPath{
+  position: absolute;
+}
 
 .visComponent{
   height: 100%;
   width: 100%;
+  display:inline-block;
   margin: 0px;
 }
 
 .fillSpace{
   height: 100%;
   width: 100%;
+}
+
+.inline{
+  display: inline-block;
+  justify-content: flex-start;
+}
+
+.controlDropdownButton{
+  width: auto;
+  height: auto;
+  margin: 1px;
+  margin-left: 3px;
+  display: inline-flex;
+  justify-content: space-evenly;
+}
+
+.controlPanelTitle{
+  font-size: 1em;
+  font-weight: bold;
 }
 
 .fillHeight{
@@ -90,6 +135,7 @@
   width: 50%;
   text-align: right;
 }
+
 
 .tooltip {	
   position: absolute;

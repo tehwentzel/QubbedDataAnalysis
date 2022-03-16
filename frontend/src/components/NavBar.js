@@ -12,7 +12,7 @@ import DropdownButton from 'react-bootstrap/DropdownButton';
 
 export default function NavBar(props){
 
-    console.log('navbar',props);
+    // console.log('navbar',props);
     const [patientOptions,setPatientOptions] = useState(<></>);
 
     const handleSelectPatient = (pid) => {

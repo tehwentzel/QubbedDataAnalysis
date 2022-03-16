@@ -14,12 +14,13 @@ export default function useSVGCanvas(d3Container){
             
             d3.select(d3Container.current).selectAll('svg').remove();
 
-            var h = d3Container.current.clientHeight*.99;
+            var h = d3Container.current.clientHeight;
             var w = d3Container.current.clientWidth;
 
             var canvas = d3.select(d3Container.current)
                 .append('svg')
                 .attr('class','frameEntryD3')
+                // .attr('viewbox',[0,0,width,height])
                 .attr('width',w)
                 .attr('height',h);
 

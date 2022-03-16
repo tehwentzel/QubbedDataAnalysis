@@ -1,6 +1,6 @@
 import * as constants from './Constants';
 import * as d3 from 'd3';
-// const querystring = require('querystring');
+const querystring = require('querystring');
 
 export default class DataService {
 
@@ -10,6 +10,45 @@ export default class DataService {
             baseURL: constants.API_URL,
         })
     }
+
+    async getDoseJson(){
+        try{
+            const dDataResponse = await this.api.get('/doses');
+            // console.log('dose data');
+            // console.log(dDataResponse);
+            return dDataResponse;
+        } catch(error){
+            console.log(error)
+        }
+    }
+
+    async getDoseClusterJson(organs,nClusters,clusterFeatures){
+        try{
+            var params = {}
+            if(organs !== undefined){
+                params['organs'] = organs
+            }
+            if(nClusters !== undefined){
+                params['nClusters'] = nClusters
+            }
+            if(clusterFeatures !== undefined){
+                params['clusterFeatures'] = clusterFeatures
+            }
+            let qstring = '/dose_clusters';
+            if((nClusters !== undefined) | (organs !== undefined) | (clusterFeatures !== undefined) ){
+                var paramQuery = querystring.stringify(params)
+                qstring += '?' + paramQuery;
+            }
+            console.log('clusterstring',qstring)
+            const dDataResponse = await this.api.get(qstring);
+            console.log('dose cluster data');
+            // console.log(dDataResponse);
+            return dDataResponse;
+        } catch(error){
+            console.log(error)
+        }
+    }
+
 
     async getOrganJson(){
         try{
@@ -54,5 +93,6 @@ export default class DataService {
             console.log(error)
         }
     }
+
 
 }
