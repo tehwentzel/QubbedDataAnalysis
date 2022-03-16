@@ -5,6 +5,7 @@ import DataService from './modules/DataService';
 import DoseView from './components/DoseView.js';
 import NavBar from './components/NavBar';
 import ClusterControlPanel from './components/ClusterControlPanel.js';
+import PatientDoseView from './components/PatientDoseView.js';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Row from 'react-bootstrap/Row';
@@ -22,9 +23,10 @@ function App() {
   const [clusterDataLoading, setClusterDataLoading] = useState(false)
   const [nDoseClusters,setNDoseClusters] = useState(4);
   const [clusterFeatures,setClusterFeatures] = useState(['V35','V40','V45','V50','V55','V60','V65']);
-  const [plotVar,setPlotVar] = useState('V55')
+  const [plotVar,setPlotVar] = useState('V55');
+  const [activeCluster,setActiveCluster] = useState(0)
   // const [updateCued,setUpdateCued] = useState(false)
-  // const [selectedPatient, setSelectedPatient] = useState(0);
+  const [selectedPatientId, setSelectedPatientId] = useState(-1);
   // const [patientIds, setPatientIds] = useState([0]);
   // const [selectedWindow, setSelectedWindow] = useState('doses');
 
@@ -90,39 +92,58 @@ function App() {
 
   return (
     <div className="App">
-        {/* <NavBar
-          selectedPatient={selectedPatient}
-          patientIds={patientIds}
-          setSelectedPatient={setSelectedPatient}
-          selectedWindow={selectedWindow}
-          setSelectedWindow={setSelectedWindow}
-        /> */}
-        <Row id={'topRow'} className={'row noGutter'} lg={12}>
-        <Col className={'noGutter'} lg={2}>
-            <ClusterControlPanel
-              nDoseCluster={nDoseClusters}
-              setNDoseClusters={setNDoseClusters}
-              clusterFeatures={clusterFeatures}
-              setClusterFeatures={setClusterFeatures}
-              clusterDataLoading={clusterDataLoading}
-              updateClusterOrgans={updateClusterOrgans}
-              plotVar={plotVar}
-              setPlotVar={setPlotVar}
-            ></ClusterControlPanel>
+
+        <Row className={'fillSpace noGutter'} lg={12}>
+          <Col style={{'height':'100vh'}} id={'clusterCol'} fluid={'true'} className={'noGutter'} lg={6}>
+            <Row id={'clusterControlPanelContainer'} className={'noGutter'} lg={12}>
+                <ClusterControlPanel
+                  nDoseCluster={nDoseClusters}
+                  setNDoseClusters={setNDoseClusters}
+                  clusterFeatures={clusterFeatures}
+                  setClusterFeatures={setClusterFeatures}
+                  clusterDataLoading={clusterDataLoading}
+                  updateClusterOrgans={updateClusterOrgans}
+                  plotVar={plotVar}
+                  setPlotVar={setPlotVar}
+                ></ClusterControlPanel>
+              </Row>
+              <Row id={'clusterContainer'} className={'vizComponent noGutter scroll'} lg={12}>
+                <DoseView
+                  doseData={doseData}
+                  clusterData={clusterData}
+                  clusterOrgans={clusterOrgans}
+                  addOrganToCue={addOrganToCue.bind(this)}
+                  clusterOrganCue={clusterOrganCue}
+                  nDoseClusters={nDoseClusters}
+                  plotVar={plotVar}
+                  activeCluster={activeCluster}
+                  setActiveCluster={setActiveCluster}
+                ></DoseView>
+              </Row>    
+          </Col>   
+          <Col style={{'height': '100%','overflowY':'scroll'}} className={'noGutter'} lg={6}>
+            <PatientDoseView
+                doseData={doseData}
+                clusterData={clusterData}
+                selectedPatientId={selectedPatientId}
+                setSelectedPatientId={setSelectedPatientId}
+                plotVar={plotVar}
+                clusterOrgans={clusterOrgans}
+                activeCluster={activeCluster}
+              ></PatientDoseView>
           </Col>
-          <Col id={'cell1'} className={'vizComponent noGutter'} lg={10}>
-            <DoseView
+        </Row>
+        {/* <Row className={'fillSpace noGutter'} lg={12}>
+          <Col fluid={'true'} className={'noGutter fillSpace'} lg={12}>
+            <PatientDoseView
               doseData={doseData}
               clusterData={clusterData}
-              clusterOrgans={clusterOrgans}
-              addOrganToCue={addOrganToCue.bind(this)}
-              clusterOrganCue={clusterOrganCue}
-              nDoseClusters={nDoseClusters}
               plotVar={plotVar}
-              
-            ></DoseView>
-          </Col>       
-        </Row>
+              clusterOrgans={clusterOrgans}
+              activeCluster={activeCluster}
+            ></PatientDoseView>
+          </Col>
+        </Row> */}
     </div>
   );
 }

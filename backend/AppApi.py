@@ -92,7 +92,7 @@ def get_cluster_json(df,
                      **kwargs):
     if organ_list is None:
         organ_list = Const.organ_list[:]
-    df = add_sd_dose_clusters(df,organ_subset = organ_list,**kwargs)
+    df = add_sd_dose_clusters(df,organ_subset = organ_list,**kwargs).reset_index();
     clust_dfs = []
     dose_cols = get_df_dose_cols(df,key='V') + ['mean_dose','volume']
     s_cols = get_df_symptom_cols(df)
@@ -113,7 +113,12 @@ def get_cluster_json(df,
             'digest_increase'
         ]
     for c,subdf in df.groupby('dose_clusters'):
-        clust_entry = {'cluster_size': subdf.shape[0],'dates':dates}
+        clust_entry = {
+            'cluster_size': subdf.shape[0],
+            'dates':dates,
+            'ids': subdf.id.values.tolist(),
+            'clusterId': c,
+            }
         
         for organ in Const.organ_list:
             opos = Const.organ_list.index(organ)
@@ -125,13 +130,6 @@ def get_cluster_json(df,
         for scol in s_cols:
             sname = scol.replace('symptoms_','')
             clust_entry[sname] = subdf[scol].apply(lambda x: [int(i) for i in x]).values.tolist()
-            # for (nweeks, pos) in date_positions:
-            #     svals = subdf[scol].apply(lambda x: x[pos])
-            #     # squants = svals.quantile(quantiles)
-            #     # clust_entry[sname+'_quantiles_'+str(nweeks)] = squants.values.astype(float).tolist()
-                # for threshold in [3,5,7]:
-                #     total = (svals > threshold).sum()
-                #     clust_entry[sname+'>'+str(threshold)+'_'] = total
         for col in other_values:
             unique = df[col].unique()
             entry = {}
@@ -147,6 +145,8 @@ def sddf_to_json(df,
     if to_drop is None:
         to_drop = ['min_dose','is_ajcc_8th_edition']
     df = df.copy().fillna(0)
+    df['totalDose'] = df['mean_dose'].apply(np.sum) + df['V55'].apply(np.sum)
+    df['organList'] = [Const.organ_list[:] for i in range(df.shape[0])]
     is_dose_dvh = lambda x: re.match('D[0-9][0-9]?',x) is not None
     vol_dvh_too_high = lambda x: re.match('V[0-18-9][0-9]?',x) is not None
     for c in df.columns:
@@ -157,5 +157,5 @@ def sddf_to_json(df,
         if '_max_' in c:
             to_drop.append(c)
     df = df.drop(to_drop,axis=1)
-    ddict = df.to_dict(orient='index')
+    ddict = df.reset_index().to_dict(orient='records')
     return ddict

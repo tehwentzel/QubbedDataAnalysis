@@ -53,33 +53,33 @@ def get_dose_cluster_json():
     if len(cluster_features) <= 0:
         cluster_features = None
     ddict = get_cluster_json(data,organ_list=organ_list,n_clusters=int(n_clusters),features=cluster_features)
-    print('features for clusering',cluster_features)
+    # print('features for clusering',cluster_features)
     response = responsify(ddict)
-    print('response',response)
+    # print('response',response)
     return response
     
 @app.route('/organ_values',methods=['GET'])
 def get_raw_organ_data():
     odict = read_json('../data/patient_organ_data.json')
-    print('odict', odict.keys())
+    # print('odict', odict.keys())
     return responsify(odict)
 
 @app.route('/organ_values_denoised',methods=['GET'])
 def get_denoised_organ_data():
     odict = read_json('../data/patient_organ_data_denoised.json')
-    print('odict', odict.keys())
+    # print('odict', odict.keys())
     return responsify(odict)
 
 @app.route('/organ_clusters',methods=['GET'])
 def get_organ_clusters():
     odict = read_json('../data/patient_organ_similarity.json')
-    print('organ similarity', odict.keys())
+    # print('organ similarity', odict.keys())
     return responsify(odict)
 
 @app.route('/symptom_clusters',methods=['GET'])
 def get_symtpom_clusters():
     sdict = read_json('../data/patient_symptom_similarity.json')
-    print('symptom_similarity',sdict.keys())
+    # print('symptom_similarity',sdict.keys())
     return responsify(sdict)
 
 @app.route('/mdasi',methods=['GET'])

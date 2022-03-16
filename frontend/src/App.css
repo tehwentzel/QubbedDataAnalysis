@@ -1,24 +1,31 @@
 .App {
   text-align: center;
-  height: 95vh;
-  width: 100vw;
+  height: 100vh!important;
+  width: 100vw!important;
   margin: 0px;
 }
 
 .row{
-  width: 100%;
+  /* width: 100%; */
   margin: 0px;
   padding: 0px;
+  /* overflow-y: hidden;
+  overflow-x: hidden; */
+  /* height: 100%; */
 }
 
-#topRow{
+.screenHeight{
   height: 100vh;
+}
+
+.screenWidth{
+  width: 100vw;
 }
 
 .d3-component{
   height: 100%;
   width: 100%;
-  margin: 0px;
+  margin: 0px!important;
   margin-top: 2px;
   padding: 0px;
   background-color: white;
@@ -28,13 +35,24 @@
 .Dose2dContainer{
   width: calc(50vh - 1em)!important;
   height: calc(25vh - 1em)!important;
-  margin: .5em;
+  margin: .1em!important;
+  /* margin-top: 1em!important; */
 }
 
 .symptomPlotContainer{
   width: calc(25vh - 1em)!important;
   height: calc(25vh - 1em)!important;
-  margin: .5em;
+  margin: .1em!important;
+  /* margin-top: 1em!important; */
+}
+
+#clusterControlPanelContainer{
+  height: 250px;
+  overflow-y: show;
+}
+
+#clusterContainer{
+  height: calc(98vh - 250px);
 }
 
 .organPath{
@@ -42,7 +60,7 @@
 }
 
 .visComponent{
-  height: 100%;
+  height: 100%!important;
   width: 100%;
   display:inline-block;
   margin: 0px;
@@ -53,9 +71,16 @@
   width: 100%;
 }
 
+.fillHeight{
+  height: 100%!important;
+}
 .inline{
   display: inline-block;
   justify-content: flex-start;
+}
+
+.scroll{
+  overflow-y: scroll;
 }
 
 .controlDropdownButton{

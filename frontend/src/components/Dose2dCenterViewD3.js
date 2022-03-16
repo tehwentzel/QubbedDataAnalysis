@@ -2,7 +2,6 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import useSVGCanvas from './useSVGCanvas.js';
 import Utils from '../modules/Utils.js'
-import { greatestIndex } from 'd3';
 
 export default function Dose2dCenterViewD3(props){
     const d3Container = useRef(null);
@@ -76,7 +75,6 @@ export default function Dose2dCenterViewD3(props){
                 let bbox = j[i].getBBox();
                 let scale = d.scale;
                 let transform = 'scale('+scale+','+scale+') ';
-                // console.log(props.orient,d3Container.current.offset());
                 let tY = (1-scale)*(bbox.y + bbox.height*.5);
                 let tX = (1-scale)*(bbox.x + bbox.width*.5);
                 transform =  'translate(' + tX + ',' + tY + ')' + transform;
@@ -155,11 +153,9 @@ export default function Dose2dCenterViewD3(props){
 
     useEffect(()=>{
         if(svg !== undefined & pathsDrawn){
-            console.log('drawing paths')
             let box = svg.node().getBBox();
             let transform = 'translate(' + (-box.x)*(width/box.width)  + ',' + (-box.y)*(height/box.height) + ')'
             transform += ' scale(' + width/box.width + ',' + (-height/box.height) + ')';
-            // console.log('transform',transform)
             svg.selectAll('g').attr('transform',transform);
         }
     },[props.data,svg,pathsDrawn]);
