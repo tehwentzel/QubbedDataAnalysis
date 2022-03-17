@@ -5,7 +5,10 @@ import json
 import Utils
 import re
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
+from sklearn.cluster import SpectralClustering, KMeans, AgglomerativeClustering
+from sklearn.decomposition import PCA
 from ast import literal_eval
+import Metrics
 
 def add_sd_dose_clusters(sddf, 
                          clusterer = None,
@@ -84,15 +87,92 @@ def load_dose_symptom_data():
             print(c,e)
     return data
     
+def get_cluster_correlations(df,clust_key = 'dose_clusters',
+                             symptoms=None,
+                             nWeeks = None,
+                             thresholds=None,
+                             baselines=[False],
+                            ):
+    #add tests for pvalues for data
+    if symptoms is None:
+        symptoms = Const.symptoms[:]
+    if nWeeks is None:
+        nWeeks = [13,33]
+    if thresholds is None:
+        thresholds = [5,7,9]
+    date_keys = [df.dates.iloc[0].index(week) for week in nWeeks if week in df.dates.iloc[0]]
+    #calculate change from baseline instead of absolute
+    get_symptom_change_max = lambda x: np.max([x[d]-x[0] for d in date_keys])
+    get_symptom_max = lambda x: np.max([x[d] for d in date_keys])
+    df = df.copy()
+    for symptom in symptoms:
+        skey = 'symptoms_'+symptom
+        if skey not in df.columns:
+            continue
+        max_symptoms = df[skey].apply(get_symptom_max).values
+        max_change = df[skey].apply(get_symptom_change_max).values
+        for threshold in thresholds:
+            for baseline in baselines:
+                if baseline:
+                    y = (max_change >= threshold).astype(int)
+                else:
+                    y = (max_symptoms >= threshold).astype(int)
+                colname=  'cluster_'+symptom
+                if baseline:
+                    colname += '_change'
+                colname += "_" + str(threshold)
+                df[colname+'_odds_ratio'] = -1
+                df[colname+'_pval'] = -1
+                for clust in df[clust_key].unique():
+                    in_clust = df[clust_key] == clust
+                    if len(np.unique(y)) < 2:
+                        (odds_ratio,pval) = (0,1)
+                    else:
+                        (odds_ratio, pval) = Metrics.boolean_fisher_exact(in_clust.astype(int),y)
+                    df.loc[df[in_clust].index,[colname+'_odds_ratio']] = odds_ratio
+                    df.loc[df[in_clust].index,[colname+'_pval']] = pval
+    return df
+
+def keyword_clusterer(cluster_type, n_clusters,**kwargs):
+    clusterer = None
+    if cluster_type.lower() == 'bgmm':
+        clusterer = BayesianGaussianMixture(n_init=5,
+                                            n_components=n_clusters, 
+                                            covariance_type="full",
+                                            random_state=100)
+    if cluster_type.lower() == 'gmm':
+        clusterer = GaussianMixture(n_init=5,
+                                    n_components=n_clusters, 
+                                    covariance_type="full",
+                                    random_state=100)
+    if cluster_type.lower() == 'spectral':
+        clusterer = SpectralClustering(n_clusters=n_clusters)
+    if cluster_type.lower() == 'kmeans':
+        clusterer = KMeans(n_clusters=n_clusters,max_iter=1000)
+    if cluster_type.lower() == 'ward':
+        clusterer = AgglomerativeClustering(n_clusters=n_clusters,
+                                            linkage='ward')
+    return clusterer
+
 def get_cluster_json(df,
                      organ_list=None,
                      quantiles = None,
                      sdates = [13,33],
                      other_values = None,
+                     add_metrics = True,
+                     clustertype = None,
+                     n_clusters = 4,
                      **kwargs):
     if organ_list is None:
         organ_list = Const.organ_list[:]
-    df = add_sd_dose_clusters(df,organ_subset = organ_list,**kwargs).reset_index();
+    clusterer = None
+    if clustertype is not None:
+        clusterer = keyword_clusterer(clustertype,n_clusters)
+    df = add_sd_dose_clusters(df.copy(),
+                              organ_subset = organ_list,
+                              clusterer=clusterer,
+                              n_clusters = n_clusters,
+                              **kwargs)
     clust_dfs = []
     dose_cols = get_df_dose_cols(df,key='V') + ['mean_dose','volume']
     s_cols = get_df_symptom_cols(df)
@@ -112,6 +192,17 @@ def get_cluster_json(df,
             'chemotherapy','concurrent','ic','rt',
             'digest_increase'
         ]
+    #adds in pvalues and odds ratio
+    stats_cols=[]
+    if add_metrics:
+        old_cols = df.columns
+        df = get_cluster_correlations(df,
+                                      thresholds=[5,7,9],
+                                      clust_key='dose_clusters',
+                                      baselines=[False],
+                                      nWeeks=sdates)
+        stats_cols =sorted(set(df.columns) - set(old_cols))
+    df = df.reset_index()
     for c,subdf in df.groupby('dose_clusters'):
         clust_entry = {
             'cluster_size': subdf.shape[0],
@@ -123,6 +214,7 @@ def get_cluster_json(df,
         for organ in Const.organ_list:
             opos = Const.organ_list.index(organ)
             for dcol in dose_cols:
+#                 print(dcol,len(subdf[dcol].iloc[0]),len(Const.organ_list))
                 vals = subdf[dcol].apply(lambda x: x[opos])
                 qvals = vals.quantile(quantiles)
                 clust_entry[organ+'_'+dcol] = qvals.values.astype(float).tolist()
@@ -136,17 +228,30 @@ def get_cluster_json(df,
             for val in unique:
                 clust_entry[col+'_'+str(val)] = float((subdf[col] == val).sum())
                 clust_entry[col+'_'+str(val)+'_mean'] = float((subdf[col] == val).mean())
+        for statcol in stats_cols:
+            val = subdf[statcol].iloc[0]
+            clust_entry[statcol] = val
         clust_dfs.append(clust_entry)
     return clust_dfs
 
+
 def sddf_to_json(df,
                  to_drop =None,
+                 add_pca = True,
+                 pca_features = None,
                 ):
     if to_drop is None:
         to_drop = ['min_dose','is_ajcc_8th_edition']
     df = df.copy().fillna(0)
-    df['totalDose'] = df['mean_dose'].apply(np.sum) + df['V55'].apply(np.sum)
+    df['totalDose'] = df['mean_dose'].apply(np.sum)
     df['organList'] = [Const.organ_list[:] for i in range(df.shape[0])]
+    if add_pca:
+        if pca_features is None:
+            pca_features = ['V35','V40','V45','V50','V55','V60','V65']
+        dose_x = np.stack(df[pca_features].apply(lambda x: np.stack(x).ravel(),axis=1).values)
+        dose_x_pca = PCA(3).fit_transform(dose_x)
+        df['dose_pca'] = [x.tolist() for x in dose_x_pca]
+        
     is_dose_dvh = lambda x: re.match('D[0-9][0-9]?',x) is not None
     vol_dvh_too_high = lambda x: re.match('V[0-18-9][0-9]?',x) is not None
     for c in df.columns:

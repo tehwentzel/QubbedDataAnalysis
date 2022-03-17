@@ -2,7 +2,6 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import useSVGCanvas from './useSVGCanvas.js';
 import Utils from '../modules/Utils.js'
-import Dose2dCenterViewD3 from './Dose2dCenterViewD3.js';
 
 export default function ClusterSymptomsD3(props){
     const d3Container = useRef(null);
@@ -15,15 +14,25 @@ export default function ClusterSymptomsD3(props){
 
 
     const thresholds = [5,7,9]
-    const categoricalColors = d3.scaleOrdinal(d3.schemePaired);
-    const getThresholdColor = x => d3.interpolateBlues(x/thresholds[thresholds.length-1]);
 
     const angleIncrement = 2*Math.PI/plotSymptoms.length;
     
     const margin = 10;
     const radius = Math.min(height/2 - margin,width/2 - margin);
-    const valueRange = [0,1];
-    const scaleTransform = x => x**.5;
+    const valueRange = [0,10];
+    const scaleTransform = x => x;
+    // const getSeverityColor = x => d3.interpolateOranges(scaleTransform(x)/valueRange[1]);
+    const getSeverityColor = x => {
+        if(x < 5){
+            return '#af8dc3'
+        } else if(x < 7){
+            return '#f16913'
+        } else if(x < 9){
+            return '#d94801'
+        } else{
+            return '#8c2d04'
+        }
+    }
 
     function pol2rect(r, θ) { 
         let x = r*Math.cos(θ) + width/2;
@@ -76,7 +85,7 @@ export default function ClusterSymptomsD3(props){
                 .attr('class','axisEndpoint')
                 .attr('cx',d=>d.x)
                 .attr('cy',d=>d.y)
-                .attr('r',3)
+                .attr('r',1)
                 .on('mouseover',function(e){
                     let d = d3.select(this).datum();
                     let tipText = d.symptom;
@@ -99,35 +108,32 @@ export default function ClusterSymptomsD3(props){
             let curveEndpoints = [];
             let minDateIdx = props.data.dates.indexOf(minWeeks);
             let maxDateIdx = props.data.dates.length;
+            let getRadius = v => 2+(5*(v/valueRange[1]))**(.5)
             if(maxWeeks > 0){
                 let maxDateIdx = props.data.dates.indexOf(maxWeeks)
             }
             for(let threshold of thresholds){
-                let tColor = getThresholdColor(threshold)
                 let tholdEntry = {
-                    'color': tColor,
+                    'color': 'blue',
                     'points':[],
                     'value': threshold,
                 }
                 for(let symptom of plotSymptoms){
-                    let vals = props.data[symptom].map(x => x.slice(minDateIdx,maxDateIdx));
-                    let tholds = vals.map( v => Math.max(...v));
-                    let nAbove = tholds.filter( v => v >= threshold);
-                    let pctAbove = nAbove.length/tholds.length;
-                    // console.log(symptom,threshold,pctAbove)
-                    let [x,y] = coordinateTransform(symptom,scaleTransform(pctAbove));
+                    let vals = props.data['symptoms_'+symptom].slice(minDateIdx,maxDateIdx+1);
+                    let maxVal = Math.max(...vals)
+                    let [x,y] = coordinateTransform(symptom,scaleTransform(maxVal));
                     tholdEntry.points.push([x,y]);
-                    curveEndpoints.push({
-                        'x': x,
-                        'y': y,
-                        'value': pctAbove,
-                        'color': tColor,
-                        'radius': 2.5,
-                        'total': nAbove.length,
-                        'clusterSize': tholds.length,
-                        'threshold': threshold,
-                        'symptom': symptom,
-                    })
+                    if(maxVal > 0){
+                        curveEndpoints.push({
+                            'x': x,
+                            'y': y,
+                            'value': maxVal,
+                            'color': getSeverityColor(maxVal),
+                            'radius': getRadius(maxVal),
+                            'threshold': threshold,
+                            'symptom': symptom,
+                        })
+                    }
                 }
                 tholdEntry.points.push(tholdEntry.points[0])
                 curvePoints.push(tholdEntry)
@@ -137,15 +143,15 @@ export default function ClusterSymptomsD3(props){
                 .x(d => d[0])
                 .y(d => d[1]);
 
-            curveGroup.selectAll('path').filter('.symptomCurve')
-                .data(curvePoints).enter()
-                .append('path').attr('class','symptomCurve')
-                .attr('d',d=> axLineFunc(d.points))
-                .attr('stroke',d=>d.color)
-                .attr('stroke-width',1)
-                .attr('stroke-opacity',.5)
-                .attr('fill',d=>d.color)
-                .attr('fill-opacity',.5);
+            // curveGroup.selectAll('path').filter('.symptomCurve')
+            //     .data(curvePoints).enter()
+            //     .append('path').attr('class','symptomCurve')
+            //     .attr('d',d=> axLineFunc(d.points))
+            //     .attr('stroke',d=>d.color)
+            //     .attr('stroke-width',1)
+            //     .attr('stroke-opacity',.5)
+            //     .attr('fill',d=>d.color)
+            //     .attr('fill-opacity',.5);
 
             curveGroup.selectAll('circle').filter('.symptomEndpoint')
                 .data(curveEndpoints).enter()
@@ -156,8 +162,7 @@ export default function ClusterSymptomsD3(props){
                 .attr('fill',d=>d.color)
                 .on('mouseover',function(e){
                     let d = d3.select(this).datum();
-                    let tipText = d.symptom + ' > ' + d.threshold + '</br>';
-                    tipText += d.total +' out of ' + d.clusterSize + ' (' + (100*d.value).toFixed(1) + '%)'
+                    let tipText = d.symptom + ' ' + d.value;
                     tTip.html(tipText);
                 }).on('mousemove', function(e){
                     Utils.moveTTipEvent(tTip,e);

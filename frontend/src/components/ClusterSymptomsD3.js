@@ -23,7 +23,17 @@ export default function ClusterSymptomsD3(props){
     const margin = 10;
     const radius = Math.min(height/2 - margin,width/2 - margin);
     const valueRange = [0,1];
-    const scaleTransform = x => x**.5;
+    const scaleTransform = x => x**.25;
+
+    function significanceColor(p,odds){
+        if(p > .05 | odds < 1){
+            return '#af8dc3';
+        } else if(p > .01){
+            return '#d94801'
+        } else{
+            return '#8c2d04'
+        }
+    }
 
     function pol2rect(r, θ) { 
         let x = r*Math.cos(θ) + width/2;
@@ -114,19 +124,24 @@ export default function ClusterSymptomsD3(props){
                     let tholds = vals.map( v => Math.max(...v));
                     let nAbove = tholds.filter( v => v >= threshold);
                     let pctAbove = nAbove.length/tholds.length;
-                    // console.log(symptom,threshold,pctAbove)
                     let [x,y] = coordinateTransform(symptom,scaleTransform(pctAbove));
                     tholdEntry.points.push([x,y]);
+
+                    let correlation_key = 'cluster_' + symptom + '_' + threshold + '_';
+                    let odds = props.data[correlation_key + 'odds_ratio'];
+                    let pval = props.data[correlation_key + 'pval'];
                     curveEndpoints.push({
                         'x': x,
                         'y': y,
                         'value': pctAbove,
-                        'color': tColor,
-                        'radius': 2.5,
+                        'color': significanceColor(pval,odds),
+                        'radius': 3*(odds**.5),
                         'total': nAbove.length,
                         'clusterSize': tholds.length,
                         'threshold': threshold,
                         'symptom': symptom,
+                        'pval': pval,
+                        'odds': odds
                     })
                 }
                 tholdEntry.points.push(tholdEntry.points[0])
@@ -137,15 +152,15 @@ export default function ClusterSymptomsD3(props){
                 .x(d => d[0])
                 .y(d => d[1]);
 
-            curveGroup.selectAll('path').filter('.symptomCurve')
-                .data(curvePoints).enter()
-                .append('path').attr('class','symptomCurve')
-                .attr('d',d=> axLineFunc(d.points))
-                .attr('stroke',d=>d.color)
-                .attr('stroke-width',1)
-                .attr('stroke-opacity',.5)
-                .attr('fill',d=>d.color)
-                .attr('fill-opacity',.5);
+            // curveGroup.selectAll('path').filter('.symptomCurve')
+            //     .data(curvePoints).enter()
+            //     .append('path').attr('class','symptomCurve')
+            //     .attr('d',d=> axLineFunc(d.points))
+            //     .attr('stroke',d=>d.color)
+            //     .attr('stroke-width',1)
+            //     .attr('stroke-opacity',.5)
+            //     .attr('fill',d=>d.color)
+            //     .attr('fill-opacity',.5);
 
             curveGroup.selectAll('circle').filter('.symptomEndpoint')
                 .data(curveEndpoints).enter()
@@ -154,10 +169,15 @@ export default function ClusterSymptomsD3(props){
                 .attr('cy',d=>d.y)
                 .attr('r',d=>d.radius)
                 .attr('fill',d=>d.color)
+                .attr('opacity',d=> (d.pval > .05)? .8: 1)
+                .attr('stroke', 'black')
+                .attr('stroke-width',1)
+                .attr('stroke-opacity',d=> (d.pval > .05)? 0: 1)
                 .on('mouseover',function(e){
                     let d = d3.select(this).datum();
                     let tipText = d.symptom + ' > ' + d.threshold + '</br>';
-                    tipText += d.total +' out of ' + d.clusterSize + ' (' + (100*d.value).toFixed(1) + '%)'
+                    tipText += d.total +' out of ' + d.clusterSize + ' (' + (100*d.value).toFixed(1) + '%)' + '</br>'
+                    tipText += 'odds ratio: ' + d.odds.toFixed(1) + ' (p=' + d.pval.toFixed(3) + ')' + '</br>'
                     tTip.html(tipText);
                 }).on('mousemove', function(e){
                     Utils.moveTTipEvent(tTip,e);

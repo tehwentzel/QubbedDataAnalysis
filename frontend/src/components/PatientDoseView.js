@@ -10,6 +10,7 @@ import Col from 'react-bootstrap/Col';
 import Dose2dCenterViewD3 from './Dose2dCenterViewD3.js';
 import ClusterSymptomsD3 from './ClusterSymptomsD3.js';
 import PatientDoseViewD3 from './PatientDoseViewD3.js';
+import PatientSymptomsD3 from './PatientSymptomsD3.js'
 
 import Spinner from 'react-bootstrap/Spinner';
 
@@ -83,13 +84,18 @@ export default function PatientDoseView(props){
                     </span>
                     <PatientDoseViewD3
                         data={d}
-                        key={i+''+props.activeCluster}
+                        key={i+''+props.activeCluster+'dose'}
                         plotVar={props.plotVar}
                         svgPaths={svgPaths}
                         orient={'both'}
                         getColor={getColor}
                         baseline={baseline}
                     ></PatientDoseViewD3>
+                    <PatientSymptomsD3
+                        data={d}
+                        key={i+''+props.activeCluster+'symptom'}
+
+                    ></PatientSymptomsD3>
                     <span  className={'controlPanelTitle'}>
                         <Button
                             title={bottomTitle}
@@ -103,8 +109,6 @@ export default function PatientDoseView(props){
         }
 
         if(props.doseData !== undefined & svgPaths != undefined & props.clusterData != undefined){
-
-            console.log(props.doseData);
             let activeIds = props.clusterData.filter(x => x.clusterId == props.activeCluster).map(x=>x.ids)[0];
             // let activeData = props.doseData.filter(x => activeIds.indexOf(parseInt(x.id)) > -1);
             //get data in selected cluster
@@ -139,7 +143,6 @@ export default function PatientDoseView(props){
             if(counterfactuals.length > maxPatients){
                 counterfactuals = counterfactuals.slice(0,maxPatients);
             }
-            console.log('coounterfactual',counterfactuals);
             let compareComponents = counterfactuals.map((d,i) => {
                 let datum = d.datum;
                 return makePatientPlot(datum,i,false,selectedData);
@@ -165,12 +168,12 @@ export default function PatientDoseView(props){
     },[props.clusterData,svgPaths,props.clusterOrgans,props.plotVar,props.activeCluster,props.selectedPatientId])
 
     return ( 
-        <div ref={ref} id={'patientDoseContainer'}>
-            <Row md={12} style={{'height': '100vh','overflowY':'show'}} className={'noGutter fillSpace'}>
-                <Col md={6} className={'noGutter scroll'}>
+        <div ref={ref} style={{'height': '100%','overflowY':'show'}}  id={'patientDoseContainer'}>
+            <Row md={12}  className={'noGutter fillSpace'}>
+                <Col md={6} style={{'height': '100%','overflowY':'scroll'}} className={'noGutter scroll'}>
                     {vizComponents}
                 </Col>
-                <Col md={6} className={'noGutter scroll'}>
+                <Col md={6} style={{'height': '100%','overflowY':'scroll'}}  className={'noGutter scroll'}>
                     {compareVizComponents}
                 </Col>
             </Row>
@@ -180,7 +183,7 @@ export default function PatientDoseView(props){
 }
 
 
-function patientClinicalVector(d){
+function patientClinicalVector(d,doseCorrection=0){
     let valMap = {
         't1': 1/4,
         't2': 2/4,
@@ -204,8 +207,8 @@ function patientClinicalVector(d){
     let concurrent = parseInt(d.concurrent);
     let bot = (d.subsite == 'BOT')? 1:0;
     let tonsil = (d.subsite == 'Tonsil')? 1:0;
-    let totalDose = parseFloat(d.totalDose)/3500
-    return [tVal,nVal,hpvVal,ic,rt,concurrent,bot,tonsil]
+    let totalDoseRatio = parseFloat(d.totalDose)*doseCorrection;
+    return [tVal,nVal,hpvVal,ic,rt,concurrent,bot,tonsil,totalDoseRatio]
     // return [tVal,nVal,hpvVal,ic,rt,concurrent,bot,tonsil]
 }
 
@@ -220,10 +223,11 @@ function patientSim(a,b){
 }
 
 function getSimilarPatients(sourcePatient,targetPatients){
-    let source = patientClinicalVector(sourcePatient);
+    let dCorrection = 2/parseFloat(sourcePatient.totalDose)
+    let source = patientClinicalVector(sourcePatient,dCorrection);
     let sims = []
     for(let t of targetPatients){
-        let target = patientClinicalVector(t);
+        let target = patientClinicalVector(t,dCorrection);
         let sim = patientSim(source,target);
         sims.push({'similarity':sim,'datum':t})
     }

@@ -48,6 +48,16 @@ def get_dose_cluster_json():
     organ_list = request.args.getlist('organs')
     if len(organ_list) <= 0:
         organ_list = None
+    if organ_list is not None:
+        for o in organ_list:
+            if 'Lt_' in o:
+                alter = o.replace('Lt_','Rt_')
+                if alter not in organ_list:
+                    organ_list.append(alter)
+            if 'Rt_' in o:
+                alter = o.replace('Rt_','Lt_')
+                if alter not in organ_list:
+                    organ_list.append(alter)
     n_clusters = request.args.get('nClusters',4)
     cluster_features = request.args.getlist('clusterFeatures')
     if len(cluster_features) <= 0:

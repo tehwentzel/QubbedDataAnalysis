@@ -6,6 +6,7 @@ import DoseView from './components/DoseView.js';
 import NavBar from './components/NavBar';
 import ClusterControlPanel from './components/ClusterControlPanel.js';
 import PatientDoseView from './components/PatientDoseView.js';
+import OverView from './components/OverView.js';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Row from 'react-bootstrap/Row';
@@ -29,6 +30,11 @@ function App() {
   const [selectedPatientId, setSelectedPatientId] = useState(-1);
   // const [patientIds, setPatientIds] = useState([0]);
   // const [selectedWindow, setSelectedWindow] = useState('doses');
+
+  function resetSelections(){
+    setActiveCluster(0);
+    setSelectedPatientId(-1);
+  }
 
   function updateClusterOrgans(){
     if(!clusterDataLoading & clusterData !== undefined){
@@ -70,6 +76,7 @@ function App() {
     const response = await api.getDoseClusterJson(org,nClust,clustFeatures);
     setClusterData(response.data);
     setClusterDataLoading(false);
+    resetSelections();
   }
 
   useEffect(() => {
@@ -120,30 +127,35 @@ function App() {
                   setActiveCluster={setActiveCluster}
                 ></DoseView>
               </Row>    
-          </Col>   
-          <Col style={{'height': '100%','overflowY':'scroll'}} className={'noGutter'} lg={6}>
-            <PatientDoseView
-                doseData={doseData}
+          </Col>  
+          <Col style={{'height': '100vh','overflowY':'hidden'}} className={'noGutter'} lg={6}>
+            <Row style={{'height': '50vh','overflowY':'hidden'}} className={'noGutter'} lg={12}>
+              <PatientDoseView
+                  doseData={doseData}
                 clusterData={clusterData}
                 selectedPatientId={selectedPatientId}
                 setSelectedPatientId={setSelectedPatientId}
                 plotVar={plotVar}
                 clusterOrgans={clusterOrgans}
                 activeCluster={activeCluster}
-              ></PatientDoseView>
-          </Col>
-        </Row>
-        {/* <Row className={'fillSpace noGutter'} lg={12}>
-          <Col fluid={'true'} className={'noGutter fillSpace'} lg={12}>
-            <PatientDoseView
-              doseData={doseData}
-              clusterData={clusterData}
-              plotVar={plotVar}
-              clusterOrgans={clusterOrgans}
-              activeCluster={activeCluster}
-            ></PatientDoseView>
-          </Col>
-        </Row> */}
+                ></PatientDoseView>
+            </Row>
+            <Row style={{'height': '50vh','width':'100%'}} className={'noGutter'} lg={12}>
+              {/* <Container md={12} className={'noGutter fillSpace'}> */}
+                <OverView
+                    doseData={doseData}
+                    clusterData={clusterData}
+                    selectedPatientId={selectedPatientId}
+                    setSelectedPatientId={setSelectedPatientId}
+                    plotVar={plotVar}
+                    clusterOrgans={clusterOrgans}
+                    activeCluster={activeCluster}
+                    setActiveCluster={setActiveCluster}
+                ></OverView>
+              {/* </Container> */}
+            </Row>
+        </Col>
+      </Row>
     </div>
   );
 }

@@ -8,15 +8,6 @@ export default function PatientDoseViewD3(props){
     const d3Container = useRef(null);
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [pathsDrawn, setPathsDrawn] = useState(false);
-    // const [plotVars,setPlotVars] = useState(['V55'])
-
-    // console.log('patient plot',height,width)
-    // // placehodler function if I make this a property to change
-    // useEffect(function setPlotVars(){
-    //     if(props.plotVar !== undefined){
-    //         setPlotVars(props.plotVar)
-    //     }
-    // },[props.plotVar]);
 
     useEffect(function draw(){
         if(svg !== undefined & props.svgPaths !== undefined & props.data != undefined){
@@ -91,6 +82,7 @@ export default function PatientDoseViewD3(props){
                 // .attr('transform',(d,i)=>transforms[i])
                 .attr('fill', x=>getColor(colorScale(x.dVal)))
                 .attr('stroke','black')
+                .attr('stroke-width','.1')
                 .on('mouseover',function(e){
                     let d = d3.select(this).datum();
                     let tipText = d.organ_name + '</br>' 
