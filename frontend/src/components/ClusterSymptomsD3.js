@@ -9,24 +9,24 @@ export default function ClusterSymptomsD3(props){
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [drawn, setDrawn] = useState(false);
 
-    const plotSymptoms = ['drymouth','voice','teeth','taste','nausea','choke','vomit','pain','mucus','mucositis']
+    // const plotSymptoms = ['drymouth','voice','teeth','taste','nausea','choke','vomit','pain','mucus','mucositis']
     const minWeeks = 33;
     const maxWeeks = -1;
 
 
-    const thresholds = [5,7,9]
+    const thresholds = [5];
     const categoricalColors = d3.scaleOrdinal(d3.schemePaired);
     const getThresholdColor = x => d3.interpolateBlues(x/thresholds[thresholds.length-1]);
-
-    const angleIncrement = 2*Math.PI/plotSymptoms.length;
+    const lineFunc = d3.line(d=>d[0],d=>d[1])
+    const angleIncrement = 2*Math.PI/props.plotSymptoms.length;
     
-    const margin = 10;
+    const margin = 1;
     const radius = Math.min(height/2 - margin,width/2 - margin);
-    const valueRange = [0,1];
-    const scaleTransform = x => x**.25;
+    const valueRange = [0,10];
+    const scaleTransform = x => .9*x + 1;
 
-    function significanceColor(p,odds){
-        if(p > .05 | odds < 1){
+    function significanceColor(p,effectSize){
+        if(p > .05 | effectSize < 1){
             return '#af8dc3';
         } else if(p > .01){
             return '#d94801'
@@ -41,7 +41,7 @@ export default function ClusterSymptomsD3(props){
         return [x,y];
     }
     function coordinateTransform(sname,value){
-        let angle = plotSymptoms.indexOf(sname)*angleIncrement;
+        let angle = props.plotSymptoms.indexOf(sname)*angleIncrement;
         let r = radius*value/valueRange[1];
         return pol2rect(r,angle)
     }
@@ -57,7 +57,7 @@ export default function ClusterSymptomsD3(props){
             var axisGroup = svg.append('g').attr('class','axisGroup');
             var axisPaths = [];
             var endpoints = []
-            for(let symptom of plotSymptoms){
+            for(let symptom of props.plotSymptoms){
                 let [x0,y0] = coordinateTransform(symptom,0);
                 let [x1,y1] = coordinateTransform(symptom,valueRange[1]);
                 let axPath = axLineFunc([[x0,y0],[x1,y1]]);
@@ -97,71 +97,78 @@ export default function ClusterSymptomsD3(props){
                     Utils.hideTTip(tTip);
                 });
         }
-    },[svg,height,width])
+    },[svg,height,width,props.plotSymptoms])
 
     useEffect(function draw(){
         
         if(svg !== undefined & props.data != undefined & height > 0 & width > 0){
-            svg.selectAll('g').filter('.symptomCurveGroup').remove();
-            var curveGroup = svg.append('g').attr('class','symptomCurveGroup')
+            
             setDrawn(false);
-            let curvePoints = [];
             let curveEndpoints = [];
+            let linePoints = [];
             let minDateIdx = props.data.dates.indexOf(minWeeks);
             let maxDateIdx = props.data.dates.length;
             if(maxWeeks > 0){
-                let maxDateIdx = props.data.dates.indexOf(maxWeeks)
+                maxDateIdx = props.data.dates.indexOf(maxWeeks)
             }
-            for(let threshold of thresholds){
-                let tColor = getThresholdColor(threshold)
-                let tholdEntry = {
-                    'color': tColor,
-                    'points':[],
-                    'value': threshold,
+            for(let symptom of props.plotSymptoms){
+                let correlation_key = 'cluster_' + symptom + '_';
+                let getCorr = (suffix) => props.data[correlation_key + suffix];
+                let entryBase = {
+                    'lrt_pval': getCorr('lrt_pval'),
+                    'ttest_tval': getCorr('ttest_tval'),
+                    'aic_diff': getCorr('aic_diff'),//negative is Good
+                    'color': 'white',
+                    'symptom': symptom,
+                    'clusterSize': props.data.cluster_size,
+                    'radius': .1,
+                    'odds_ratio_5': props.data['cluster_'+symptom+'_5_odds_ratio'],
+                    'odds_ratio_7': props.data['cluster_'+symptom+'_7_odds_ratio'],
+                    'pval_5': props.data['cluster_'+symptom+'_5_pval'],
+                    'pval_7': props.data['cluster_'+symptom+'_7_pval'],
                 }
-                for(let symptom of plotSymptoms){
-                    let vals = props.data[symptom].map(x => x.slice(minDateIdx,maxDateIdx));
-                    let tholds = vals.map( v => Math.max(...v));
-                    let nAbove = tholds.filter( v => v >= threshold);
-                    let pctAbove = nAbove.length/tholds.length;
-                    let [x,y] = coordinateTransform(symptom,scaleTransform(pctAbove));
-                    tholdEntry.points.push([x,y]);
+                let lineEntry = Object.assign(entryBase,{})
+                lineEntry.points = [];
 
-                    let correlation_key = 'cluster_' + symptom + '_' + threshold + '_';
-                    let odds = props.data[correlation_key + 'odds_ratio'];
-                    let pval = props.data[correlation_key + 'pval'];
-                    curveEndpoints.push({
-                        'x': x,
-                        'y': y,
-                        'value': pctAbove,
-                        'color': significanceColor(pval,odds),
-                        'radius': 3*(odds**.5),
-                        'total': nAbove.length,
-                        'clusterSize': tholds.length,
-                        'threshold': threshold,
-                        'symptom': symptom,
-                        'pval': pval,
-                        'odds': odds
-                    })
+                let vals = props.data[symptom].map(x => x.slice(minDateIdx,maxDateIdx));
+                let mvals = vals.map( v => Math.max(...v));
+                let mean = Utils.mean(mvals);
+                let median = Utils.median(mvals);
+                let n75 = Utils.quantile(mvals,.75);
+                let n25 = Utils.quantile(mvals,.25);
+                let valList = [['n25',n25],['mean',median],['n75',n75]]
+                for(let [vName, val] of valList){
+                    let [x,y] = coordinateTransform(symptom,scaleTransform(val));
+                    if(vName === 'mean' & val > .1){
+                        let subEntry = Object.assign(entryBase,{});
+                        subEntry.x = x;
+                        subEntry.y = y;
+
+                        subEntry.value = val;
+                        subEntry.name = vName;
+                        subEntry.color = significanceColor(subEntry.lrt_pval,subEntry.ttest_tval);
+                        subEntry.radius = 2 + 2*Math.max(entryBase.odds_ratio_7,.01)**.5;
+                        curveEndpoints.push(subEntry);
+                    }else{
+                        lineEntry.points.push([x,y])
+                    }
                 }
-                tholdEntry.points.push(tholdEntry.points[0])
-                curvePoints.push(tholdEntry)
+                lineEntry.path = lineFunc(lineEntry.points);
+                linePoints.push(lineEntry);
             }
-   
-            const axLineFunc = d3.line()
-                .x(d => d[0])
-                .y(d => d[1]);
 
-            // curveGroup.selectAll('path').filter('.symptomCurve')
-            //     .data(curvePoints).enter()
-            //     .append('path').attr('class','symptomCurve')
-            //     .attr('d',d=> axLineFunc(d.points))
-            //     .attr('stroke',d=>d.color)
-            //     .attr('stroke-width',1)
-            //     .attr('stroke-opacity',.5)
-            //     .attr('fill',d=>d.color)
-            //     .attr('fill-opacity',.5);
+            svg.selectAll('g').filter('.symptomCurveGroup').remove();
+            var curveGroup = svg.append('g').attr('class','symptomCurveGroup')
+            
+            curveGroup.selectAll('.symptomLine').remove();
+            curveGroup.selectAll('path').filter('.symptomLine')
+                .data(linePoints).enter()
+                .append('path').attr('class','.symptomLine')
+                .attr('d',d=>d.path)
+                .attr('stroke','blue')
+                .attr('stroke-width',2);
 
+            curveGroup.selectAll('.symptomEndpoint').remove()
             curveGroup.selectAll('circle').filter('.symptomEndpoint')
                 .data(curveEndpoints).enter()
                 .append('circle').attr('class','symptomEndpoint')
@@ -169,15 +176,22 @@ export default function ClusterSymptomsD3(props){
                 .attr('cy',d=>d.y)
                 .attr('r',d=>d.radius)
                 .attr('fill',d=>d.color)
-                .attr('opacity',d=> (d.pval > .05)? .8: 1)
+                .attr('opacity',d=> (d.lrt_pval > .05)? .8: 1)
                 .attr('stroke', 'black')
                 .attr('stroke-width',1)
                 .attr('stroke-opacity',d=> (d.pval > .05)? 0: 1)
                 .on('mouseover',function(e){
                     let d = d3.select(this).datum();
-                    let tipText = d.symptom + ' > ' + d.threshold + '</br>';
-                    tipText += d.total +' out of ' + d.clusterSize + ' (' + (100*d.value).toFixed(1) + '%)' + '</br>'
-                    tipText += 'odds ratio: ' + d.odds.toFixed(1) + ' (p=' + d.pval.toFixed(3) + ')' + '</br>'
+                    let tipText = d.symptom + '</br>' 
+                        + d.name + ': ' + d.value + '</br>'
+                        + 'aic improvement: ' + (-d.aic_diff).toFixed(2) + '</br>' 
+                        + 'lrt tval: ' + d.ttest_tval.toFixed(2) + '</br>'
+                        + 'p = ' + d.lrt_pval.toFixed(3) + '</br>'
+                        + 'odds>4: ' + d.odds_ratio_5.toFixed(1) + ' p=' + d.pval_5.toFixed(3) + '</br>'
+                        + 'odds>6: ' + d.odds_ratio_7.toFixed(1) + ' p=' + d.pval_7.toFixed(3) + '</br>'
+                    // let tipText = d.symptom + ' > ' + d.threshold + '</br>';
+                    // tipText += d.total +' out of ' + d.clusterSize + ' (' + (100*d.value).toFixed(1) + '%)' + '</br>'
+                    // tipText += 'odds ratio: ' + d.odds.toFixed(1) + ' (p=' + d.pval.toFixed(3) + ')' + '</br>'
                     tTip.html(tipText);
                 }).on('mousemove', function(e){
                     Utils.moveTTipEvent(tTip,e);

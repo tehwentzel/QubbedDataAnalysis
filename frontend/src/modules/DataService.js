@@ -11,6 +11,23 @@ export default class DataService {
         })
     }
 
+    getParamList(pObj){
+        let newParams = {}
+        let empty= true;
+        for(let k of Object.keys(pObj)){
+            if(pObj[k] !== undefined & pObj[k] !== null){
+                newParams[k] = pObj[k];
+                empty = false;
+            }
+        }
+        let paramQuery = '';
+        if(!empty){
+            let pstring = querystring.stringify(newParams);
+            paramQuery = paramQuery + '?' + pstring
+        }
+        return paramQuery
+    }
+
     async getDoseJson(){
         try{
             const dDataResponse = await this.api.get('/doses');
@@ -22,30 +39,48 @@ export default class DataService {
         }
     }
 
-    async getDoseClusterJson(organs,nClusters,clusterFeatures){
+    async getDoseClusterJson(organs,nClusters,clusterFeatures,clusterType,lrtConfounders){
         try{
-            var params = {}
-            if(organs !== undefined){
-                params['organs'] = organs
-            }
-            if(nClusters !== undefined){
-                params['nClusters'] = nClusters
-            }
-            if(clusterFeatures !== undefined){
-                params['clusterFeatures'] = clusterFeatures
+            var params = {
+                'organs': organs,
+                'nClusters':nClusters,
+                'clusterFeatures':clusterFeatures,
+                'clusterType':clusterType,
+                'confounders':lrtConfounders,
             }
             let qstring = '/dose_clusters';
-            if((nClusters !== undefined) | (organs !== undefined) | (clusterFeatures !== undefined) ){
-                var paramQuery = querystring.stringify(params)
-                qstring += '?' + paramQuery;
-            }
-            console.log('clusterstring',qstring)
+            qstring += this.getParamList(params)
+            // console.log('clusterstring',qstring)
             const dDataResponse = await this.api.get(qstring);
-            console.log('dose cluster data');
+            // console.log('dose cluster data');
             // console.log(dDataResponse);
             return dDataResponse;
         } catch(error){
             console.log(error)
+        }
+    }
+
+    async getAdditiveOrganClusterEffects(baseOrgans,nClusters,features,clusterType,
+        symptoms,confounders,threshold,dropBaseCluster){
+        try{
+            let params = {
+                symptoms:symptoms,
+                clusterType:clusterType,
+                nClusters:nClusters,
+                features:features,
+                baseOrgans:baseOrgans,
+                confounders:confounders,
+                threshold:threshold,
+                dropBaseCluseter:dropBaseCluster,
+            }
+            let qstring = '/single_organ_effects';
+            qstring += this.getParamList(params);
+            console.log('additiveClusterString',qstring)
+            const dataResponse = await this.api.get(qstring);
+            console.log('additiveClusterEffectData',dataResponse);
+            return dataResponse
+        }catch(error){
+            console.log('error getting additive cluster effects',error);
         }
     }
 

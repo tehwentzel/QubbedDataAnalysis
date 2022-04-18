@@ -22,6 +22,10 @@
   width: 100vw;
 }
 
+svg > path, svg > circle{
+  cursor: pointer;
+}
+
 .d3-component{
   height: 100%;
   width: 100%;
@@ -47,12 +51,12 @@
 }
 
 #clusterControlPanelContainer{
-  height: 250px;
+  height: 290px;
   overflow-y: show;
 }
 
 #clusterContainer{
-  height: calc(98vh - 250px);
+  height: calc(98vh - 290px);
 }
 
 .organPath{

@@ -17,8 +17,6 @@ import Spinner from 'react-bootstrap/Spinner';
 export default function PatientDoseView(props){
     const ref = useRef(null)
 
-   
-    const [svgPaths,setSvgPaths] = useState();
 
     //temp limit on number of patients we plot
     //add in some sort of toggle or something here?
@@ -40,15 +38,15 @@ export default function PatientDoseView(props){
             className={'spinner'}/>
     )
 
+    // const [svgPaths,setSvgPaths] = useState();
 
-
-    useEffect(()=>{
-        fetch('organ_svgs/organ_svg_paths.json').then((newPaths)=>{
-            newPaths.json().then((data)=>{
-                setSvgPaths(data);
-            })
-        })
-    },[])
+    // useEffect(()=>{
+    //     fetch('organ_svgs/organ_svg_paths.json').then((newPaths)=>{
+    //         newPaths.json().then((data)=>{
+    //             setSvgPaths(data);
+    //         })
+    //     })
+    // },[])
 
     useEffect(function drawPatients(){
         // console.log('organs',props.clusterOrgans)
@@ -71,7 +69,7 @@ export default function PatientDoseView(props){
                 getColor = d3.interpolateGnBu;
             }
             return (
-                <Container style={{'height':'10vh','width': '20vh','marginTop': '3em'}} 
+                <Container id={'pdose'+d.id} key={d.id+'_'+props.selectedPatientId} style={{'height':'10vh','width': '20vh','marginTop': '3em'}} 
                     className={'inline'} key={i+props.plotVar+canClick} md={5}>
                     <span  className={'controlPanelTitle'}>
                         <Button
@@ -86,7 +84,7 @@ export default function PatientDoseView(props){
                         data={d}
                         key={i+''+props.activeCluster+'dose'}
                         plotVar={props.plotVar}
-                        svgPaths={svgPaths}
+                        svgPaths={props.svgPaths}
                         orient={'both'}
                         getColor={getColor}
                         baseline={baseline}
@@ -94,7 +92,7 @@ export default function PatientDoseView(props){
                     <PatientSymptomsD3
                         data={d}
                         key={i+''+props.activeCluster+'symptom'}
-
+                        plotSymptoms={props.symptomsOfInterest}
                     ></PatientSymptomsD3>
                     <span  className={'controlPanelTitle'}>
                         <Button
@@ -108,17 +106,26 @@ export default function PatientDoseView(props){
             )
         }
 
-        if(props.doseData !== undefined & svgPaths != undefined & props.clusterData != undefined){
+        if(props.doseData !== undefined & props.svgPaths != undefined & props.clusterData != undefined){
             let activeIds = props.clusterData.filter(x => x.clusterId == props.activeCluster).map(x=>x.ids)[0];
-            // let activeData = props.doseData.filter(x => activeIds.indexOf(parseInt(x.id)) > -1);
             //get data in selected cluster
-            let activeData = [];
+            //data for second column
+            let toCompare = parseInt(props.selectedPatientId);
+            if(toCompare === undefined | toCompare < 0){
+                toCompare = parseInt(activeIds[0]);
+            }
+            let selectedData = props.doseData.filter(x => parseInt(x.id) === toCompare)[0];
+
+            let activeData = [selectedData];
             let badPids = [];
             for(let pid of activeIds){
+                if(pid === props.selectedId){ continue; }
                 if(activeData.length > maxPatients){ break; }
-                let datum = props.doseData.filter(x=>parseInt(x.id) === parseInt(pid));
+                let datum = props.doseData.filter(x=>parseInt(x.id) === parseInt(pid))[0];
                 if(datum !== undefined){
-                    activeData.push(datum[0])
+                    datum = Object.assign({},datum);
+                    datum.order = (datum.id == props.selectedPatientId)? 0 : 1/datum.totalDose;
+                    activeData.push(datum);
                 }else{
                     badPids.push(pid);
                 }
@@ -128,16 +135,11 @@ export default function PatientDoseView(props){
                 console.log('bad pids',badPids.length,'out of',activeIds.length);
             }
             //sort by highest dose at top
-            activeData.sort((a,b)=> b.totalDose - a.totalDose);
+            activeData.sort((a,b)=> {return a.order - b.order});
             
             let components = activeData.map(makePatientPlot);
 
-            //data for second column
-            let toCompare = parseInt(props.selectedPatientId);
-            if(toCompare === undefined | toCompare < 0){
-                toCompare = parseInt(activeData[0].id);
-            }
-            let selectedData = props.doseData.filter(x => parseInt(x.id) === toCompare)[0];
+            
             let compareCandidates = props.doseData.filter(x => activeIds.indexOf(x.id) == -1);
             let counterfactuals = getSimilarPatients(selectedData,compareCandidates);
             if(counterfactuals.length > maxPatients){
@@ -165,7 +167,9 @@ export default function PatientDoseView(props){
             setVizComponents(components);
             setCompareVizComponents(components.map(x=>x))
         }
-    },[props.clusterData,svgPaths,props.clusterOrgans,props.plotVar,props.activeCluster,props.selectedPatientId])
+    },[props.clusterData,props.svgPaths,props.clusterOrgans,
+        props.plotVar,props.activeCluster,
+        props.selectedPatientId,props.symptomsOfInterest])
 
     return ( 
         <div ref={ref} style={{'height': '100%','overflowY':'show'}}  id={'patientDoseContainer'}>

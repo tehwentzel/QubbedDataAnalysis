@@ -23,11 +23,20 @@ function App() {
   const [clusterOrganCue,setClusterOrganCue] = useState([])
   const [clusterDataLoading, setClusterDataLoading] = useState(false)
   const [nDoseClusters,setNDoseClusters] = useState(4);
-  const [clusterFeatures,setClusterFeatures] = useState(['V35','V40','V45','V50','V55','V60','V65']);
+  const [clusterFeatures,setClusterFeatures] = useState(['V35','V40','V45','V50','V55','V60']);
+  const [lrtConfounders,setLrtConfounders] = useState(['t_severe','n_severe','hpv','Parotid_Gland_limit']);
   const [plotVar,setPlotVar] = useState('V55');
   const [activeCluster,setActiveCluster] = useState(0)
   // const [updateCued,setUpdateCued] = useState(false)
   const [selectedPatientId, setSelectedPatientId] = useState(-1);
+  const [clusterType,setClusterType] = useState('bgmm');
+  const [showContralateral,setShowContralateral] = useState(true);
+
+  const [additiveClusterResults,setAdditiveClusterResults] = useState(null);
+  const [symptomsOfInterest,setSymptomsOfInterest] = useState(['drymouth','teeth','voice','taste','mucus','nausea','pain','choke'])
+  const [mainSymptom,setMainSymptom] = useState('drymouth');
+
+  const [svgPaths,setSvgPaths] = useState();
   // const [patientIds, setPatientIds] = useState([0]);
   // const [selectedWindow, setSelectedWindow] = useState('doses');
 
@@ -41,7 +50,7 @@ function App() {
 
       let cue = [];
       for(let o of clusterOrganCue){ cue.push(o); }
-      if(cue.length > 1){
+      if(cue.length > 0){
         // console.log('new cluster organs',cue)
         setClusterOrgans(cue);
       }
@@ -63,39 +72,68 @@ function App() {
     }
   }
 
+  useEffect(()=>{
+      fetch('organ_svgs/organ_svg_paths.json').then((newPaths)=>{
+          newPaths.json().then((data)=>{
+              setSvgPaths(data);
+          })
+      })
+  },[])
+
 
   var fetchDoseData = async() => {
     const response = await api.getDoseJson();
     setDoseData(response.data);
   }
 
-  var fetchDoseClusters = async(org,nClust,clustFeatures) => {
+  var fetchDoseClusters = async(org,nClust,clustFeatures,clusterType,confounders) => {
     setClusterData();
     setClusterDataLoading(true);
-    console.log('clustering with organs', org)
-    const response = await api.getDoseClusterJson(org,nClust,clustFeatures);
+    // console.log('clustering with organs', org)
+    const response = await api.getDoseClusterJson(org,nClust,clustFeatures,clusterType,confounders);
+    console.log('cluster data',response.data);
     setClusterData(response.data);
     setClusterDataLoading(false);
     resetSelections();
   }
 
+  var fetchAdditiveEffects= async(org,nClust,clustFeatures,clusterType,soi,lrtConfounders) => {
+    const response = await api.getAdditiveOrganClusterEffects(
+      org,
+      nClust,
+      clustFeatures,
+      clusterType,
+      soi,
+      lrtConfounders,
+    );
+    // console.log('fetched addtive',response.data);
+    setAdditiveClusterResults(response.data);
+  }
+
+
   useEffect(() => {
     fetchDoseData();
-    fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures)
+    fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders);
+    // fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,symptomsOfInterest);
   },[])
 
 
   useEffect(() => {
     if(!clusterDataLoading){
-      console.log('cluster organ query', clusterOrgans)
-      fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures);
+      // console.log('cluster organ query', clusterOrgans)
+      fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders);
     }
-  },[clusterOrgans,nDoseClusters,clusterFeatures])
+  },[clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders])
 
   useEffect(function clearCue(){
     setClusterOrganCue(new Array());
   },[clusterOrgans])
 
+  useEffect(function updateEffect(){
+    if(clusterData !== undefined & !clusterDataLoading){
+      fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,[mainSymptom],lrtConfounders);
+    }
+    },[clusterData,clusterDataLoading,mainSymptom,lrtConfounders])
 
   return (
     <div className="App">
@@ -112,6 +150,13 @@ function App() {
                   updateClusterOrgans={updateClusterOrgans}
                   plotVar={plotVar}
                   setPlotVar={setPlotVar}
+                  clusterType={clusterType}
+                  setClusterType={setClusterType}
+                  symptomsOfInterest={symptomsOfInterest}
+                  lrtConfounders={lrtConfounders}
+                  setLrtConfounders={setLrtConfounders}
+                  showContralateral={showContralateral}
+                  setShowContralateral={setShowContralateral}
                 ></ClusterControlPanel>
               </Row>
               <Row id={'clusterContainer'} className={'vizComponent noGutter scroll'} lg={12}>
@@ -123,8 +168,11 @@ function App() {
                   clusterOrganCue={clusterOrganCue}
                   nDoseClusters={nDoseClusters}
                   plotVar={plotVar}
+                  svgPaths={svgPaths}
                   activeCluster={activeCluster}
                   setActiveCluster={setActiveCluster}
+                  symptomsOfInterest={symptomsOfInterest}
+                  showContralateral={showContralateral}
                 ></DoseView>
               </Row>    
           </Col>  
@@ -138,6 +186,8 @@ function App() {
                 plotVar={plotVar}
                 clusterOrgans={clusterOrgans}
                 activeCluster={activeCluster}
+                svgPaths={svgPaths}
+                symptomsOfInterest={symptomsOfInterest}
                 ></PatientDoseView>
             </Row>
             <Row style={{'height': '50vh','width':'100%'}} className={'noGutter'} lg={12}>
@@ -150,7 +200,12 @@ function App() {
                     plotVar={plotVar}
                     clusterOrgans={clusterOrgans}
                     activeCluster={activeCluster}
+                    svgPaths={svgPaths}
+                    mainSymptom={mainSymptom}
+                    setMainSymptom={setMainSymptom}
                     setActiveCluster={setActiveCluster}
+                    symptomsOfInterest={symptomsOfInterest}
+                    additiveClusterResults={additiveClusterResults}
                 ></OverView>
               {/* </Container> */}
             </Row>

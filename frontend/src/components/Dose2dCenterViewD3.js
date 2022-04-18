@@ -23,6 +23,9 @@ export default function Dose2dCenterViewD3(props){
             let organList = Object.keys(paths)
             let pathData = [];
             for(let organ of organList){
+                if(!props.showContralateral & organ.includes('Rt_')){
+                    continue;
+                }
                 let key = organ + '_' + props.plotVar;
                 let vals = props.data[key];
             
@@ -109,7 +112,7 @@ export default function Dose2dCenterViewD3(props){
 
             setPathsDrawn(true)
         }
-    },[props.data,svg,props.svgPaths,props.plotVar])
+    },[props.data,svg,props.svgPaths,props.plotVar,props.showContralateral])
 
 
     useEffect(function brushSelected(){

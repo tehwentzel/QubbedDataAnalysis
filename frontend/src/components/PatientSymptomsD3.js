@@ -8,14 +8,14 @@ export default function ClusterSymptomsD3(props){
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [drawn, setDrawn] = useState(false);
 
-    const plotSymptoms = ['drymouth','voice','teeth','taste','nausea','choke','vomit','pain','mucus','mucositis']
+    // const plotSymptoms = ['drymouth','voice','teeth','taste','nausea','choke','vomit','pain','mucus','mucositis']
     const minWeeks = 33;
     const maxWeeks = -1;
 
 
     const thresholds = [5,7,9]
 
-    const angleIncrement = 2*Math.PI/plotSymptoms.length;
+    const angleIncrement = 2*Math.PI/props.plotSymptoms.length;
     
     const margin = 10;
     const radius = Math.min(height/2 - margin,width/2 - margin);
@@ -40,7 +40,7 @@ export default function ClusterSymptomsD3(props){
         return [x,y];
     }
     function coordinateTransform(sname,value){
-        let angle = plotSymptoms.indexOf(sname)*angleIncrement;
+        let angle = props.plotSymptoms.indexOf(sname)*angleIncrement;
         let r = radius*value/valueRange[1];
         return pol2rect(r,angle)
     }
@@ -56,7 +56,7 @@ export default function ClusterSymptomsD3(props){
             var axisGroup = svg.append('g').attr('class','axisGroup');
             var axisPaths = [];
             var endpoints = []
-            for(let symptom of plotSymptoms){
+            for(let symptom of props.plotSymptoms){
                 let [x0,y0] = coordinateTransform(symptom,0);
                 let [x1,y1] = coordinateTransform(symptom,valueRange[1]);
                 let axPath = axLineFunc([[x0,y0],[x1,y1]]);
@@ -96,7 +96,7 @@ export default function ClusterSymptomsD3(props){
                     Utils.hideTTip(tTip);
                 });
         }
-    },[svg,height,width])
+    },[svg,height,width,props.plotSymptoms])
 
     useEffect(function draw(){
         
@@ -118,7 +118,7 @@ export default function ClusterSymptomsD3(props){
                     'points':[],
                     'value': threshold,
                 }
-                for(let symptom of plotSymptoms){
+                for(let symptom of props.plotSymptoms){
                     let vals = props.data['symptoms_'+symptom].slice(minDateIdx,maxDateIdx+1);
                     let maxVal = Math.max(...vals)
                     let [x,y] = coordinateTransform(symptom,scaleTransform(maxVal));
@@ -172,7 +172,7 @@ export default function ClusterSymptomsD3(props){
             setDrawn(true)
         }
             
-    },[props.data,svg])
+    },[props.data,svg,props.plotSymptoms])
 
 
     useEffect(function brush(){

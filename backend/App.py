@@ -10,6 +10,15 @@ print('code yay')
 
 data = load_dose_symptom_data()
 
+def as_float(item):
+    if item is None:
+        return item
+    try:
+        item = float(item)
+        return item
+    except:
+        return None
+
 def responsify(dictionary):
     # djson = nested_responsify(dictionary) #simplejson.dumps(dictionary,default=np_converter,ignore_nan=True)
     djson = simplejson.dumps(dictionary,default=np_converter,ignore_nan=True)
@@ -43,26 +52,90 @@ def get_doses_json():
     ddict = sddf_to_json(data)
     return responsify(ddict)
 
+@app.route('/single_organ_effects',methods=['GET'])
+def get_single_organ_effects():
+    symptoms = request.args.getlist('symptoms')
+    if len(symptoms) <= 0:
+        symptoms=None
+
+    organ_list = request.args.getlist('organs')
+    if len(organ_list) <= 0:
+        organ_list = None
+
+    base_organs = request.args.getlist('baseOrgans')
+    if len(base_organs) <= 0:
+        base_organs = None
+
+    features = request.args.getlist('features')
+    if len(features) <= 0:
+        features = None
+    
+    n_clusters = request.args.get('nClusters',4)
+    clustertype = request.args.get('clusterType',None)
+    drop_base_cluster=request.args.get('dropBaseCluster',False)
+    threshold = request.args.get('threshold',None)
+
+    threshold = as_float(threshold)
+    if threshold is not None and threshold < 0:
+        threshold = None
+
+    if n_clusters is None:
+        n_clusters = 0
+    n_clusters = int(as_float(n_clusters))
+    
+    covars = request.args.getlist('confounders')
+    if len(covars) <= 0:
+        covars = None
+    print('effect covars',covars)
+    vals = select_single_organ_cluster_effects(
+        data,
+        symptoms=symptoms,
+        base_organs=base_organs,
+        covars=covars,
+        n_clusters=n_clusters,
+        threshold=threshold,
+        features=features,
+        clustertype=clustertype,
+        organ_list=organ_list,
+        drop_base_cluster=drop_base_cluster,
+    )
+
+    response = responsify(vals)
+    return response
+
 @app.route('/dose_clusters',methods=['GET'])
 def get_dose_cluster_json():
     organ_list = request.args.getlist('organs')
     if len(organ_list) <= 0:
         organ_list = None
-    if organ_list is not None:
-        for o in organ_list:
-            if 'Lt_' in o:
-                alter = o.replace('Lt_','Rt_')
-                if alter not in organ_list:
-                    organ_list.append(alter)
-            if 'Rt_' in o:
-                alter = o.replace('Rt_','Lt_')
-                if alter not in organ_list:
-                    organ_list.append(alter)
+    # if organ_list is not None:
+    #     for o in organ_list:
+    #         if 'Lt_' in o:
+    #             alter = o.replace('Lt_','Rt_')
+    #             if alter not in organ_list:
+    #                 organ_list.append(alter)
+    #         if 'Rt_' in o:
+    #             alter = o.replace('Rt_','Lt_')
+    #             if alter not in organ_list:
+    #                 organ_list.append(alter)
     n_clusters = request.args.get('nClusters',4)
+    clustertype = request.args.get('clusterType',None)
+    # print('cluster type argument',clustertype)
     cluster_features = request.args.getlist('clusterFeatures')
     if len(cluster_features) <= 0:
         cluster_features = None
-    ddict = get_cluster_json(data,organ_list=organ_list,n_clusters=int(n_clusters),features=cluster_features)
+    covars = request.args.getlist('confounders')
+    if len(covars) <= 0:
+        covars = None
+
+    print('cluster_covariates',covars)
+    ddict = get_cluster_json(data,
+    organ_list=organ_list,
+    n_clusters=int(n_clusters),
+    clustertype=clustertype,
+    features=cluster_features,
+    confounders=covars,
+    )
     # print('features for clusering',cluster_features)
     response = responsify(ddict)
     # print('response',response)

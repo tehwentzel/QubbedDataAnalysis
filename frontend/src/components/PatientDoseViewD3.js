@@ -2,7 +2,6 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import useSVGCanvas from './useSVGCanvas.js';
 import Utils from '../modules/Utils.js'
-import { interpolate } from 'd3';
 
 export default function PatientDoseViewD3(props){
     const d3Container = useRef(null);
@@ -94,48 +93,11 @@ export default function PatientDoseViewD3(props){
                     Utils.hideTTip(tTip);
                 });
 
+                
             setPathsDrawn(true)
         }
     },[props.data,svg,props.svgPaths,props.plotVar])
 
-    // useEffect(function brushSelected(){
-    //     if(svg !== undefined & pathsDrawn){
-    //         //doing this the easy way with classes makes the positions wronge for some reason
-    //         var isActive = d => (props.clusterOrgans.indexOf(d.organ_name) > -1);
-    //         var inCue = d => (props.clusterOrganCue.indexOf(d.organ_name) > -1);
-    //         function getStrokeWidth(d){
-    //             if(d.scale == 1){
-    //                 if(isActive(d)){
-    //                     return .4;
-    //                 } 
-    //                 if(inCue(d)){
-    //                     return .3;
-    //                 } else{
-    //                     return .1;
-    //                 }
-    //             } 
-    //             return 0
-    //         }
-    //         function getStrokeColor(d){
-    //             if(isActive(d) & inCue(d)){ return 'black';}
-    //             if(isActive(d)){ return 'blue'; }
-    //             if(inCue(d)){ return '#525252'; }
-    //             return '#969696';
-    //         }
-    //         svg.selectAll('.organPath')
-    //             .attr('stroke-width',getStrokeWidth)
-    //             .attr('stroke',getStrokeColor)
-    //             .on('contextmenu',function(e){
-    //                 e.preventDefault();
-    //                 let d = d3.select(this).datum();
-    //                 let organ = d.organ_name;
-    //                 props.addOrganToCue(organ);
-    //             });
-
-    //         //this also breaks it and I have no idea why because this is an obscure approach
-    //         // svg.selectAll('.organPath').filter(d=>isActive(d)).raise();
-    //     }
-    // },[props.data,svg,pathsDrawn,props.clusterOrgans,props.clusterOrganCue])
 
     useEffect(()=>{
         if(svg !== undefined & pathsDrawn){

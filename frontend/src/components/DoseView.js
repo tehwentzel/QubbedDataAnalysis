@@ -17,7 +17,6 @@ export default function DoseView(props){
     const ref = useRef(null)
 
    
-    const [svgPaths,setSvgPaths] = useState();
 
     const [clusterVizComponents,setClusterVizComponents] = useState(
         <Spinner 
@@ -27,16 +26,9 @@ export default function DoseView(props){
             className={'spinner'}/>
     )
 
-    useEffect(()=>{
-        fetch('organ_svgs/organ_svg_paths.json').then((newPaths)=>{
-            newPaths.json().then((data)=>{
-                setSvgPaths(data);
-            })
-        })
-    },[])
 
     useEffect(function drawClusters(){
-        if(props.clusterData != undefined & svgPaths != undefined){
+        if(props.clusterData != undefined & props.svgPaths != undefined){
             //the plot var in a key makes it redraw the whole thing or the plot transforms is messed up
             //if I fix that later I should remove that in the key
             let newComponents = props.clusterData.map((d,i) => 
@@ -48,7 +40,7 @@ export default function DoseView(props){
                 let variant = clickableTitle? 'outline-secondary': 'dark';
                 return (
                     <Container style={{'marginTop': topmargin}} fluid={'true'} className={' inline'} flex={'true'} key={i}>
-                        <Container className={'Dose2dContainer inline'} md={5} key={i+'doses'+props.plotVar}>
+                        <Container className={'Dose2dContainer inline'} md={5} key={i+'doses'+props.plotVar+props.showContralateral}>
                         <span  className={'controlPanelTitle'}>
                             <Button
                                 title={clusterText}
@@ -62,10 +54,11 @@ export default function DoseView(props){
                                 data={d}
                                 clusterOrgans={props.clusterOrgans}
                                 plotVar={props.plotVar}
-                                svgPaths={svgPaths}
+                                svgPaths={props.svgPaths}
                                 orient={'both'}
                                 addOrganToCue={props.addOrganToCue}
                                 clusterOrganCue={props.clusterOrganCue}
+                                showContralateral={props.showContralateral}
                             ></Dose2dCenterViewD3>
                         </Container >
                         <Container  className={'symptomPlotContainer inline'} md={5} key={i+'symptoms'}>
@@ -74,6 +67,7 @@ export default function DoseView(props){
                             </span>
                             <ClusterSymptomsD3
                                 data={d}
+                                plotSymptoms={props.symptomsOfInterest}
                             ></ClusterSymptomsD3>
                         </Container>
                     </Container>
@@ -106,7 +100,7 @@ export default function DoseView(props){
             }
             setClusterVizComponents(newComponents)
         }
-    },[props.clusterData,svgPaths,props.clusterOrganCue,props.plotVar,props.activeCluster])
+    },[props.clusterData,props.svgPaths,props.clusterOrganCue,props.plotVar,props.activeCluster,props.symptomsOfInterest,props.showContralateral])
 
     return ( 
         <div ref={ref} id={'doseClusterContainer'}>
