@@ -11,6 +11,7 @@ import Col from 'react-bootstrap/Col';
 
 import PatientScatterPlotD3 from './PatientScatterPlotD3.js';
 import DoseEffectViewD3 from './DoseEffectViewD3.js';
+import SymptomPlotD3 from './SymptomPlotD3.js';
 import Spinner from 'react-bootstrap/Spinner';
 
 
@@ -34,7 +35,23 @@ export default function OverView(props){
             className={'spinner'}/>
     )
 
-    const [viewToggle,setViewToggle] = useState('scatterplot')
+    const [symptomVizComponents, setSymptomVizComponents] = useState(
+        <Spinner 
+            as="span" 
+            animation = "border"
+            role='status'
+            className={'spinner'}/>
+    )
+
+    const [metricVizComponents, setMetricVizComponents] = useState(
+        <Spinner 
+            as="span" 
+            animation = "border"
+            role='status'
+            className={'spinner'}/>
+    )
+
+    const [viewToggle,setViewToggle] = useState('symptom')
 
     const [xVar,setXVar] = useState('dose_pca1');
     const [yVar, setYVar] = useState('dose_pca2');
@@ -52,7 +69,7 @@ export default function OverView(props){
     ].concat(symptoms);
     //for shape stuff
     const shapeOptions = [
-        'tstage','nstage'
+        'tstage','nstage',
     ].concat(symptoms)
     
     function makeDropdown(title,active,onclickFunc,key,options){
@@ -80,9 +97,9 @@ export default function OverView(props){
         )
     }
 
-    useEffect(function drawScatter(){
+    useEffect(function drawCohort(){
         if(props.clusterData != undefined & props.doseData != undefined){
-            let newComponent = (
+            let newScatterComponent = (
                 <Container className={'noGutter fillSpace'}>
                     <PatientScatterPlotD3
                         doseData={props.doseData}
@@ -96,22 +113,45 @@ export default function OverView(props){
                         xVar={xVar}
                         yVar={yVar}
                         sizeVar={sizeVar}
+                        categoricalColors={props.categoricalColors}
                     ></PatientScatterPlotD3>
                 </Container>
             )
-            setScatterVizComponents(newComponent)
-        }else{
-            setScatterVizComponents(
-                <Spinner 
-                    as="span" 
-                    animation = "border"
-                    role='status'
-                    className={'spinner'}/>
+            let newSymptomComponent = (
+                <Container className={'noGutter fillSpace'}>
+                    <SymptomPlotD3
+                        doseData={props.doseData}
+                        clusterData={props.clusterData}
+                        selectedPatientId={props.selectedPatientId}
+                        setSelectedPatientId={props.setSelectedPatientId}
+                        plotVar={props.plotVar}
+                        clusterOrgans={props.clusterOrgans}
+                        activeCluster={props.activeCluster}
+                        setActiveCluster={props.setActiveCluster}
+                        xVar={xVar}
+                        yVar={yVar}
+                        mainSymptom={props.mainSymptom}
+                        sizeVar={sizeVar}
+                        categoricalColors={props.categoricalColors}
+                    ></SymptomPlotD3>
+                </Container>
             )
+            setScatterVizComponents(newScatterComponent);
+            setSymptomVizComponents(newSymptomComponent);
+        }else{
+            let spinner = (<Spinner 
+                as="span" 
+                animation = "border"
+                role='status'
+                className={'spinner'}/>
+            );
+            setScatterVizComponents(spinner);
+            setSymptomVizComponents(spinner);
         }
     },[props.clusterData,props.doseData,
         props.activeCluster,
         props.selectedPatientId,
+        props.categoricalColors,
         xVar,yVar,sizeVar]);
 
     useEffect(function drawEffect(){
@@ -149,9 +189,10 @@ export default function OverView(props){
         props.activeCluster]);
 
     function switchView(view){
+        console.log('switchview',view)
         if(view == 'scatterplot'){
             return (
-                <Row md={12} className={'noGutter fillSpace'}>
+                <Row key={view} md={12} className={'noGutter fillSpace'}>
                 <Col md={9} className={'noGutter'}>
                     {scatterVizComponents}
                 </Col>
@@ -162,13 +203,33 @@ export default function OverView(props){
                 </Col>
                 </Row>
             )
-        } else{
+        } 
+        if(view == 'effect'){
             return (
-                <Row md={12} className={'noGutter fillSpace'}>
+                <Row key={view} md={12} className={'noGutter fillSpace'}>
                     {effectVizComponents}
                 </Row>
             )
+        } 
+        if(view == 'symptom'){
+            return (
+                <Row key={view} md={12} className={'noGutter fillSpace'}>
+                    {symptomVizComponents}
+                </Row>
+            )
+        } 
+        if(view == 'metric'){
+            return (
+                <Row key={view} md={12} className={'noGutter fillSpace'}>
+                    {metricVizComponents}
+                </Row>
+            )
         }
+        return (<Spinner 
+            as="span" 
+            animation = "border"
+            role='status'
+            className={'spinner'}/>)
     }
 
     function makeToggleButton(value){
@@ -188,11 +249,8 @@ export default function OverView(props){
     }
 
     function makeSymptomDropdown(view){
-        if(view == 'effect'){
-            return makeDropdown(props.mainSymptom,true,props.setMainSymptom,10,props.symptomsOfInterest)
-        } else{
-            return (<></>)
-        }
+        //there was an if statement before idk
+        return makeDropdown(props.mainSymptom,true,props.setMainSymptom,10,props.symptomsOfInterest)
     }
 
     return ( 
@@ -201,6 +259,8 @@ export default function OverView(props){
                 <Col md={6} className={'noGutter'}>
                     {makeToggleButton('scatterplot')}
                     {makeToggleButton('effect')}
+                    {makeToggleButton('symptom')}
+                    {makeToggleButton('metric')}
                 </Col>
                 <Col md={6}>
                     {makeSymptomDropdown(viewToggle)}

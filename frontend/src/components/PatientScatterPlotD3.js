@@ -12,14 +12,12 @@ export default function PatientScatterPlotD3(props){
     const symptoms = ['drymouth','voice','teeth','taste','nausea','choke','vomit','pain','mucus','mucositis'];
     const margin = 50;
     const curveMargin = 3;
-    const categoricalColors = d3.scaleOrdinal()
-        .domain([0,7])
-        .range(['#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628',,'#f781bf','999999']);
+    
 
     function getR(d){
         //if I want to make this fancy
         //in the proproccessing I make thes all unitl scale
-        let val = d[props.sizeVar];
+        let val = d[props.sizeVar] + .1;
         if(val === undefined){
             val = .4;
         }
@@ -39,14 +37,14 @@ export default function PatientScatterPlotD3(props){
             mostSevere = val >= .99;
         }
         let symbol = d3.symbol();
-        let size = 6*getR(d);
-        let sType = d3.symbolTriangle;
+        let size =10*getR(d);
+        let sType = d3.symbolCircle;
         if(mostSevere){
-            sType = d3.symbolCircle;
-            size *= 2;//circles are smaller for some reason
-        } else if(severe){
             sType = d3.symbolDiamond;
-            size *= 1.5;
+            // size *= 1.5;//circles are smaller for some reason
+        } else if(severe){
+            sType = d3.symbolTriangle;
+            // size *= 1.5;
         }
         return symbol.size(size).type(sType)();
     }
@@ -101,7 +99,7 @@ export default function PatientScatterPlotD3(props){
 
                         let newPoint = {
                             'cluster': d.clusterId,
-                            'color': categoricalColors(d.clusterId),
+                            'color': props.categoricalColors(d.clusterId),
                             'id': id,
                         }
                         newPoint = Object.assign(dpoint,newPoint)
@@ -116,7 +114,7 @@ export default function PatientScatterPlotD3(props){
     },[props.clusterData,props.doseData])
 
     useEffect(function drawPoints(){
-        if(svg !== undefined & formattedData !== undefined){
+        if(svg !== undefined & formattedData !== undefined & height > 0 & width > 0){
             setDotsDrawn(false);
             svg.selectAll('.clusterOutline').attr('visibility','hidden')
             function getScale(varName, range){
@@ -173,7 +171,7 @@ export default function PatientScatterPlotD3(props){
                         });
                         let entry = {
                             'path': curveFunc(hull),
-                            'color': categoricalColors(cid),
+                            'color': props.categoricalColors(cid),
                             'cluster': cid,
                             'active': (cid === props.activeCluster),
                             'nItems': dpoints.length,

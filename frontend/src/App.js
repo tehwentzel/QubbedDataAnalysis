@@ -13,6 +13,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
 import * as constants from './modules/Constants.js';
+import * as d3 from 'd3';
 
 function App() {
   var api = new DataService();
@@ -39,6 +40,9 @@ function App() {
   const [svgPaths,setSvgPaths] = useState();
   // const [patientIds, setPatientIds] = useState([0]);
   // const [selectedWindow, setSelectedWindow] = useState('doses');
+  const categoricalColors = d3.scaleOrdinal()
+        .domain([0,7])
+        .range(['#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628',,'#f781bf','999999']);
 
   function resetSelections(){
     setActiveCluster(0);
@@ -206,6 +210,7 @@ function App() {
                     setActiveCluster={setActiveCluster}
                     symptomsOfInterest={symptomsOfInterest}
                     additiveClusterResults={additiveClusterResults}
+                    categoricalColors={categoricalColors}
                 ></OverView>
               {/* </Container> */}
             </Row>
