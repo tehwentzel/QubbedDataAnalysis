@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import useSVGCanvas from './useSVGCanvas.js';
 import Utils from '../modules/Utils.js'
-import {forceSimulation,forceCollide,forceCenter, forceManyBody, thresholdFreedmanDiaconis, symbolWye} from 'd3';
+import {forceSimulation,forceCollide,forceCenter, forceManyBody, thresholdFreedmanDiaconis, symbolWye, precisionPrefix} from 'd3';
 
 export default function PatientScatterPlotD3(props){
     const d3Container = useRef(null);
@@ -114,7 +114,7 @@ export default function PatientScatterPlotD3(props){
     },[props.clusterData,props.doseData])
 
     useEffect(function drawPoints(){
-        if(svg !== undefined & formattedData !== undefined & height > 0 & width > 0){
+        if(svg !== undefined & formattedData !== undefined & height > 0 & width > 0 & props.xVar !== undefined & props.yVar !== undefined){
             setDotsDrawn(false);
             svg.selectAll('.clusterOutline').attr('visibility','hidden')
             function getScale(varName, range){
@@ -136,8 +136,6 @@ export default function PatientScatterPlotD3(props){
 
             let scatterGroup = svg.selectAll('.scatterPoint').data(formattedData);
             scatterGroup.exit().remove();
-            setDotsDrawn(false);
-
             function drawHull(dataList){
                 var hullData = [];
                 var curveFunc = d3.line(d=>d[0],d=>d[1])
@@ -190,10 +188,9 @@ export default function PatientScatterPlotD3(props){
                 clusterOutlines//.transition(t)
                     .attr('d',d=>d.path)
                     .attr('stroke',d=>d.color)
-                    .attr('stroke-width',1)
+                    .attr('stroke-width',2)
                     .attr('fill','none')
-                    .attr('stroke-opacity',d=> d.active? 1: .5)
-                    .attr('visibility','visible');
+                    .attr('stroke-opacity',1)
 
                 clusterOutlines
                     .on('mouseover',function(e){
@@ -215,9 +212,7 @@ export default function PatientScatterPlotD3(props){
 
             function uncollide(){
                 var ticked = function(){
-                    scatterGroup
-                        // .attr('cx',d=>d.x)
-                        // .attr('cy',d=>d.y)
+                    svg.selectAll('.scatterPoint')
                         .attr('transform',d=> {return 'translate(' + (d.x) + ',' + (d.y) + ')';});
                 }
     
@@ -226,6 +221,7 @@ export default function PatientScatterPlotD3(props){
                     .alphaMin(.2)
                     .on('tick',ticked)
                     .on('end',function(){
+                        
                         drawHull(newData);
 
                         scatterGroup.on('mouseover',function(e){
@@ -250,27 +246,42 @@ export default function PatientScatterPlotD3(props){
                     })
             }
 
+            var formatDots = g => {
+                g.attr('transform',d=> {return 'translate(' + d.x + ',' + d.y + ')';})
+                    .attr('d',getShape)
+                    .attr('fill', d => d.color)
+                    .attr('r',getR);
+            }
+            if(scatterGroup.empty()){
+                scatterGroup
+                    .enter().append('path')
+                    .attr('class','scatterPoint')
+                    .attr('transform',d=> {return 'translate(' + d.x + ',' + d.y + ')';})
+                    .attr('d',getShape)
+                    .attr('fill', d => d.color)
+                    .attr('r',getR);
 
-            var t = d3.transition()
+                uncollide();
+            } else{
+                var t = d3.transition()
                 .duration(400)
                 .on('end',uncollide);
     
-            scatterGroup
-                .enter().append('path')
-                .merge(scatterGroup)
-                .attr('class','scatterPoint')
+                scatterGroup
+                    .enter().append('path')
+                    .merge(scatterGroup)
+                    .attr('class','scatterPoint');
 
-            // scatterGroup.exit().remove();
+                // scatterGroup.exit().remove();
 
-            scatterGroup
-                .transition(t)
-                // .attr('cx', getX)
-                // .attr('cy',getY)
-                .attr('transform',d=> {return 'translate(' + d.x + ',' + d.y + ')';})
-                .attr('d',getShape)
-                .attr('fill', d => d.color)
-                .attr('r',getR);
-            
+                scatterGroup
+                    .transition(t)
+                    .attr('transform',d=> {return 'translate(' + d.x + ',' + d.y + ')';})
+                    .attr('d',getShape)
+                    .attr('fill', d => d.color)
+                    .attr('r',getR);
+            }
+        
         }
     },[svg,height,width,props.clusterData,formattedData,props.xVar,props.yVar])
 
@@ -306,11 +317,17 @@ export default function PatientScatterPlotD3(props){
                 })
                 .on('dblclick',function(e){
                     let d = d3.select(this).datum();
-                    if(d.cluster == props.activeCluster){
+                    if(parseInt(d.cluster) !== parseInt(props.activeCluster)){
+                        props.setActiveCluster(parseInt(d.cluster));
+                    } 
+                    if(d.id !== props.selectedPatientId){
                         props.setSelectedPatientId(parseInt(d.id));
                     }
                 });
-                
+            
+                //brush active cluster
+                svg.selectAll('.clusterOutline')
+                    .attr('visibility',d=>isActive(d)?'visible':'hidden');
         }
     },[props.clusterData,formattedData,dotsDrawn, props.selectedPatientId,props.activeCluster])
 

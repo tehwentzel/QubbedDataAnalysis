@@ -18,39 +18,6 @@ import Spinner from 'react-bootstrap/Spinner';
 export default function OverView(props){
     const ref = useRef(null)
 
-   
-    const [scatterVizComponents,setScatterVizComponents] = useState(
-        <Spinner 
-            as="span" 
-            animation = "border"
-            role='status'
-            className={'spinner'}/>
-    )
-
-    const [effectVizComponents,setEffectVizComponents] = useState(
-        <Spinner 
-            as="span" 
-            animation = "border"
-            role='status'
-            className={'spinner'}/>
-    )
-
-    const [symptomVizComponents, setSymptomVizComponents] = useState(
-        <Spinner 
-            as="span" 
-            animation = "border"
-            role='status'
-            className={'spinner'}/>
-    )
-
-    const [metricVizComponents, setMetricVizComponents] = useState(
-        <Spinner 
-            as="span" 
-            animation = "border"
-            role='status'
-            className={'spinner'}/>
-    )
-
     const [viewToggle,setViewToggle] = useState('symptom')
 
     const [xVar,setXVar] = useState('dose_pca1');
@@ -97,9 +64,9 @@ export default function OverView(props){
         )
     }
 
-    useEffect(function drawCohort(){
+    function makeScatter(){
         if(props.clusterData != undefined & props.doseData != undefined){
-            let newScatterComponent = (
+            return (
                 <Container className={'noGutter fillSpace'}>
                     <PatientScatterPlotD3
                         doseData={props.doseData}
@@ -117,7 +84,19 @@ export default function OverView(props){
                     ></PatientScatterPlotD3>
                 </Container>
             )
-            let newSymptomComponent = (
+        } else{
+            return (<Spinner 
+                as="span" 
+                animation = "border"
+                role='status'
+                className={'spinner'}/>
+            );
+        }
+    }
+
+    function makeSymptomPlot(){
+        if(props.clusterData != undefined & props.doseData != undefined){
+            return (
                 <Container className={'noGutter fillSpace'}>
                     <SymptomPlotD3
                         doseData={props.doseData}
@@ -136,27 +115,19 @@ export default function OverView(props){
                     ></SymptomPlotD3>
                 </Container>
             )
-            setScatterVizComponents(newScatterComponent);
-            setSymptomVizComponents(newSymptomComponent);
-        }else{
-            let spinner = (<Spinner 
+        } else{
+            return (<Spinner 
                 as="span" 
                 animation = "border"
                 role='status'
                 className={'spinner'}/>
             );
-            setScatterVizComponents(spinner);
-            setSymptomVizComponents(spinner);
         }
-    },[props.clusterData,props.doseData,
-        props.activeCluster,
-        props.selectedPatientId,
-        props.categoricalColors,
-        xVar,yVar,sizeVar]);
+    }
 
-    useEffect(function drawEffect(){
+    function makeEffectPlot(){
         if(props.clusterData != undefined & props.additiveClusterResults != undefined){
-            let newComponent = (
+            return (
                 <Container className={'noGutter fillSpace'}>
                     <DoseEffectViewD3
                         doseData={props.doseData}
@@ -170,9 +141,8 @@ export default function OverView(props){
                     ></DoseEffectViewD3>
                 </Container>
             )
-            setEffectVizComponents(newComponent)
-        }else{
-            setEffectVizComponents(
+        } else{
+            return (
                 <Spinner 
                     as="span" 
                     animation = "border"
@@ -180,13 +150,17 @@ export default function OverView(props){
                     className={'spinner'}/>
             )
         }
-    },[props.clusterData,
-        props.svgPaths,
-        props.mainSymptom,
-        props.additiveClusterResults,
-        props.symptomsOfInterest,
-        props.clusterOrgans,
-        props.activeCluster]);
+    }
+
+    function makeMetricsPlot(){
+        return (
+            <Spinner 
+                as="span" 
+                animation = "border"
+                role='status'
+                className={'spinner'}/>
+        )
+    }
 
     function switchView(view){
         console.log('switchview',view)
@@ -194,7 +168,7 @@ export default function OverView(props){
             return (
                 <Row key={view} md={12} className={'noGutter fillSpace'}>
                 <Col md={9} className={'noGutter'}>
-                    {scatterVizComponents}
+                    {makeScatter()}
                 </Col>
                 <Col  md={3} style={{'marginTop':'2em'}} className={'noGutter fillHeight'}>
                         {makeDropdown('x-axis',xVar,setXVar,1,varOptions)}
@@ -207,21 +181,21 @@ export default function OverView(props){
         if(view == 'effect'){
             return (
                 <Row key={view} md={12} className={'noGutter fillSpace'}>
-                    {effectVizComponents}
+                    {makeEffectPlot()}
                 </Row>
             )
         } 
         if(view == 'symptom'){
             return (
                 <Row key={view} md={12} className={'noGutter fillSpace'}>
-                    {symptomVizComponents}
+                    {makeSymptomPlot()}
                 </Row>
             )
         } 
         if(view == 'metric'){
             return (
                 <Row key={view} md={12} className={'noGutter fillSpace'}>
-                    {metricVizComponents}
+                    {makeMetricsPlot()}
                 </Row>
             )
         }

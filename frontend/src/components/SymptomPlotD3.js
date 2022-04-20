@@ -13,13 +13,9 @@ export default function SymptomPlotD3(props){
     //the code takes the maximum of the groups time points for each patient
     const treatmentDates = [
         [0,1],
-        // [1],
         [2,3],
-        // [3],
         [4,5],
-        // [5],
         [6,7],
-        // [7],
         [13],
         [33],
     ];
@@ -211,7 +207,7 @@ export default function SymptomPlotD3(props){
                     let total = arraySum(values);
                     let activeCount = values[parseInt(props.activeCluster)];
 
-                    var makePoint = (count,clusterId,front) => {
+                    var makePoint = (count,clusterId,front,total) => {
                         let act = (clusterId === props.activeCluster);
                         let entry = {
                             'x':x,
@@ -221,17 +217,18 @@ export default function SymptomPlotD3(props){
                             'radius': getRadius(count,act),
                             'clusterId': clusterId,
                             'active': act,
+                            'total':total,
                         }
                         return entry;
                     }
                     let activeFront = getRadius(activeCount,true) <= getRadius(total-activeCount,false);
                     if(!activeFront){ console.log('true not bad whatever words')}
-                    otherPoints.push(makePoint(total-activeCount,-1,!activeFront));
-                    activePoints.push(makePoint(activeCount,props.activeCluster,activeFront))
+                    otherPoints.push(makePoint(total-activeCount,-1,!activeFront,total));
+                    activePoints.push(makePoint(activeCount,props.activeCluster,activeFront,total))
                 }
             }
             
-            let getColor = (d) => d.active? props.categoricalColors(d.clusterId): 'gray';
+            let getColor = (d) => d.active? props.categoricalColors(d.clusterId): 'none';
             let getStrokeWidth = (d) => d.active? 0:1;
             let getOpacity = (d) => d.active? 1:0;
             function plotPoints(datapoints,className){
@@ -246,11 +243,33 @@ export default function SymptomPlotD3(props){
                     .attr('fill-opacity',getOpacity)
                     .attr('stroke-width',getStrokeWidth)
                     .attr('stroke','black')
-                    .attr('fill',getColor);
+                    .attr('fill',getColor)
                 return pointPlot;
             }
             plotPoints(otherPoints,'inactiveSymptomPoints');
-            plotPoints(activePoints,'activeSymptomPoints');
+            let active = plotPoints(activePoints,'activeSymptomPoints');
+            active.on('mouseover',function(e){
+                let d = d3.select(this).datum();
+                console.log('data click',d);
+                let dates = treatmentDates[parseInt(xScale.invert(d.x))];
+                let dateString = 'Weeks: ';
+                for(let date of dates){
+                    dateString += date + ' ';
+                }
+                let value = yScale.invert(d.y);
+                let unCount = (d.total - d.count)
+                let tipText = dateString + '</br>'
+                    + props.mainSymptom + ': ' + value + "</br>"
+                    + 'in-cluster: ' + d.count + ' (' + (100*d.count/nActive).toFixed(1) + '%)' + '</br>'
+                    + 'outof-cluster: ' +unCount + ' (' + (100*unCount/nInactive).toFixed(1) + '%)' + '</br>'
+                    + 'odds ratio: ' + ((d.count/nActive)/(unCount/nInactive)).toFixed(2) + '</br>'
+                    + 'cluster: ' + d.clusterId + "</br>"
+                tTip.html(tipText);
+            }).on('mousemove', function(e){
+                Utils.moveTTipEvent(tTip,e);
+            }).on('mouseout', function(e){
+                Utils.hideTTip(tTip);
+            });
             svg.selectAll('.symptomFront').raise();
         }
     },[svg,patientData,clusterData,props.activeCluster]);
