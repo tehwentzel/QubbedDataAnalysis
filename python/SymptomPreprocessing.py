@@ -184,7 +184,11 @@ def add_binary_clinical_stuff(df):
     df = df.copy()
     df['t4'] = (df.t_stage == 't4').astype(int)
     df['n3'] = ((df.n_stage == 'n3') + (df.n_stage == 'n2c')).astype(int)
+    df['t3'] = (df.t_stage == 't3').astype(int)
+    df['n2'] = ((df.n_stage == 'n2') + (df.n_stage == 'n2a') + (df.n_stage == 'n2b')).astype(int)
     df['BOT'] = (df.subsite == 'BOT').astype(int)
+    df['t_severe'] = df.t4 + df.t3
+    df['n_severe'] = df.n2 + df.n3
     df['Tonsil'] = (df.subsite == 'Tonsil').astype(int)
     df['old'] = (df.age >= df.age.quantile([.5]).values[0]).astype(int)
     df['digest_increase'] = (df['M6_mbs_digest'] - df['baseline_mbs_digest'] > 0).astype(int)

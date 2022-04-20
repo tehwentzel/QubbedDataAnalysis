@@ -19,7 +19,7 @@ class Const():
     organ_similarity_results_json = data_dir + 'patient_organ_similarity.json'
     symptom_similarity_results_json = data_dir + 'patient_symptom_similarity.json'
     
-    organ_svg_files = [ "../resources/" + 'hnc_organs_' + s + '.svg' for s in ['left','center','right']]
+    organ_svg_files = [ "../resources/" + 'hnc_organs_' + s + '.svg' for s in ['left','center','right','both']]
     
     organ_list = [
         'Esophagus',#
@@ -219,4 +219,4 @@ class Const():
         'nausea','vomit','appetite',
         'mood','enjoy','sad','distress',
                ], #weight loss, nausea, vomiting fatigue
-}
+    }

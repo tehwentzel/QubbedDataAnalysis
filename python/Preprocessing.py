@@ -72,7 +72,7 @@ def add_sd_dose_clusters(sddf,
                                             covariance_type="full",
                                             random_state=100)
     if features is None:
-        features=['V60','V55','V55','mean_dose']
+        features=['V35','V40','V45','V50','V55','V60','V65']
     if reducer is None:
         reducer= None#PCA(len(organ_list),whiten=True)
     if organ_subset is None:
@@ -207,7 +207,7 @@ def load_organ_svg_file(svg_file,olist=None,keep_center = None):
     valid = lambda x: x in olist
     #temp thing where i skip the middle stuff for side view
     if keep_center is None:
-        keep_center = 'center' in svg_file
+        keep_center = 'center' in svg_file or 'both' in svg_file
     if not keep_center:
         valid = lambda x: ('Rt_' in str(x) or 'Lt_' in str(x))
         paths = {k:v for k,v in paths.items() if valid(k)}

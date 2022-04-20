@@ -169,7 +169,9 @@ class RadDataset():
         self.spellchecker =  SpellChecker(Const.organ_list, 
                           RadDataset.organ_rename_dict)
         
-        self.dvh_df = self.clean_dvh_df(dvh_df)
+        dvh_df = self.clean_dvh_df(dvh_df)
+        #changes Lt and Rt so that Lt is the side with the higher dose
+        self.dvh_df = set_dvh_lt_ipsilateral(dvh_df)
         self.all_patient_ids = sorted(self.dvh_df.id.values)
 
     def clean_dvh_df(self, df, organ_rename_dict = None):
@@ -198,6 +200,11 @@ class RadDataset():
         print('adding histograms')
         hist_cols = [c for c in df.columns if (re.match('[DV]\d+',c) is not None)]
         df[hist_cols] = df[hist_cols].astype('float16')
+        
+        #there are typos in the max an min doses
+        fixdose = lambda x: x/100 if x > 100 else x
+        df['max_dose'] = df['max_dose'].apply(fixdose)
+        df['min_dose'] = df['min_dose'].apply(fixdose)
         return df.drop(['index'],axis=1)
             
     def add_patient_organs(self,pid,patient_df):
@@ -797,6 +804,27 @@ class MdasiOrganData(OrganData):
             oars[oname] = odata
         return oars
     
+def set_dvh_lt_ipsilateral(dvh_df):
+    #change lt and rt laterality so Lt is the side with higher mean dose
+    df = dvh_df.copy()
+    lt_rois = set([roi for roi in df.ROI.values if 'Lt_' in roi])
+    rt_rois = set([roi for roi in df.ROI.values if 'Rt_' in roi])
+#     good = []
+    for pid,subdf in df.groupby('id'):
+        lt_side = subdf[subdf.ROI.apply(lambda x: x in lt_rois)]
+        rt_side = subdf[subdf.ROI.apply(lambda x: x in rt_rois)]
+        lt_mean_dose = np.nanmean(lt_side.mean_dose + lt_side.V55)
+        rt_mean_dose = np.nanmean(rt_side.mean_dose + rt_side.V55)
+        if rt_mean_dose <= .01:
+            continue
+        ratio = (lt_mean_dose/rt_mean_dose)
+#         good.append(((lt_side.mean_dose.values > rt_side.mean_dose.values).mean() > .5) == (ratio > 1))
+        if ratio < 1:
+            df.loc[lt_side.index,'ROI'] = df.loc[lt_side.index].ROI.apply(lambda x: x.replace('Lt_','Rt_'))
+            df.loc[rt_side.index,'ROI'] = df.loc[rt_side.index].ROI.apply(lambda x: x.replace('Rt_','Lt_'))
+#     print(np.mean(good))
+    return df
+ 
 def rename_gtvs(gtvlist):
     #rename gtvs for a single patient
     new_dict = {}
