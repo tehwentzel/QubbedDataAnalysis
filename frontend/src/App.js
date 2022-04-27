@@ -40,10 +40,17 @@ function App() {
   const [svgPaths,setSvgPaths] = useState();
   // const [patientIds, setPatientIds] = useState([0]);
   // const [selectedWindow, setSelectedWindow] = useState('doses');
-  const categoricalColors = d3.scaleOrdinal()
-        .domain([0,7])
-        .range(['#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628',,'#f781bf','999999']);
 
+  //this use to be d3.scaleOrdinal but it wasn't wokring for some reason
+  //returns color based on index bascially
+  const categoricalColors = (i) => {
+    let colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628',,'#f781bf','999999'];
+    let ii = Math.round(i);
+    if(ii < 0 | ii > colors.length - 1){
+      return 'black';
+    }
+    return colors[ii];
+  }
   function resetSelections(){
     setActiveCluster(0);
     setSelectedPatientId(-1);
@@ -102,6 +109,7 @@ function App() {
   }
 
   var fetchAdditiveEffects= async(org,nClust,clustFeatures,clusterType,soi,lrtConfounders) => {
+    setAdditiveClusterResults(undefined);
     const response = await api.getAdditiveOrganClusterEffects(
       org,
       nClust,
@@ -118,7 +126,7 @@ function App() {
   useEffect(() => {
     fetchDoseData();
     fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders);
-    // fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,symptomsOfInterest);
+    fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,symptomsOfInterest);
   },[])
 
 
@@ -137,7 +145,7 @@ function App() {
     if(clusterData !== undefined & !clusterDataLoading){
       fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,[mainSymptom],lrtConfounders);
     }
-    },[clusterData,clusterDataLoading,mainSymptom,lrtConfounders])
+    },[clusterData,mainSymptom,clusterDataLoading,lrtConfounders])
 
   return (
     <div className="App">
@@ -177,22 +185,29 @@ function App() {
                   setActiveCluster={setActiveCluster}
                   symptomsOfInterest={symptomsOfInterest}
                   showContralateral={showContralateral}
+                  categoricalColors={categoricalColors}
                 ></DoseView>
               </Row>    
           </Col>  
           <Col style={{'height': '100vh','overflowY':'hidden'}} className={'noGutter'} lg={6}>
             <Row style={{'height': '50vh','overflowY':'hidden'}} className={'noGutter'} lg={12}>
-              <PatientDoseView
-                  doseData={doseData}
-                clusterData={clusterData}
-                selectedPatientId={selectedPatientId}
-                setSelectedPatientId={setSelectedPatientId}
-                plotVar={plotVar}
-                clusterOrgans={clusterOrgans}
-                activeCluster={activeCluster}
-                svgPaths={svgPaths}
-                symptomsOfInterest={symptomsOfInterest}
-                ></PatientDoseView>
+                <OverView
+                    doseData={doseData}
+                    clusterData={clusterData}
+                    selectedPatientId={selectedPatientId}
+                    setSelectedPatientId={setSelectedPatientId}
+                    plotVar={plotVar}
+                    clusterOrgans={clusterOrgans}
+                    activeCluster={activeCluster}
+                    svgPaths={svgPaths}
+                    mainSymptom={mainSymptom}
+                    setMainSymptom={setMainSymptom}
+                    setActiveCluster={setActiveCluster}
+                    clusterFeatures={clusterFeatures}
+                    symptomsOfInterest={symptomsOfInterest}
+                    additiveClusterResults={additiveClusterResults}
+                    categoricalColors={categoricalColors}
+                ></OverView>
             </Row>
             <Row style={{'height': '50vh','width':'100%'}} className={'noGutter'} lg={12}>
               {/* <Container md={12} className={'noGutter fillSpace'}> */}
@@ -208,6 +223,7 @@ function App() {
                     mainSymptom={mainSymptom}
                     setMainSymptom={setMainSymptom}
                     setActiveCluster={setActiveCluster}
+                    clusterFeatures={clusterFeatures}
                     symptomsOfInterest={symptomsOfInterest}
                     additiveClusterResults={additiveClusterResults}
                     categoricalColors={categoricalColors}

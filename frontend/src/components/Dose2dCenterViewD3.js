@@ -11,8 +11,36 @@ export default function Dose2dCenterViewD3(props){
     const tipChartSize = [250,150];
     const tipDvhValues = [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80];
 
+    const maxQuants = 4;
+
+    function reduceQuantiles(values){
+        //function because I originally had 6 quantiles but I have to manually make the curves and > 3 doesnt work good
+        //currently maxed at 3.  can't think of elegent way to do an arbitrary number that makes sense
+        let nQuants = values.length;
+        if(maxQuants >= nQuants){
+            return values;
+        }
+        let middle = Math.round(((nQuants-1)/2));
+        let newVals;
+        if(maxQuants == 1){
+            newVals = values[middle];
+        } else if(maxQuants == 2){
+            newVals =  [values[0],values[nQuants-1]]
+        } else if (maxQuants == 3){
+            newVals = [values[0],values[middle],values[nQuants-1]];
+        } else{
+            let floor = Math.floor((nQuants-1)/2);
+            let ceil = Math.ceil((nQuants-1)/2);
+            if(floor === ceil){
+                floor -= 1;
+                ceil += 1;
+            }
+            newVals = [values[0],values[floor],values[ceil], values[nQuants-1]]
+        }
+        return newVals
+    }
+
     function addClusterDvh(element, data,organ,nQuants,colorFunc){
-        console.log('tooltip time',data,organ);
         element.selectAll('svg').remove();
         const margin = 3;
         const bottomMargin = 15;
@@ -31,12 +59,18 @@ export default function Dose2dCenterViewD3(props){
         }
         //names of tipDvhValues
         let valNames = [];
-        let maxV = 0;
+        let maxV = 100;//100 is default max for DVH 
         let minV = 100;
+        let putLegendInBottomLeft = true;
+        //get data points
         for(let v of tipDvhValues){
             let oString = organ + '_V' + v;
             if(data[oString] !== undefined){
                 let vv = data[oString];
+                vv = reduceQuantiles(vv);
+                if(putLegendInBottomLeft & v <= 25 & vv[0] < 35){
+                    putLegendInBottomLeft = false;
+                }
                 for(let i = 0; i < vv.length; i++){
                     let valentry = vals[i];
                     valentry.push(vv[i]);
@@ -47,11 +81,13 @@ export default function Dose2dCenterViewD3(props){
                 valNames.push('V'+v);
             }
         }
+
+        //plot lines
         const tipXScale = d3.scaleLinear()
             .domain([0,vals[0].length])
             .range([margin,w-margin]);
         const tipYScale = d3.scaleLinear()
-            .domain([0,maxV])
+            .domain([0,100])
             .range([h-bottomMargin,margin])
         let paths = [];
         let lineFunc = d3.line();
@@ -71,10 +107,22 @@ export default function Dose2dCenterViewD3(props){
                 'path': lineFunc(pointList),
                 'quant': parseInt(vi),
                 'mean': meanVal,
+                'color': colorFunc(.6*meanVal+40),
             }
-            paths.push(pathEntry)
+            paths.push(pathEntry);
         }
+        
+        //actually plotting the lines
+        tipSvg.selectAll('path').filter('.tTipDvhLine')
+            .data(paths).enter()
+            .append('path').attr('class','tTipDvhLine')
+            .attr('d',d=>d.path)
+            .attr('stroke-width',2)
+            .attr('stroke',d=>d.color)
+            .attr('fill','none');
 
+
+        //show x axis
         let ticks = [];
         //show every other x point
         let isOdd = false;
@@ -90,15 +138,8 @@ export default function Dose2dCenterViewD3(props){
             }
             isOdd = !isOdd;
         }
-    
-        tipSvg.selectAll('path').filter('.tTipDvhLine')
-            .data(paths).enter()
-            .append('path').attr('class','tTipDvhLine')
-            .attr('d',d=>d.path)
-            .attr('stroke-width',2)
-            .attr('stroke',d=>colorFunc(.6*d.mean+40))
-            .attr('fill','none');
 
+        //plotting the x axis
         tipSvg.selectAll('text').filter('tipXAxis')
             .data(ticks).enter()
             .append('text').attr('class','tipXAxis')
@@ -108,7 +149,62 @@ export default function Dose2dCenterViewD3(props){
             // .attr('textLength',(w-2*margin)/(vals[0].length/2) )
             .attr('font-size',fontSize)
             .html(d=>d.name)
-        console.log('ttip values',paths)
+
+        let legendBlocks = [];
+        let legendText = [];
+        const legendBlockSize = 8;
+        const legendTextWidth = 4*legendBlockSize;
+        const legendMargin = 2;
+        let estHeight = (nQuants)*(legendBlockSize + legendMargin);
+        var legendX = parseInt(w) - parseInt(margin) - legendBlockSize - 2 - legendTextWidth;
+        var legendY = parseInt(margin) + estHeight - legendBlockSize;
+        if(putLegendInBottomLeft){
+            
+            legendY = h - bottomMargin - legendBlockSize;
+            legendX = margin;
+        }
+        let qIncrement = 100/(nQuants);
+        let currQBase = 0;
+        for(let pData of paths){
+            let lBlockEntry = {
+                'x': legendX,
+                'y': legendY,
+                'color': pData.color,
+                'mean': pData.mean,
+            }
+            let lTextEntry = {
+                'x': legendX + legendBlockSize + 2,
+                'y': legendY + legendBlockSize,
+                'text':currQBase.toFixed(0) + '-'+ (currQBase+qIncrement).toFixed(0) + '%',
+            }
+            legendBlocks.push(lBlockEntry);
+            legendText.push(lTextEntry);
+            legendY -= legendMargin + legendBlockSize;
+            currQBase += qIncrement;
+        }
+        tipSvg.selectAll('.tipLegend').remove();
+        let g = tipSvg.append('g').attr('class','tipLegend');
+
+        g.selectAll('rect').filter('.tipLegendRect')
+            .data(legendBlocks).enter()
+            .append('rect').attr('class','tipLegendRect')
+            .attr('x',d=>d.x)
+            .attr('y',d=>d.y)
+            .attr('fill',d=>d.color)
+            .attr('stroke','none')
+            .attr('width',legendBlockSize)
+            .attr('height',legendBlockSize);
+
+        g.selectAll('text').filter('.tipLegendText')
+            .data(legendText).enter()
+            .append('text').attr('class','tipLegendText')
+            .attr('x',d=>d.x)
+            .attr('y',d=>d.y)
+            .attr('text-align','start')
+            .attr('textLength',legendTextWidth)
+            .attr('font-size',legendBlockSize + 2)
+            .html(d=>d.text);
+
     }
 
     useEffect(function draw(){
@@ -134,13 +230,18 @@ export default function Dose2dCenterViewD3(props){
             
 
                 if(vals === undefined){ continue; }
-
+                vals = reduceQuantiles(vals);
                 if(nQuants == 0){
                     nQuants = vals.length;
                 }
-                let path = paths[organ];
+                
                 for(let i in vals){
-                    let entry = {'path':path}
+                    let pName = organ;
+                    if(i > 0){
+                        pName += (parseInt(i)+1)
+                    }
+                    let path = paths[pName];
+                    let entry = {'path':path,path_name:pName}
                     let scale =  Math.pow(.75,i);
                     entry.scale= scale;
                     entry.dVal = vals[i];
@@ -164,52 +265,53 @@ export default function Dose2dCenterViewD3(props){
 
             svg.selectAll('g').filter('.organGroup').remove();
             const organGroup = svg.append('g')
-            .attr('class','organGroup');
+                .attr('class','organGroup');
             
+            //old code for when i tried arbitrary transforms for quantiles that doesnt work becuase javascript is dumb
+            // let organShapes = organGroup
+            //     .selectAll('path').filter('.organPath')
+            //     .data(pathData)
+            //     .enter().append('path')
+            //     .attr('class','organPath')
+            //     .attr('d',x=>x.path)
+            //     .attr('stroke-width',0);
+        
+            // var transforms = [];
+            // d3.selectAll('.organPath').filter('path').each((d,i,j)=>{
+            // var tform = '';
+            // if(d.scale < 1 & j[i] !== undefined & j[i].getBBox() !== undefined){
+            //     let bbox = j[i].getBBox();
+            //     let scale = d.scale;
+            //     let transform = 'scale('+scale+','+scale+') ';
+            //     let tY = (1-scale)*(bbox.y + bbox.height*.5);
+            //     let tX = (1-scale)*(bbox.x + bbox.width*.5);
+            //     transform =  'translate(' + tX + ',' + tY + ')' + transform;
+            //     tform = transform;
+            // }
+            // transforms.push(tform);
+            // });
+
+            organGroup.selectAll('.organPath').remove();
+
+            var getColor = v => d3.interpolateReds(v/maxDVal)
             let organShapes = organGroup
                 .selectAll('path').filter('.organPath')
                 .data(pathData)
                 .enter().append('path')
                 .attr('class','organPath')
                 .attr('d',x=>x.path)
-                .attr('stroke-width',0);
-        
-            var transforms = [];
-            d3.selectAll('.organPath').filter('path').each((d,i,j)=>{
-            var tform = '';
-            if(d.scale < 1 & j[i] !== undefined & j[i].getBBox() !== undefined){
-                let bbox = j[i].getBBox();
-                let scale = d.scale;
-                let transform = 'scale('+scale+','+scale+') ';
-                let tY = (1-scale)*(bbox.y + bbox.height*.5);
-                let tX = (1-scale)*(bbox.x + bbox.width*.5);
-                transform =  'translate(' + tX + ',' + tY + ')' + transform;
-                tform = transform;
-            }
-            transforms.push(tform);
-            });
-
-            organGroup.selectAll('.organPath').remove();
-
-            var getColor = v => d3.interpolateReds(v/maxDVal)
-            organShapes = organGroup
-                .selectAll('path').filter('.organPath')
-                .data(pathData)
-                .enter().append('path')
-                .attr('class','organPath')
-                .attr('d',x=>x.path)
-                .attr('transform',(d,i)=>transforms[i])
                 .attr('fill', x=>getColor(x.dVal) )
                 .attr('stroke','black')
                 .on('mouseover',function(e){
                     let d = d3.select(this).datum();
+                    let tipText = d.organ_name + ' (' + d.path_name + ')' + '</br>' 
+                        + 'Quantile: ' + d.lowerRange.toFixed(1) + '% -' + d.upperRange.toFixed(1) + '%' + '</br>'
+                        + props.plotVar + ': ' + d.dVal.toFixed(1) + '</br>'
+                        + 'Mean Dose: ' + d.mean_dose.toFixed(1) + '</br>'
+                    + 'Volume: ' + d.volume.toFixed(2) +'</br>';
+                    tTip.html(tipText);
                     addClusterDvh(tTip,props.data,d.organ_name,nQuants,getColor);
-                    // let tipText = d.organ_name + '</br>' 
-                    // + 'Quantile: ' + d.lowerRange.toFixed(1) + '% -' + d.upperRange.toFixed(1) + '%' + '</br>'
-                    // + props.plotVar + ': ' + d.dVal.toFixed(1) + '</br>'
-                    // + 'Mean Dose: ' + d.mean_dose.toFixed(1) + '</br>'
-                    // + 'Volume: ' + d.volume.toFixed(2);
-                    // tTip.html(tipText);
+                    
                 }).on('mousemove', function(e){
                     Utils.moveTTipEvent(tTip,e);
                 }).on('mouseout', function(e){

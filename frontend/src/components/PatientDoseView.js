@@ -17,11 +17,15 @@ import Spinner from 'react-bootstrap/Spinner';
 export default function PatientDoseView(props){
     const ref = useRef(null)
 
-
+    const plotVars = ['V35','V45','V55','V65'];
     //temp limit on number of patients we plot
     //add in some sort of toggle or something here?
-    const maxPatients = 10;
+    const [maxPatients,setMaxPatients] = useState(10);
 
+    const [neighborhoodData,setNeighborhoodData] = useState();
+    const [counterfactualData,setCounterfactualData] = useState();
+
+    const showCounterfactuals = (props.showCounterfactuals !== undefined)? props.showCounterfactuals:false;
     const [vizComponents,setVizComponents] = useState(
         <Spinner 
             as="span" 
@@ -38,20 +42,119 @@ export default function PatientDoseView(props){
             className={'spinner'}/>
     )
 
-    // const [svgPaths,setSvgPaths] = useState();
+    function patientClinicalVector(d,doseCorrection=0){
+        let valMap = {
+            't1': 1/4,
+            't2': 2/4,
+            't3': 3/4,
+            't4': 4/4,
+            'n2a': 1/2,
+            'n2b': 1/2,
+            'n2c': 2/2,
+            'n3': 2/2,
+        }
+        function fromMap(v){
+            let val = valMap[v];
+            if(val === undefined){ val = 0; }
+            return val
+        }
+        let tVal = fromMap(d.t_stage);
+        let nVal = fromMap(d.n_stage);
+        let hpvVal = parseInt(d.hpv);
+        let ic = parseInt(d.ic);
+        let rt = parseInt(d.rt);
+        let concurrent = parseInt(d.concurrent);
+        let bot = (d.subsite == 'BOT')? 1:0;
+        let tonsil = (d.subsite == 'Tonsil')? 1:0;
+        let totalDoseRatio = parseFloat(d.totalDose)*doseCorrection;
+        return [tVal,nVal,hpvVal,ic,rt,concurrent,bot,tonsil,totalDoseRatio]
+        // return [tVal,nVal,hpvVal,ic,rt,concurrent,bot,tonsil]
+    }
 
-    // useEffect(()=>{
-    //     fetch('organ_svgs/organ_svg_paths.json').then((newPaths)=>{
-    //         newPaths.json().then((data)=>{
-    //             setSvgPaths(data);
-    //         })
-    //     })
-    // },[])
+    function patientClusterFeatureVector(d,doseCorrection=70){
+        var vector = [];
+        for(let f of props.clusterFeatures){
+            let vals = d[f];
+            if(vals === undefined){continue;}
+            //they should be all arrays but in case it's a straight up number
+            for(let v of vals){
+                vector.push(v/doseCorrection);
+            }
+        }
+        return vector
+    }
+
+    function patientCompositeVector(d,doseCorrection=0){
+        let v1 = patientClusterFeatureVector(d);
+        let v2 = patientClinicalVector(d,doseCorrection);
+        for(let v of v2){
+            v1.push(v);
+        }
+        return v1;
+    }
+    
+    function patientSim(a,b){
+        var dist = 0;
+        for(let i in a){
+            let diff = (b[i] - a[i])**2;
+            dist += diff
+        }
+        dist = dist**.5;
+        return 1/(1+dist)
+    }
+    
+    function getSimilarPatients(sourcePatient,targetPatients,useClusterFeatures=true,useClinicalFeatures=true){
+        var getVect = (d,correction=0) => {
+            if(useClusterFeatures){
+                if(useClinicalFeatures){
+                    return patientCompositeVector(d,correction);
+                } else{
+                    return patientClusterFeatureVector(d);
+                }
+            } else{
+                return patientClinicalVector(d,correction);
+            }
+        }
+        let dCorrection = 2/parseFloat(sourcePatient.totalDose)
+        let source = getVect(sourcePatient,dCorrection);
+        let sims = []
+        for(let t of targetPatients){
+            let target = getVect(t,dCorrection);
+            let sim = patientSim(source,target);
+            let entry = Object.assign({},t)
+            entry.plotSimilarity = sim;
+            sims.push(entry)
+        }
+        sims.sort((a,b) => b.plotSimilarity - a.plotSimilarity)
+        return sims
+    }
+
+    useEffect(function getSimLists(){
+        if(props.doseData !== undefined & props.clusterData !== undefined & props.activeCluster !== undefined){
+            let activeIds = props.clusterData.filter(x => x.clusterId == props.activeCluster).map(x=>x.ids)[0];
+            //get data in selected cluster
+            //data for second column
+            let toCompare = parseInt(props.selectedPatientId);
+            if(toCompare === undefined | toCompare < 0){
+                toCompare = parseInt(activeIds[0]);
+            }
+            let selectedData = props.doseData.filter(x => parseInt(x.id) === toCompare)[0];
+
+            let inCluster = props.doseData.filter(x => activeIds.indexOf(x.id) > -1);
+            let neighbors = getSimilarPatients(selectedData,inCluster).filter(d=>d !== undefined);
+            setNeighborhoodData(neighbors);
+
+            if(showCounterfactuals){
+                let compareCandidates = props.doseData.filter(x => activeIds.indexOf(x.id) == -1);
+                let counterfactuals = getSimilarPatients(selectedData,compareCandidates).filter(d=>d !== undefined);
+                setCounterfactualData(counterfactuals);
+            }
+        }
+    },[props.doseData,props.clusterData,props.clusterFeatures,props.activeCluster,props.selectedPatientId])
 
     useEffect(function drawPatients(){
-        // console.log('organs',props.clusterOrgans)
         function makePatientPlot(d,i,canClick=true,baseline){
-            let title = "ID:" + d.id;
+            let title = "ID:" + d.id + ' ';
             let trueString = d => (parseInt(d)>0)? '+':'-';
             let bottomTitle = d.t_stage + '|' + d.n_stage + '|hpv' +trueString(d.hpv) + '|' + d.subsite + '|rt' + trueString(d.rc) + '|ic' + trueString(d.ic);
             let handlePatientSelect = (pid) => {
@@ -68,8 +171,10 @@ export default function PatientDoseView(props){
             if(baseline !== undefined){
                 getColor = d3.interpolateGnBu;
             }
+            let width = showCounterfactuals? '48%':'90%'
             return (
-                <Container id={'pdose'+d.id} key={d.id+'_'+props.selectedPatientId} style={{'height':'10vh','width': '20vh','marginTop': '3em'}} 
+                <Container id={'pdose'+d.id} key={d.id+'_'+props.selectedPatientId} 
+                style={{'height':'12vh','width': width,'marginTop': '2em'}} 
                     className={'inline'} key={i+props.plotVar+canClick} md={5}>
                     <span  className={'controlPanelTitle'}>
                         <Button
@@ -78,7 +183,7 @@ export default function PatientDoseView(props){
                             variant={variant}
                             disabled={active}
                             onClick={(e)=>handlePatientSelect(d.id)}
-                        >{title}</Button>
+                        >{title}<span r={10} style={{'borderRadius':'70%','color':d.color}}>{'⬤'}</span></Button>
                     </span>
                     <PatientDoseViewD3
                         data={d}
@@ -106,51 +211,21 @@ export default function PatientDoseView(props){
             )
         }
 
-        if(props.doseData !== undefined & props.svgPaths != undefined & props.clusterData != undefined){
-            let activeIds = props.clusterData.filter(x => x.clusterId == props.activeCluster).map(x=>x.ids)[0];
-            //get data in selected cluster
-            //data for second column
-            let toCompare = parseInt(props.selectedPatientId);
-            if(toCompare === undefined | toCompare < 0){
-                toCompare = parseInt(activeIds[0]);
-            }
-            let selectedData = props.doseData.filter(x => parseInt(x.id) === toCompare)[0];
-
-            let activeData = [selectedData];
-            let badPids = [];
-            for(let pid of activeIds){
-                if(pid === props.selectedId){ continue; }
-                if(activeData.length > maxPatients){ break; }
-                let datum = props.doseData.filter(x=>parseInt(x.id) === parseInt(pid))[0];
-                if(datum !== undefined){
-                    datum = Object.assign({},datum);
-                    datum.order = (datum.id == props.selectedPatientId)? 0 : 1/datum.totalDose;
-                    activeData.push(datum);
-                }else{
-                    badPids.push(pid);
-                }
-                
-            }
-            if(badPids.length > 0){
-                console.log('bad pids',badPids.length,'out of',activeIds.length);
-            }
-            //sort by highest dose at top
-            activeData.sort((a,b)=> {return a.order - b.order});
+        if(props.svgPaths != undefined &  neighborhoodData !== undefined){
             
-            let components = activeData.map(makePatientPlot);
-
-            
-            let compareCandidates = props.doseData.filter(x => activeIds.indexOf(x.id) == -1);
-            let counterfactuals = getSimilarPatients(selectedData,compareCandidates);
-            if(counterfactuals.length > maxPatients){
-                counterfactuals = counterfactuals.slice(0,maxPatients);
+            let selectedData = undefined;
+            if(props.doseData !== undefined & props.selectedPatientId !== undefined){
+                selectedData = props.doseData.filter(x => parseInt(x.id) === parseInt(props.selectedPatientId))[0];
             }
-            let compareComponents = counterfactuals.map((d,i) => {
-                let datum = d.datum;
-                return makePatientPlot(datum,i,false,selectedData);
-            })
+            let neighbors = neighborhoodData.slice(0,Math.min(neighborhoodData.length-1, maxPatients));
+            let components = neighbors.map( (d,i) => makePatientPlot(d,i,true) )
             setVizComponents(components);
-            setCompareVizComponents(compareComponents);
+            
+            if(counterfactualData !== undefined){
+                let counterfactuals = counterfactualData.slice(0,Math.min(counterfactualData.length-1, maxPatients));
+                let compareComponents = counterfactuals.map((d,i) => makePatientPlot(d,i,false))
+                setCompareVizComponents(compareComponents);
+            }
 
         } else{
             let temp = [1,1,1,1,1,1,1]
@@ -167,74 +242,60 @@ export default function PatientDoseView(props){
             setVizComponents(components);
             setCompareVizComponents(components.map(x=>x))
         }
-    },[props.clusterData,props.svgPaths,props.clusterOrgans,
+    },[props.svgPaths,
         props.plotVar,props.activeCluster,
-        props.selectedPatientId,props.symptomsOfInterest])
-
-    return ( 
-        <div ref={ref} style={{'height': '100%','overflowY':'show'}}  id={'patientDoseContainer'}>
-            <Row md={12}  className={'noGutter fillSpace'}>
-                <Col md={6} style={{'height': '100%','overflowY':'scroll'}} className={'noGutter scroll'}>
-                    {vizComponents}
-                </Col>
-                <Col md={6} style={{'height': '100%','overflowY':'scroll'}}  className={'noGutter scroll'}>
-                    {compareVizComponents}
-                </Col>
-            </Row>
-            
-        </div> 
-        )
+        showCounterfactuals,maxPatients,
+        neighborhoodData,counterfactualData,
+        props.symptomsOfInterest])
+    
+    const addPatientsButtons = (
+        <Row md={12} style={{'marginTop':'2em'}}>
+            <Col md={6}>
+                <Button
+                    title={'show Less'}
+                    variant={(maxPatients > 5)? 'outline-secondary':'secondary'}
+                    disabled={maxPatients <= 5}
+                    onClick={(e)=>setMaxPatients(Math.max(5,maxPatients-5))}
+                >{'show less'}</Button>
+            </Col>
+            <Col md={6}>
+            <Button
+                title={'show more'}
+                variant={'outline-secondary'}
+                onClick={(e)=>setMaxPatients(Math.min(250,maxPatients+5))}
+            >{'show more'}</Button>
+            </Col>
+        </Row>
+    )
+    //adjust height if I change how the layout is 
+    let scrollStyle = {'margin':'0px','height': '45vh','width': '100%','overflowY':'scroll','padding':'0px'};
+    let scrollStyle2 = {'margin':'0px','height': '45vh','overflowY':'scroll','padding':'0px'};
+    if(!showCounterfactuals){
+        return ( 
+            //so I need to set the hieght manually in case I need to adjust this
+            <div ref={ref} 
+            style={scrollStyle} >
+                {vizComponents}
+                {addPatientsButtons}
+            </div> 
+            )
+    } else{
+        return ( 
+            //so I need to set the hieght manually in case I need to adjust this
+            <div ref={ref} >
+                <Row md={12} style={{'overflowY':'show','height':'auto'}} className={'noGutter fillSpace'}>
+                    <Col md={6} style={scrollStyle2} className={'noGutter scroll'}>
+                        {vizComponents}
+                        {addPatientsButtons}
+                    </Col>
+                    <Col md={6} style={scrollStyle2}  className={'noGutter scroll'}>
+                        {compareVizComponents}
+                        {addPatientsButtons}
+                    </Col>
+                </Row>
+                
+            </div> 
+            )
+    }
 }
 
-
-function patientClinicalVector(d,doseCorrection=0){
-    let valMap = {
-        't1': 1/4,
-        't2': 2/4,
-        't3': 3/4,
-        't4': 4/4,
-        'n2a': 1/2,
-        'n2b': 1/2,
-        'n2c': 2/2,
-        'n3': 2/2,
-    }
-    function fromMap(v){
-        let val = valMap[v];
-        if(val === undefined){ val = 0; }
-        return val
-    }
-    let tVal = fromMap(d.t_stage);
-    let nVal = fromMap(d.n_stage);
-    let hpvVal = parseInt(d.hpv);
-    let ic = parseInt(d.ic);
-    let rt = parseInt(d.rt);
-    let concurrent = parseInt(d.concurrent);
-    let bot = (d.subsite == 'BOT')? 1:0;
-    let tonsil = (d.subsite == 'Tonsil')? 1:0;
-    let totalDoseRatio = parseFloat(d.totalDose)*doseCorrection;
-    return [tVal,nVal,hpvVal,ic,rt,concurrent,bot,tonsil,totalDoseRatio]
-    // return [tVal,nVal,hpvVal,ic,rt,concurrent,bot,tonsil]
-}
-
-function patientSim(a,b){
-    var dist = 0;
-    for(let i in a){
-        let diff = (b[i] - a[i])**2;
-        dist += diff
-    }
-    dist = dist**.5;
-    return 1/(1+dist)
-}
-
-function getSimilarPatients(sourcePatient,targetPatients){
-    let dCorrection = 2/parseFloat(sourcePatient.totalDose)
-    let source = patientClinicalVector(sourcePatient,dCorrection);
-    let sims = []
-    for(let t of targetPatients){
-        let target = patientClinicalVector(t,dCorrection);
-        let sim = patientSim(source,target);
-        sims.push({'similarity':sim,'datum':t})
-    }
-    sims.sort((a,b) => b.similarity - a.similarity)
-    return sims
-}

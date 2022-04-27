@@ -12,28 +12,47 @@ export default function SymptomPlotD3(props){
     //this lets me group timepoints by aggregating them in a single list
     //the code takes the maximum of the groups time points for each patient
     const treatmentDates = [
-        [0,1],
-        [2,3],
-        [4,5],
+        [0,1,2],
+        [3,4,5],
         [6,7],
         [13],
         [33],
     ];
+    const symptomBins = [
+        [0,1],
+        [2,3],
+        [4,5],
+        [6,7,8,9,10],
+    ]
+
+    function getSymptomLevel(sVal){
+        for(let i in symptomBins){
+            i = parseInt(i);
+            if(symptomBins[i].indexOf(parseInt(sVal)) > -1){
+                return i;
+            }
+        }
+        console.log('error getting syptom value',sVal);
+        return 0;
+    }
+
     const tTipFeatures = ['id','hpv','t_stage','n_stage','rt','ic','concurrent','subsite','totalDose'];
 
-    const xMargin = 20;
-    const yMargin = 40;
-
+    const xMarginRight = 10;
+    const xMarginLeft = 10;//bigger for x Axis
+    const yMargin = 20;
+    const legendFontSize = 10;
     const maxSymptomValue = 10;
-    const barWidth = (width-2*xMargin)/(treatmentDates.length + 2);
-    const barHeight = (height-2*yMargin - 10)/(maxSymptomValue + 2);
+    const barWidth = (width-xMarginLeft - xMarginRight)/(treatmentDates.length + 2);
+    const barHeight = (height- 2*yMargin - legendFontSize - 10)/(symptomBins.length + 2);
+    const maxR = Math.min(barWidth,barHeight)/2;
 
     const xScale = d3.scaleLinear()
         .domain([0, treatmentDates.length-1])
-        .range([xMargin + barWidth/2,width-xMargin-barWidth/2]);
-    const yScale = d3.scalePow(.5)
-        .domain([0,maxSymptomValue])
-        .range([height-yMargin,yMargin]);
+        .range([xMarginLeft + barWidth/2,width-xMarginRight-barWidth/2]);
+    const yScale = d3.scaleLinear()
+        .domain([0,getSymptomLevel(maxSymptomValue)])
+        .range([height- legendFontSize - yMargin - maxR,yMargin]);
     const lineFunc = d3.line();
 
     function getMaxSymptom(pEntry,dateRange){
@@ -42,7 +61,7 @@ export default function SymptomPlotD3(props){
             console.log('cant get symptom values in symptom plot',pEntry,props.mainSymptom);
             return -1;
         }
-        let values = dateRange.map(x => pEntry.dates.indexOf(x)).filter(x => x > -1).map(x => val[x]);
+        let values = dateRange.map(x => pEntry.dates.indexOf(x)).filter(x => x > -1).map(x => getSymptomLevel(val[x]));
         return Math.max(...values);
     }
 
@@ -101,7 +120,7 @@ export default function SymptomPlotD3(props){
         if(svg != undefined & props.doseData != undefined & props.clusterData !== undefined){
             let pLists = [];
             let clusterMeans = [];
-            console.log('syptom',props.doseData,props.clusterData);
+
             for(let cluster of props.clusterData){
                 let patientIds = cluster.ids.map(x => parseInt(x));
                 let patientData = props.doseData.filter( x => patientIds.indexOf(parseInt(x.id)) >= 0 )
@@ -112,18 +131,14 @@ export default function SymptomPlotD3(props){
                 let clusterEntry = formatCluster(formattedPatients, cluster)
                 clusterMeans.push(clusterEntry);
             }
-            console.log('colors',props.categoricalColors(0))
-
             setPatientData(pLists);
             setClusterData(clusterMeans);
             
         }
-    },[svg,props.clusterData,props.doseData,props.mainSymptom,props.categoricalColors])
+    },[svg,props.clusterData,props.doseData,props.mainSymptom])
 
     useEffect(function drawLines(){
         if(svg !== undefined & patientData !== undefined & clusterData !== undefined){
-
-            console.log('acitveCluster',props.activeCluster);
 
             var isActive = d => (d.clusterId == props.activeCluster);
 
@@ -137,7 +152,7 @@ export default function SymptomPlotD3(props){
                     .attr('class',className)
                     .attr('d',d=>d.path)
                     .attr('fill','none')
-                    .attr('stroke', d=>props.categoricalColors(d.clusterId))
+                    .attr('stroke', d=> isActive(d)? props.categoricalColors(d.clusterId): 'black')
                     .attr('stroke-opacity',d=>getOpacity(d,oBase))
                     .attr('stroke-width',d=>getThickness(d,wBase));
                 return lines;
@@ -185,7 +200,7 @@ export default function SymptomPlotD3(props){
                 }
             }
 
-            let maxR = Math.min(barWidth,barHeight)/2;
+            
             var makeRScale = (max) => {
                 return d3.scaleSymlog().domain([0,max]).range([1,maxR])
             }
@@ -199,39 +214,64 @@ export default function SymptomPlotD3(props){
                 }
             }
 
-            let activePoints = [];
-            let otherPoints = [];
+            let allPoints =[];
+            let tickData = [];
+            let yTicksDone = false;
             for(let x of Object.keys(grid)){
+
+                let dates = treatmentDates[parseInt(.01+xScale.invert(parseFloat(x)))];
+                let dateString = 'Weeks: ';
+                for(let date of dates){
+                    dateString += date + ' ';
+                }
+
+                tickData.push({
+                    x: parseInt(x),
+                    name: dateString,
+                    y: yScale(0) + legendFontSize + maxR,
+                    position: 'middle',
+                });
+
+
                 for(let y of Object.keys(grid[x])){
                     let values = grid[x][y];
                     let total = arraySum(values);
-                    let activeCount = values[parseInt(props.activeCluster)];
+                    let count = values[parseInt(props.activeCluster)];
 
-                    var makePoint = (count,clusterId,front,total) => {
-                        let act = (clusterId === props.activeCluster);
-                        let entry = {
-                            'x':x,
-                            'count': count,
-                            'y':y,
-                            'front':front,
-                            'radius': getRadius(count,act),
-                            'clusterId': clusterId,
-                            'active': act,
-                            'total':total,
-                        }
-                        return entry;
+                    let entry = {
+                        'x':x,
+                        'activeCount': count,
+                        'total': total,
+                        'inactiveCount': total-count,
+                        'y':y,
+                        'activeRadius': getRadius(count,true),
+                        'inactiveRadius': getRadius(total-count,false),
+                        'dateString': dateString,
                     }
-                    let activeFront = getRadius(activeCount,true) <= getRadius(total-activeCount,false);
-                    if(!activeFront){ console.log('true not bad whatever words')}
-                    otherPoints.push(makePoint(total-activeCount,-1,!activeFront,total));
-                    activePoints.push(makePoint(activeCount,props.activeCluster,activeFront,total))
+
+                    allPoints.push(entry);
+
+                    if(!yTicksDone){
+                        let valIdx =  parseInt(yScale.invert(parseInt(y)));
+                        let sValRange = symptomBins[valIdx];
+                        let name = Math.min(...sValRange) + '-' + Math.max(...sValRange)
+                        tickData.push({
+                            'x': xMarginLeft,
+                            'y': parseInt(y) + legendFontSize/2,
+                            'name': name,
+                            'position': 'start',
+                        });
+                    }
                 }
+                yTicksDone = true;
             }
-            
-            let getColor = (d) => d.active? props.categoricalColors(d.clusterId): 'none';
-            let getStrokeWidth = (d) => d.active? 0:1;
-            let getOpacity = (d) => d.active? 1:0;
-            function plotPoints(datapoints,className){
+
+            const catColor = (d,active) => active? props.categoricalColors(parseInt(props.activeCluster)): 'none';
+            let getStrokeWidth = (d,active) => active? 0:1;
+            let getOpacity = (d,active) => active? 1:0;
+            let getR = (d,active) => active? d.activeRadius:d.inactiveRadius;
+
+            function plotPoints(datapoints,className,act){
                 svg.selectAll('.'+className).remove();
                 let getClass = (d) => d.front? className + ' symptomFront': className;
                 let pointPlot = svg.selectAll('circle').filter('.'+className)
@@ -239,40 +279,45 @@ export default function SymptomPlotD3(props){
                     .append('circle').attr('class',getClass)
                     .attr('cx',d=>d.x)
                     .attr('cy',d=>d.y)
-                    .attr('r',d=>d.radius)
-                    .attr('fill-opacity',getOpacity)
-                    .attr('stroke-width',getStrokeWidth)
+                    .attr('r',d=>getR(d,act))
+                    .attr('fill-opacity',(d) => getOpacity(d,act))
+                    .attr('stroke-width',d => getStrokeWidth(d,act))
                     .attr('stroke','black')
-                    .attr('fill',getColor)
+                    .attr('fill',d => catColor(d,act))
+                    .on('mouseover',function(e){
+                        let d = d3.select(this).datum();
+                        let value = yScale.invert(d.y);
+                        let tipText = d.dateString + '</br>'
+                            + props.mainSymptom + ': ' + value + "</br>"
+                            + 'in-cluster: ' + d.activeCount + ' (' + (100*d.activeCount/nActive).toFixed(1) + '%)' + '</br>'
+                            + 'outof-cluster: ' +d.inactiveCount + ' (' + (100*d.inactiveCount/nInactive).toFixed(1) + '%)' + '</br>'
+                            + 'odds ratio: ' + ((d.activeCount/nActive)/(d.inactiveCount/nInactive)).toFixed(2) + '</br>'
+                            + 'cluster: ' + d.clusterId + "</br>"
+                        tTip.html(tipText);
+                    }).on('mousemove', function(e){
+                        Utils.moveTTipEvent(tTip,e);
+                    }).on('mouseout', function(e){
+                        Utils.hideTTip(tTip);
+                    });
                 return pointPlot;
             }
-            plotPoints(otherPoints,'inactiveSymptomPoints');
-            let active = plotPoints(activePoints,'activeSymptomPoints');
-            active.on('mouseover',function(e){
-                let d = d3.select(this).datum();
-                console.log('data click',d);
-                let dates = treatmentDates[parseInt(xScale.invert(d.x))];
-                let dateString = 'Weeks: ';
-                for(let date of dates){
-                    dateString += date + ' ';
-                }
-                let value = yScale.invert(d.y);
-                let unCount = (d.total - d.count)
-                let tipText = dateString + '</br>'
-                    + props.mainSymptom + ': ' + value + "</br>"
-                    + 'in-cluster: ' + d.count + ' (' + (100*d.count/nActive).toFixed(1) + '%)' + '</br>'
-                    + 'outof-cluster: ' +unCount + ' (' + (100*unCount/nInactive).toFixed(1) + '%)' + '</br>'
-                    + 'odds ratio: ' + ((d.count/nActive)/(unCount/nInactive)).toFixed(2) + '</br>'
-                    + 'cluster: ' + d.clusterId + "</br>"
-                tTip.html(tipText);
-            }).on('mousemove', function(e){
-                Utils.moveTTipEvent(tTip,e);
-            }).on('mouseout', function(e){
-                Utils.hideTTip(tTip);
-            });
-            svg.selectAll('.symptomFront').raise();
+            
+            plotPoints(allPoints,'activeSymptomPoints',true);
+            let rings = plotPoints(allPoints,'inactiveSymptomPoints',false);
+            rings.raise();
+
+            svg.selectAll('.symptomAxisLabel').remove()
+            svg.selectAll('text').filter('.symptomAxisLabel')
+                .data(tickData).enter()
+                .append('text').attr('class','symptomAxisLabel')
+                .attr('x',d=>d.x)
+                .attr('y',d=>d.y)
+                .attr('font-size',legendFontSize)
+                .attr('text-anchor',d=>d.position)
+                .html(d=>d.name)
+            // svg.selectAll('.symptomFront').raise();
         }
-    },[svg,patientData,clusterData,props.activeCluster]);
+    },[svg,patientData,clusterData,props.activeCluster,props.categoricalColors]);
 
     return (
         <div

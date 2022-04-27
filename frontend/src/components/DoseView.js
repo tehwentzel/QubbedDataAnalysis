@@ -38,6 +38,7 @@ export default function DoseView(props){
                 let onTitleClick = (e) => props.setActiveCluster(parseInt(d.clusterId));
                 let clickableTitle = (parseInt(props.activeCluster) !== parseInt(d.clusterId));
                 let variant = clickableTitle? 'outline-secondary': 'dark';
+                let dotColor = props.categoricalColors(parseInt(d.clusterId));
                 return (
                     <Container style={{'marginTop': topmargin}} fluid={'true'} className={' inline'} flex={'true'} key={i}>
                         <Container className={'Dose2dContainer inline'} md={5} key={i+'doses'+props.plotVar+props.showContralateral}>
@@ -48,7 +49,10 @@ export default function DoseView(props){
                                 onClick={onTitleClick}
                                 variant={variant}
                                 disabled={!clickableTitle}
-                            >{clusterText}</Button>
+                            >
+                                {clusterText}
+                                <span r={10} style={{'borderRadius':'70%','color':dotColor}}>{'⬤'}</span>
+                            </Button>
                         </span>
                             <Dose2dCenterViewD3
                                 data={d}

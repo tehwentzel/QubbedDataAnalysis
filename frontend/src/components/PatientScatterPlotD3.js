@@ -10,9 +10,12 @@ export default function PatientScatterPlotD3(props){
     const [formattedData,setFormattedData] = useState();
     const [dotsDrawn,setDotsDrawn] = useState(false);
     const symptoms = ['drymouth','voice','teeth','taste','nausea','choke','vomit','pain','mucus','mucositis'];
-    const margin = 50;
+    const margin = 40;
+    const maxR = 8;
     const curveMargin = 3;
     
+    const tipChartSize = [150,80];
+    const tipSymptomChartSize = [160,110];
 
     function getR(d){
         //if I want to make this fancy
@@ -21,7 +24,7 @@ export default function PatientScatterPlotD3(props){
         if(val === undefined){
             val = .4;
         }
-        return 10*(val**.5);
+        return maxR*(val**.5);
     }
 
     function getShape(d){
@@ -37,7 +40,7 @@ export default function PatientScatterPlotD3(props){
             mostSevere = val >= .99;
         }
         let symbol = d3.symbol();
-        let size =10*getR(d);
+        let size =12*getR(d);
         let sType = d3.symbolCircle;
         if(mostSevere){
             sType = d3.symbolDiamond;
@@ -47,6 +50,186 @@ export default function PatientScatterPlotD3(props){
             // size *= 1.5;
         }
         return symbol.size(size).type(sType)();
+    }
+
+    function getMaxSymptoms(pEntry,symptom,dates){
+        if(dates == undefined){
+            dates = [13,33];
+        }
+        let val = pEntry['symptoms_'+symptom];
+        if(val === undefined | pEntry.dates === undefined){
+            return -1;
+        }
+        let dateIdxs = dates.map(x => pEntry.dates.indexOf(x)).filter(x => x > -1);
+        let values = dateIdxs.map(i => val[i]).filter(x => x!==undefined);
+        if(values.length > 1){
+            return Math.max(...values);
+        } else{
+            return values[0];
+        }
+    }
+
+    function makeTTipChart(element, data){
+        let [w,h] = tipChartSize;
+        
+        let doseSvg = Utils.addTTipCanvas(element,'tTipDoseCanvas',w,h)
+        
+        let paths = props.svgPaths['both'];
+        if(paths === undefined){
+            console.log('error getting svg paths for tooltip',props.svgPaths);
+            return;
+        }
+
+        let svgOrganList = Object.keys(paths);
+        let maxDVal = 70;
+        let minDVal = 0;
+        let plotVar = props.plotVar;
+        let values = data[plotVar];
+
+        let pathData = [];
+        for(let organ of svgOrganList){
+            let pos = data.organList.indexOf(organ);
+            if(pos < 0){ continue; }
+            let dVal = values[pos];
+            let path = paths[organ];
+            let entry = {
+                'dVal': dVal,
+                'organ_name': organ,
+                'plotVar': plotVar,
+                'path': path,
+            }
+            pathData.push(entry)
+            if(dVal > maxDVal){ maxDVal = dVal; }
+            if(dVal < minDVal){ minDVal = dVal; }
+        }
+
+        doseSvg.selectAll('g').filter('.organGroup').remove();
+        const organGroup = doseSvg.append('g')
+            .attr('class','organGroup');
+        
+        organGroup.selectAll('.organPath').remove();
+
+        var colorScale;
+        if(minDVal < 0){
+            let maxExtent = Math.max(Math.abs(minDVal),Math.abs(maxDVal))
+            colorScale = d3.scaleDiverging()
+                .domain([-maxExtent,0,maxExtent])
+                .range([1,.5,0])//inversing because the colorscale is green - white - blue but I want blue to be negative
+        } else{
+            colorScale = d3.scaleLinear()
+                .domain([0,maxDVal])
+                .range([0,1])
+        }
+
+        let getColor = d3.interpolateReds;
+        const organShapes = organGroup
+            .selectAll('path').filter('.organPath')
+            .data(pathData)
+            .enter().append('path')
+            .attr('class','organPath')
+            .attr('d',x=>x.path)
+            // .attr('transform',(d,i)=>transforms[i])
+            .attr('fill', x=>getColor(colorScale(x.dVal)))
+            .attr('stroke','black')
+            .attr('stroke-width','.1');
+
+        let box = doseSvg.node().getBBox();
+        let transform = 'translate(' + (-box.x)*(w/box.width)  + ',' + (-box.y)*(h/box.height) + ')';
+        transform += ' scale(' + w/box.width + ',' + (-h/box.height) + ')';
+        doseSvg.selectAll('g').attr('transform',transform);
+    }
+    
+    function makeTTipLrtChart(element, data){
+        if(props.symptomsOfInterest === undefined){ return; }
+        let [w,h] = tipSymptomChartSize
+        const margin = 5;
+        
+        const maxHeight = (.5*h/props.symptomsOfInterest.length) - 2;
+        const fontSize = Math.min(2*maxHeight, 10);
+        const textWidth = fontSize*7;
+
+        const maxWidth = (w-textWidth-2*margin)/20;
+        const radius = Math.min(maxHeight,maxWidth);
+        
+        let tipSvg = Utils.addTTipCanvas(element, 'scatterTipSvg',w+2*margin,h+2*margin);
+        tipSvg.attr('background','white')
+        let xScale = d3.scaleLinear()
+            .domain([0,10])
+            .range([margin+textWidth,w-margin])
+        let yScale = d3.scaleLinear()
+            .domain([0,props.symptomsOfInterest.length-1])
+            .range([h-margin-radius*2,margin]);
+        let sVals = props.symptomsOfInterest.map((s,i) => {
+            let entry = {
+                'treatment': getMaxSymptoms(data,s, [0,2,3,4,5,6,7]),
+                '6W': getMaxSymptoms(data,s,[13]),
+                '6M': getMaxSymptoms(data,s,[33]),
+                'name': s,
+                'y': yScale(i),
+            }
+            return entry
+        });
+        
+        var plotDots = function(xKey,color){
+            let cString = '.TipCircle'+xKey;
+            tipSvg.selectAll(cString).remove();
+            let dots = tipSvg.selectAll(cString)
+                .data(sVals)
+                .enter().append('circle')
+                .attr('class', 'TipCircle'+xKey)
+                .attr('cy',d=>d.y)
+                .attr('fill',color)
+                .attr('r',radius)
+                .attr('cx',d=> xScale(d[xKey]));
+            return dots;
+        }
+        // plotDots('treatment','green');
+        plotDots('6W','grey');
+        plotDots('6M','black');
+
+
+        tipSvg.selectAll('text').filter('.symptomText')
+            .data(sVals).enter()
+            .append('text').attr('class','symptomText')
+            .attr('x',1).attr('y',d=>d.y+(fontSize/2))
+            .attr('text-width',textWidth)
+            .attr('font-size',fontSize)
+            .html(d=>d.name+'|')
+
+        const lineFunc = d3.line();
+        let axisLines = [3,5].map(v=>{
+            let path = lineFunc([
+                [xScale(v),yScale(0)],
+                [xScale(v),yScale(props.symptomsOfInterest.length)]
+            ])
+            let name = '>= ' + v;
+            let entry = {
+                'path': path,
+                'value':v,
+                'x': xScale(v),
+                'name': name,
+            }
+            return entry
+        })
+        tipSvg.selectAll('path').filter('.axisLines').remove();
+        let lines = tipSvg.selectAll('path').filter('.axisLines')
+            .data(axisLines).enter()
+            .append('path')
+            .attr('class','axisLines')
+            .attr('d',d=>d.path)
+            .attr('stroke-width',1)
+            .attr('stroke','black')
+            .attr('stroke-opacity',.5)
+            .attr('fill','none');
+        let axisText = tipSvg.selectAll('text').filter('.xAxisText')
+            .data(axisLines).enter()
+            .append('text').attr('class','xAxisText')
+            .attr('x',d=>d.x)
+            .attr('y',h-radius)
+            .attr('text-anchor','middle')
+            .attr('font-size',fontSize)
+            .attr('textWidth',textWidth)
+            .html(d=>d.name)
     }
 
     useEffect(function formatData(){
@@ -109,7 +292,6 @@ export default function PatientScatterPlotD3(props){
             });
             setFormattedData(dataPoints);
 
-            // console.log('scatter data',dataPoints)
         }
     },[props.clusterData,props.doseData])
 
@@ -136,6 +318,7 @@ export default function PatientScatterPlotD3(props){
 
             let scatterGroup = svg.selectAll('.scatterPoint').data(formattedData);
             scatterGroup.exit().remove();
+
             function drawHull(dataList){
                 var hullData = [];
                 var curveFunc = d3.line(d=>d[0],d=>d[1])
@@ -209,11 +392,13 @@ export default function PatientScatterPlotD3(props){
                     });
                 
             }
-
+            function boundX(d){return Math.max(maxR, Math.min(width-maxR, d.x))}
+            function boundY(d){return Math.max(maxR, Math.min(height-maxR, d.y))}
             function uncollide(){
                 var ticked = function(){
+                    //bound to edges of svg
                     svg.selectAll('.scatterPoint')
-                        .attr('transform',d=> {return 'translate(' + (d.x) + ',' + (d.y) + ')';});
+                        .attr('transform',d=> {return 'translate(' + boundX(d) + ',' + boundY(d) + ')';});
                 }
     
                 var simulation = forceSimulation(newData)
@@ -221,37 +406,14 @@ export default function PatientScatterPlotD3(props){
                     .alphaMin(.2)
                     .on('tick',ticked)
                     .on('end',function(){
-                        
+                        //for some reason this doesn't work on the first go still
                         drawHull(newData);
-
-                        scatterGroup.on('mouseover',function(e){
-                            let d = d3.select(this).datum();
-                            let tipText = 'patient ' + d.id + '</br>'
-                                + 'cluster: ' + d.cluster + '</br>'
-                                + props.xVar + ': ' + d[props.xVar].toFixed(1) + '</br>'
-                                + props.yVar + ': ' + d[props.yVar].toFixed(1) + '</br>'
-                                + props.sizeVar + ': ' + d[props.sizeVar].toFixed(1) + '</br>'
-                            for(let symp of symptoms){
-                                tipText += 'late '+ symp + ': ' + (d[symp]*10).toFixed(0) + '</br>'
-                            }
-                            tTip.html(tipText);
-                            }).on('mousemove', function(e){
-                                Utils.moveTTipEvent(tTip,e);
-                            }).on('mouseout', function(e){
-                                Utils.hideTTip(tTip);
-                            });
-                            setDotsDrawn(true);
-                        console.log('done');
+                        setDotsDrawn(true);
+                        console.log('hulls should be drawn');
 
                     })
             }
 
-            var formatDots = g => {
-                g.attr('transform',d=> {return 'translate(' + d.x + ',' + d.y + ')';})
-                    .attr('d',getShape)
-                    .attr('fill', d => d.color)
-                    .attr('r',getR);
-            }
             if(scatterGroup.empty()){
                 scatterGroup
                     .enter().append('path')
@@ -261,27 +423,27 @@ export default function PatientScatterPlotD3(props){
                     .attr('fill', d => d.color)
                     .attr('r',getR);
 
-                uncollide();
-            } else{
-                var t = d3.transition()
-                .duration(400)
-                .on('end',uncollide);
-    
-                scatterGroup
-                    .enter().append('path')
-                    .merge(scatterGroup)
-                    .attr('class','scatterPoint');
+                // onHover(scatterGroup);
+                // uncollide();
+            } 
+            var t = d3.transition()
+            .duration(400)
+            .on('end',uncollide);
 
-                // scatterGroup.exit().remove();
+            scatterGroup
+                .enter().append('path')
+                .merge(scatterGroup)
+                .attr('class','scatterPoint');
 
-                scatterGroup
-                    .transition(t)
-                    .attr('transform',d=> {return 'translate(' + d.x + ',' + d.y + ')';})
-                    .attr('d',getShape)
-                    .attr('fill', d => d.color)
-                    .attr('r',getR);
-            }
-        
+            // scatterGroup.exit().remove();
+
+            scatterGroup
+                .transition(t)
+                .attr('transform',d=> {return 'translate(' + d.x + ',' + d.y + ')';})
+                .attr('d',getShape)
+                .attr('fill', d => d.color)
+                .attr('r',getR);
+            
         }
     },[svg,height,width,props.clusterData,formattedData,props.xVar,props.yVar])
 
@@ -296,7 +458,7 @@ export default function PatientScatterPlotD3(props){
         if(formattedData !==undefined & dotsDrawn){
             let scatterGroup = svg.selectAll('.scatterPoint').data(formattedData);
             scatterGroup.exit().remove();
-            // console.log('scattergroup',scatterGroup)
+            
             let isActive = (d) => d.cluster == props.activeCluster;
             let isSelected = (d) => (parseInt(d.id) == props.selectedPatientId);
             scatterGroup
@@ -314,15 +476,32 @@ export default function PatientScatterPlotD3(props){
                         w *= 10;
                     }
                     return w;
-                })
-                .on('dblclick',function(e){
-                    let d = d3.select(this).datum();
-                    if(parseInt(d.cluster) !== parseInt(props.activeCluster)){
-                        props.setActiveCluster(parseInt(d.cluster));
-                    } 
-                    if(d.id !== props.selectedPatientId){
-                        props.setSelectedPatientId(parseInt(d.id));
-                    }
+                }).on('mouseover',function(e){
+                        let d = d3.select(this).datum();
+                        let tipText = 'patient ' + d.id + '</br>'
+                            + 'cluster: ' + d.cluster + '</br>'
+                            + props.xVar + ': ' + d[props.xVar].toFixed(1) + '</br>'
+                            + props.yVar + ': ' + d[props.yVar].toFixed(1) + '</br>'
+                            + props.sizeVar + ': ' + d[props.sizeVar].toFixed(1) + '</br>'
+                        // for(let symp of symptoms){
+                        //     tipText += 'late '+ symp + ': ' + (d[symp]*10).toFixed(0) + '</br>'
+                        // }
+                        tTip.html(tipText);
+                        makeTTipChart(tTip,d);
+                        makeTTipLrtChart(tTip,d);
+                    }).on('mousemove', function(e){
+                        Utils.moveTTipEvent(tTip,e);
+                    }).on('mouseout', function(e){
+                        Utils.hideTTip(tTip);
+                        tTip.selectAll('svg').remove()
+                    }).on('dblclick',function(e){
+                        let d = d3.select(this).datum();
+                        if(parseInt(d.cluster) !== parseInt(props.activeCluster)){
+                            props.setActiveCluster(parseInt(d.cluster));
+                        } 
+                        if(d.id !== props.selectedPatientId){
+                            props.setSelectedPatientId(parseInt(d.id));
+                        }
                 });
             
                 //brush active cluster

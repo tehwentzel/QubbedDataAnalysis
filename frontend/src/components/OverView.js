@@ -13,7 +13,8 @@ import PatientScatterPlotD3 from './PatientScatterPlotD3.js';
 import DoseEffectViewD3 from './DoseEffectViewD3.js';
 import SymptomPlotD3 from './SymptomPlotD3.js';
 import Spinner from 'react-bootstrap/Spinner';
-
+import PatientDoseView from './PatientDoseView.js';
+import ClusterMetricsD3 from './ClusterMetricsD3.js';
 
 export default function OverView(props){
     const ref = useRef(null)
@@ -35,9 +36,9 @@ export default function OverView(props){
         'totalDose','tstage','nstage',
     ].concat(symptoms);
     //for shape stuff
-    const shapeOptions = [
-        'tstage','nstage',
-    ].concat(symptoms)
+    // const shapeOptions = [
+    //     'tstage','nstage',
+    // ].concat(symptoms)
     
     function makeDropdown(title,active,onclickFunc,key,options){
         if(options === undefined){
@@ -56,6 +57,7 @@ export default function OverView(props){
         return (
             <DropdownButton
              className={'controlDropdownButton'}
+             style={{'width':'auto'}}
              title={title + ': ' + active}
              value={active}
              key={key}
@@ -79,8 +81,10 @@ export default function OverView(props){
                         setActiveCluster={props.setActiveCluster}
                         xVar={xVar}
                         yVar={yVar}
-                        sizeVar={sizeVar}
+                        sizeVar={props.mainSymptom}
                         categoricalColors={props.categoricalColors}
+                        svgPaths={props.svgPaths}
+                        symptomsOfInterest={props.symptomsOfInterest}
                     ></PatientScatterPlotD3>
                 </Container>
             )
@@ -91,6 +95,26 @@ export default function OverView(props){
                 role='status'
                 className={'spinner'}/>
             );
+        }
+    }
+
+    function makePatientDoses(showCounterfactuals){
+        if(props.clusterData != undefined & props.doseData != undefined){
+            return (
+                <PatientDoseView
+                    doseData={props.doseData}
+                    clusterData={props.clusterData}
+                    selectedPatientId={props.selectedPatientId}
+                    setSelectedPatientId={props.setSelectedPatientId}
+                    plotVar={props.plotVar}
+                    clusterOrgans={props.clusterOrgans}
+                    activeCluster={props.activeCluster}
+                    svgPaths={props.svgPaths}
+                    clusterFeatures={props.clusterFeatures}
+                    symptomsOfInterest={props.symptomsOfInterest}
+                    showCounterfactuals={showCounterfactuals}
+                ></PatientDoseView>
+            )
         }
     }
 
@@ -128,7 +152,7 @@ export default function OverView(props){
     function makeEffectPlot(){
         if(props.clusterData != undefined & props.additiveClusterResults != undefined){
             return (
-                <Container className={'noGutter fillSpace'}>
+                <Container key={props.mainSymptom} className={'noGutter fillSpace'}>
                     <DoseEffectViewD3
                         doseData={props.doseData}
                         clusterData={props.clusterData}
@@ -153,28 +177,56 @@ export default function OverView(props){
     }
 
     function makeMetricsPlot(){
-        return (
-            <Spinner 
+        if(props.clusterData != undefined & props.doseData != undefined){
+            return (
+                <Container className={'noGutter fillSpace'}>
+                    <ClusterMetricsD3
+                        doseData={props.doseData}
+                        clusterData={props.clusterData}
+                        selectedPatientId={props.selectedPatientId}
+                        setSelectedPatientId={props.setSelectedPatientId}
+                        plotVar={props.plotVar}
+                        clusterOrgans={props.clusterOrgans}
+                        activeCluster={props.activeCluster}
+                        setActiveCluster={props.setActiveCluster}
+                        xVar={xVar}
+                        yVar={yVar}
+                        symptomsOfInterest={props.symptomsOfInterest}
+                        mainSymptom={props.mainSymptom}
+                        sizeVar={sizeVar}
+                        categoricalColors={props.categoricalColors}
+                    ></ClusterMetricsD3>
+                </Container>
+            )
+        } else{
+            return (<Spinner 
                 as="span" 
                 animation = "border"
                 role='status'
                 className={'spinner'}/>
-        )
+            );
+        }
     }
 
     function switchView(view){
-        console.log('switchview',view)
         if(view == 'scatterplot'){
+            let buttonHeight = 30;
             return (
-                <Row key={view} md={12} className={'noGutter fillSpace'}>
-                <Col md={9} className={'noGutter'}>
-                    {makeScatter()}
-                </Col>
-                <Col  md={3} style={{'marginTop':'2em'}} className={'noGutter fillHeight'}>
-                        {makeDropdown('x-axis',xVar,setXVar,1,varOptions)}
-                        {makeDropdown('y-axis',yVar,setYVar,2,varOptions)}
-                        {makeDropdown('shape',sizeVar,setSizeVar,3,shapeOptions)}
-                </Col>
+                <Row key={view} md={12} className={'noGutter fillSpace'} >
+                    <Col className={'noGutter fillHeight'} md={8}>
+                        <Row md={12} className={'noGutter'} 
+                            style={{'height':'calc(100% - '+buttonHeight+'px)'}} fluid={'true'}>
+                            {makeScatter()}
+                        </Row>
+                        <Row md={12} className={'noGutter'} style={{'height': buttonHeight}}>
+                            {makeDropdown('x-axis',xVar,setXVar,1,varOptions)}
+                            {makeDropdown('y-axis',yVar,setYVar,2,varOptions)}
+                        </Row>
+                        
+                    </Col>
+                    <Col md={4} fluid={'false'} style={{'height':'100%','overflowY':'scroll'}}>
+                        {makePatientDoses(false)}
+                    </Col>
                 </Row>
             )
         } 
@@ -192,6 +244,13 @@ export default function OverView(props){
                 </Row>
             )
         } 
+        if(view == 'patients'){
+            return(
+                <Row key={view} md={12} className={'noGutter fillSpace'}>
+                    {makePatientDoses(true)}
+                </Row>
+            )
+        }
         if(view == 'metric'){
             return (
                 <Row key={view} md={12} className={'noGutter fillSpace'}>
@@ -230,18 +289,19 @@ export default function OverView(props){
     return ( 
         <div ref={ref} id={'doseClusterContainer'}>
             <Row md={12} style={{'height': '2.5em'}} className={'noGutter fillWidth'}>
-                <Col md={6} className={'noGutter'}>
+                <Col md={8} className={'noGutter'}>
                     {makeToggleButton('scatterplot')}
                     {makeToggleButton('effect')}
                     {makeToggleButton('symptom')}
+                    {makeToggleButton('patients')}
                     {makeToggleButton('metric')}
                 </Col>
-                <Col md={6}>
+                <Col md={4}>
                     {makeSymptomDropdown(viewToggle)}
                 </Col>
             </Row>
-            <Row md={12} style={{'height': 'calc(100% - 2em)','width':'90%'}}>
-            {switchView(viewToggle)}
+            <Row md={12} style={{'height': 'calc(100% - 3.5em)','width':'100%'}}>
+                {switchView(viewToggle)}
             </Row>
         </div> 
         )

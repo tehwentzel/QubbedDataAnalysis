@@ -235,4 +235,12 @@ export default class Utils {
         tTip.style('visibility', 'hidden')
     }
 
+    static addTTipCanvas(tTip, className, width, height){
+        tTip.selectAll('svg').selectAll('.'+className).remove();
+        let canvas = tTip.append('svg').attr('class',className)
+            .attr('height',height).attr('width',width)
+            .style('background','white');
+        return canvas
+    }
+
 }
