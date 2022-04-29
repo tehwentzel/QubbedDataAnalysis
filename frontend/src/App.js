@@ -34,7 +34,44 @@ function App() {
   const [showContralateral,setShowContralateral] = useState(true);
 
   const [additiveClusterResults,setAdditiveClusterResults] = useState(null);
-  const [symptomsOfInterest,setSymptomsOfInterest] = useState(['drymouth','teeth','voice','taste','mucus','nausea','pain','choke'])
+  const [symptomsOfInterest,setSymptomsOfInterest] = useState([
+    'drymouth',
+    'mucositis',
+    'choke',
+    'salivary_mean',
+    'throat_mean',
+    'mouth_max',
+    'core_mean',
+    'interference_mean',
+    'hnc_mean',
+  ]);
+
+  const allSymptoms = [
+    'drymouth',
+    'salivary_mean',
+    'salivary_max',
+    'throat_mean',
+    'throat_max',
+    'mouth_max',
+    'mouth_mean',
+    'core_mean',
+    'core_max',
+    'interference_mean',
+    'interference_max',
+    'hnc_mean',
+    'hnc_max',
+    'teeth',
+    'taste',
+    'swallow',
+    'choke',
+    'voice',
+    'mucus',
+    'mucositis',
+    'nausea',
+    'vomit',
+    'appetite',
+    'pain',
+  ]
   const [mainSymptom,setMainSymptom] = useState('drymouth');
 
   const [svgPaths,setSvgPaths] = useState();
@@ -97,11 +134,11 @@ function App() {
     setDoseData(response.data);
   }
 
-  var fetchDoseClusters = async(org,nClust,clustFeatures,clusterType,confounders) => {
+  var fetchDoseClusters = async(org,nClust,clustFeatures,clusterType,confounders,symptoms) => {
     setClusterData();
     setClusterDataLoading(true);
     // console.log('clustering with organs', org)
-    const response = await api.getDoseClusterJson(org,nClust,clustFeatures,clusterType,confounders);
+    const response = await api.getDoseClusterJson(org,nClust,clustFeatures,clusterType,confounders,symptoms);
     console.log('cluster data',response.data);
     setClusterData(response.data);
     setClusterDataLoading(false);
@@ -125,7 +162,7 @@ function App() {
 
   useEffect(() => {
     fetchDoseData();
-    fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders);
+    fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest);
     fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,symptomsOfInterest);
   },[])
 
@@ -133,9 +170,9 @@ function App() {
   useEffect(() => {
     if(!clusterDataLoading){
       // console.log('cluster organ query', clusterOrgans)
-      fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders);
+      fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest);
     }
-  },[clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders])
+  },[clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest])
 
   useEffect(function clearCue(){
     setClusterOrganCue(new Array());
@@ -165,10 +202,12 @@ function App() {
                   clusterType={clusterType}
                   setClusterType={setClusterType}
                   symptomsOfInterest={symptomsOfInterest}
+                  setSymptomsOfInterest={setSymptomsOfInterest}
                   lrtConfounders={lrtConfounders}
                   setLrtConfounders={setLrtConfounders}
                   showContralateral={showContralateral}
                   setShowContralateral={setShowContralateral}
+                  allSymptoms={allSymptoms}
                 ></ClusterControlPanel>
               </Row>
               <Row id={'clusterContainer'} className={'vizComponent noGutter scroll'} lg={12}>
@@ -186,6 +225,8 @@ function App() {
                   symptomsOfInterest={symptomsOfInterest}
                   showContralateral={showContralateral}
                   categoricalColors={categoricalColors}
+                  mainSymptom={mainSymptom}
+                  setMainSymptom={setMainSymptom}
                 ></DoseView>
               </Row>    
           </Col>  

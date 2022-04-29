@@ -25,7 +25,24 @@ export default function DoseView(props){
             role='status'
             className={'spinner'}/>
     )
+    const [symptomPlotDate,setSymptomPlotDate] = useState(33);
 
+    function makeToggleButton(value){
+        let active = value === symptomPlotDate;
+        let variant = active? 'dark':'outline-secondary';
+        let onclick = (e) => setSymptomPlotDate(value);
+        return (
+            <Button
+                title={value}
+                value={value}
+                style={{'width':'auto'}}
+                variant={variant}
+                disabled={active}
+                className={'compactButton'}
+                onClick={onclick}
+            >{value + ' wks'}</Button>
+        )
+    }
 
     useEffect(function drawClusters(){
         if(props.clusterData != undefined & props.svgPaths != undefined){
@@ -67,11 +84,16 @@ export default function DoseView(props){
                         </Container >
                         <Container  className={'symptomPlotContainer inline'} md={5} key={i+'symptoms'}>
                             <span  className={'controlPanelTitle'}>
-                                {'Symptoms at 6M'}
+                                {'Symptoms at'}
+                                {makeToggleButton(13)}
+                                {makeToggleButton(33)}
                             </span>
                             <ClusterSymptomsD3
                                 data={d}
                                 plotSymptoms={props.symptomsOfInterest}
+                                mainSymptom={props.mainSymptom}
+                                setMainSymptom={props.setMainSymptom}
+                                minWeeks={symptomPlotDate}
                             ></ClusterSymptomsD3>
                         </Container>
                     </Container>
@@ -104,7 +126,11 @@ export default function DoseView(props){
             }
             setClusterVizComponents(newComponents)
         }
-    },[props.clusterData,props.svgPaths,props.clusterOrganCue,props.plotVar,props.activeCluster,props.symptomsOfInterest,props.showContralateral])
+    },[props.clusterData,props.mainSymptom,
+        props.svgPaths,props.clusterOrganCue,
+        props.plotVar,props.activeCluster,
+        symptomPlotDate,
+        props.symptomsOfInterest,props.showContralateral])
 
     return ( 
         <div ref={ref} id={'doseClusterContainer'}>

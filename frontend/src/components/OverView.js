@@ -40,7 +40,7 @@ export default function OverView(props){
     //     'tstage','nstage',
     // ].concat(symptoms)
     
-    function makeDropdown(title,active,onclickFunc,key,options){
+    function makeDropdown(title,active,onclickFunc,key,options,dropDir){
         if(options === undefined){
             options = varOptions;
         }
@@ -58,6 +58,7 @@ export default function OverView(props){
             <DropdownButton
              className={'controlDropdownButton'}
              style={{'width':'auto'}}
+             drop={dropDir}
              title={title + ': ' + active}
              value={active}
              key={key}
@@ -219,8 +220,8 @@ export default function OverView(props){
                             {makeScatter()}
                         </Row>
                         <Row md={12} className={'noGutter'} style={{'height': buttonHeight}}>
-                            {makeDropdown('x-axis',xVar,setXVar,1,varOptions)}
-                            {makeDropdown('y-axis',yVar,setYVar,2,varOptions)}
+                            {makeDropdown('x-axis',xVar,setXVar,1,varOptions,'up')}
+                            {makeDropdown('y-axis',yVar,setYVar,2,varOptions,'up')}
                         </Row>
                         
                     </Col>

@@ -14,33 +14,35 @@ export default function ClusterMetricsD3(props){
     const xMargin = 10;
     const metrics = [
         'aic_diff',
+        '3_odds_ratio',
         '5_odds_ratio',
         '7_odds_ratio',
     ];
     const pvals = [
         '7_lrt_pval',
         '5_lrt_pval',
+        '3_lrt_pval',
         'lrt_pval'
     ];
     const graphWidth = width/(metrics.length+1);
 
+    function addThresholdText(source,target){
+        for(let v = 1; v<=9; v++){
+            if(source.includes(v+'_')){
+                return target + ' (>'+v+')';
+            }
+        };
+        return target;
+    }
+
     function formatText(text){
         if(text == 'aic_diff'){ return '-ΔAIC (Linear).'}
         if(text.includes('odds_ratio')){
-            if(text.includes('5_')){
-                return 'Odds > 5';
-            } else{
-                return "Odds > 7";
-            }
+            return addThresholdText(text,'ΔOdds')
         }
         if(text.includes('lrt_pval')){
             let baseText = "1-p";
-            if(text.includes('5_')){
-                baseText += " (>5)";
-            } else if(text.includes('7_')){
-                baseText += ' (>7)';
-            }
-            return baseText;
+            return addThresholdText(text,baseText);
         }
         return text;
     }
@@ -78,7 +80,7 @@ export default function ClusterMetricsD3(props){
                 minVal = Math.min(0,minVal);
                 let topRatio = Math.abs(maxVal)/(Math.abs(maxVal)+Math.abs(minVal));
                 let h = (height-yMarginBottom-yMarginTop);
-                let yCenter = h*topRatio;
+                let yCenter = Math.max(yMarginTop + 3, h*topRatio);
                 let scale = d3.scaleLinear()
                     .domain([0,maxVal])
                     .range([0,yCenter-yMarginTop]);
@@ -211,13 +213,16 @@ export default function ClusterMetricsD3(props){
 
                 return rects
             }
-            var formatPval = (p) => 1-p;
+            // var formatPval = (p) => 1-p;
             makeRect(d=>-d['aic_diff'],'aic_diff','lrt_pval');
-            // makeRect(d=>formatPval(d['lrt_pval']),'lrt_pval',.95);
-            // makeRect(d=>formatPval(d['5_lrt_pval']),'5_lrt_pval',.95);
-            // makeRect(d=>formatPval(d['7_lrt_pval']),'7_lrt_pval',.95);
-            makeRect(d=> (d['5_odds_ratio']-1),'5_odds_ratio','5_lrt_pval');
-            makeRect(d=> (d['7_odds_ratio']-1),'7_odds_ratio', '7_lrt_pval');
+            for(let i = 3; i <=7; i = i+2){
+                let oddsKey = i + '_odds_ratio';
+                let lrtKey = i + '_lrt_pval';
+                makeRect(d=>d[oddsKey]-1,oddsKey,lrtKey)
+            }
+            // makeRect(d=> (d['3_odds_ratio']-1),'3_odds_ratio','3_lrt_pval');
+            // makeRect(d=> (d['5_odds_ratio']-1),'5_odds_ratio','5_lrt_pval');
+            // makeRect(d=> (d['7_odds_ratio']-1),'7_odds_ratio', '7_lrt_pval');
             
     
             svg.selectAll('path').filter('.xAxisLines').remove();

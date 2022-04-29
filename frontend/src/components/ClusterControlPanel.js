@@ -24,11 +24,13 @@ export default function ClusterControlPanel(props){
 
     const [featureButtons,setFeatureButtons] = useState(<></>);
     const [confounderButtons, setConfounderButtons] = useState(<></>)
+    const [symptomsButtons,setSymptomButtons] = useState(<></>);
     const [nClustButtonOptions, setNClustButtonOptions] = useState(<Dropdown.Item value={0}>{0}</Dropdown.Item>);
     const [tempClusterFeatures,setTempClusterFeatures] = useState();
     const [tempNClusters, setTempNClusters] = useState(1);
     const [tempConfounders,setTempConfounders] = useState();
     const [tempClusterType,setTempClusterType] = useState();
+    const [tempSOIs,setTempSOIs] = useState();
     const [plotVarButton, setPlotVarButton] = useState(<></>);
     const removeKey = 'None'
 
@@ -51,30 +53,13 @@ export default function ClusterControlPanel(props){
         }
     },[props.nDoseClusters])
 
-    function handleChangeClusterFeatures(d,e){
-        if(tempClusterFeatures.indexOf(d) >= 0){ return; }
-        let parentValue = e.target.parentElement.parentElement.getAttribute('value');
-        let newFeatureList = [];
-        for(let f of tempClusterFeatures){
-            if(f !== parentValue){ newFeatureList.push(f); }
+    useEffect(() => {
+        if(props.symptomsOfInterest !== tempSOIs){
+            setTempSOIs(props.symptomsOfInterest);
         }
-        if(d !== removeKey){ newFeatureList.push(d); }
-        setTempClusterFeatures(newFeatureList)
-        // console.log('change',d,parentValue,props.clusterFeatures.indexOf(parentValue))
-    }
+    },[props.symptomsOfInterest])
 
-    function handleChangeLrtConfounders(d,e){
-        if(tempConfounders.indexOf(d) >= 0){ return; }
-        let parentValue = e.target.parentElement.parentElement.getAttribute('value');
-        let newConfounderList = [];
-        for(let f of tempConfounders){
-            if(f !== parentValue){ newConfounderList.push(f); }
-        }
-        if(d !== removeKey){ newConfounderList.push(d); }
-        setTempConfounders(newConfounderList)
-        // console.log('change',d,parentValue,props.clusterFeatures.indexOf(parentValue))
-    }
-
+    
     function handleChangeNClusters(d,e){
         let val = parseInt(d);
         if(tempNClusters !== val){
@@ -110,17 +95,35 @@ export default function ClusterControlPanel(props){
             let tempConf = tempConfounders.slice();
             props.setLrtConfounders(tempConf);
         }
+        if(tempSOIs !== undefined & tempSOIs.length > 0){
+            let tempSymptoms = tempSOIs.slice();
+            props.setSymptomsOfInterest(tempSymptoms);
+        }
         props.updateClusterOrgans();
     }
 
+    function makeDropdownListUpdater(tempVals,setTempVals){
+        var handleChangeFeature = (d,e) => {
+            if(tempVals.indexOf(d) >= 0){return;}
+            let parentValue = e.target.parentElement.parentElement.getAttribute('value');
+            let newValList = [];
+            for(let f of tempVals){
+                if(f !== parentValue){ newValList.push(f); }
+            }
+            if(d !== removeKey){ newValList.push(d); }
+            setTempVals(newValList)
+        }
+        return handleChangeFeature
+    }
 
-    function makeDropDownList(featureList,options,onclick){
+    function makeDropDownList(featureList,options,setTempFeatures){
         if(featureList === undefined){ return (<></>)}
         var features = featureList.slice();
         features.sort();
         features.push('+')
         let optionValues = [removeKey];
         for(let x of options){ optionValues.push(x); }
+        const onclick =makeDropdownListUpdater(featureList,setTempFeatures);
         let newOptions = optionValues.filter(x=> features.indexOf(x) < 0)
             .map((d,i)=>{
                 return (
@@ -135,7 +138,7 @@ export default function ClusterControlPanel(props){
         let fButtons = features.map((f,i)=>{
             return (
                 <DropdownButton
-                    className={'controlDropdownButton'}
+                    className={'controlDropdownButton compactButton'}
                     title={f}
                     value={f}
                     key={f+i}
@@ -151,16 +154,23 @@ export default function ClusterControlPanel(props){
 
     useEffect(function showClusterFeatures(){
         if(tempClusterFeatures === undefined){ return; }
-        let fb = makeDropDownList(tempClusterFeatures,plotVarOptions,handleChangeClusterFeatures)
+        let fb = makeDropDownList(tempClusterFeatures,plotVarOptions,setTempClusterFeatures)//,handleChangeClusterFeatures)
         setFeatureButtons(fb)
-    },[tempClusterFeatures])
+    },[tempClusterFeatures]);
 
     useEffect(function showConfounders(){
         if(tempConfounders === undefined){ return; }
-        let cb = makeDropDownList(tempConfounders,lrtConfounderOptions,handleChangeLrtConfounders);
+        let cb = makeDropDownList(tempConfounders,lrtConfounderOptions,setTempConfounders)//handleChangeLrtConfounders);
         // console.log('tempConfounders',tempConfounders,cb)
         setConfounderButtons(cb);
-    },[tempConfounders])
+    },[tempConfounders]);
+
+    useEffect(function showSymptoms(){
+        if(tempSOIs === undefined){ return; }
+        let sb = makeDropDownList(tempSOIs,props.allSymptoms,setTempSOIs)//handleChangeSOIs);
+        // console.log('tempConfounders',tempConfounders,cb)
+        setSymptomButtons(sb);
+    },[tempSOIs,props.allSymptoms])
 
     useEffect(function showNClusterDropDown(){
         let nclustOptions = nClusterOptions.map((d,i)=>{
@@ -224,9 +234,13 @@ export default function ClusterControlPanel(props){
                 {'LRT Test Confounders: '}
                     {confounderButtons}
                 </Col>
+                <Col md={12}>
+                {'Symptoms: '}
+                    {symptomsButtons}
+                </Col>
             </Row>
             <Row className={'noGutter controlPanelTitle'} md={12}>
-                <Col md={6}>
+                <Col md={3}>
                     {'# Clusters:'}
                     <DropdownButton
                         className={'controlDropdownButton'}
@@ -236,7 +250,7 @@ export default function ClusterControlPanel(props){
                         {nClustButtonOptions}
                     </DropdownButton>
                 </Col>
-                <Col md={6}>
+                <Col md={3}>
                     {'Method:'}
                     <DropdownButton
                         className={'controlDropdownButton'}
@@ -246,11 +260,11 @@ export default function ClusterControlPanel(props){
                         {clusterTypeButtonOptions}
                     </DropdownButton>
                 </Col>
-                <Col md={6}>
+                <Col md={3}>
                     {'PlotVar:'}
                     {plotVarButton}
                 </Col>
-                <Col md={6}>
+                <Col md={3}>
                     <Button
                         value={props.showContralateral}
                         variant={'outline-secondary'}

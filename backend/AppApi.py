@@ -81,17 +81,45 @@ def get_df_dose_cols(df,key='DV'):
 def get_df_symptom_cols(df):
     return [c for c in df.columns if 'symptoms_' in c if 'original' not in c]
     
+def add_symptom_groups(df):
+    smap = {
+        'salivary': ['drymouth','taste'],
+        'throat':['swallow','choke','teeth','sob','mucositis'],
+        'mouth':['drymouth','teeth','swallow'],
+        'core': ['pain','fatigue','nausea','sleep',
+                 "distress", "sob", "memory", "appetite", 
+                "drowsy", "drymouth", "sad", "vomit", "numb"],
+        'interference': ["activity", "mood", "work", 
+                "relations", "walking","enjoy"],
+        'hnc': ["mucus", "swallow", "choke", "voice", "skin", 
+                "constipation", "taste", "mucositis", "teeth"],
+    }
+    df = df.copy()
+    for name, symptoms in smap.items():
+        array = []
+        for s in symptoms:
+            svals = np.stack(df['symptoms_'+s].apply(lambda x: np.array(x)).values)
+            array.append(svals)
+        array = np.stack(array,axis=-1)
+        #rounding in the same weird way you do in microprocessor code
+        smean = (100*array.mean(axis=-1)).astype('int')/100.0
+        smax = array.max(axis=-1)
+        df['symptoms_'+name+'_max'] = smax.tolist()
+        df['symptoms_'+name+'_mean'] = smean.tolist()
+    return df
+    
 def load_dose_symptom_data():
     data = pd.read_csv(Const.data_dir + 'dose_symptoms_merged.csv')
     to_drop = [c for c in data.columns if 'symptom' in c and ('symptoms_' not in c or 'original' in c)]
     data = data.drop(to_drop,axis=1)
     dose_cols = get_df_dose_cols(data)
     s_cols = get_df_symptom_cols(data) 
-    for c in dose_cols + s_cols + ['mean_dose','volume','dates']:
+    for c in dose_cols + s_cols + ['max_dose','mean_dose','volume','dates']:
         try:
             data[c] = data[c].apply(literal_eval)
         except Exception as e:
             print(c,e)
+    data = add_symptom_groups(data)
     return data
 
 def add_confounder_dose_limits(df,organ_list=None):
@@ -242,6 +270,7 @@ def get_cluster_lrt(df,clust_key = 'dose_clusters',
                              confounders=None,
                             ):
     #add tests for pvalues for data
+    # print('cluster lrt',symptoms)
     if symptoms is None:
         symptoms = Const.symptoms[:]
     if nWeeks is None:
@@ -308,7 +337,7 @@ def get_cluster_correlations(df,clust_key = 'dose_clusters',
     if nWeeks is None:
         nWeeks = [13,33]
     if thresholds is None:
-        thresholds = [5,7]
+        thresholds = [3,5,7]
     date_keys = [df.dates.iloc[0].index(week) for week in nWeeks if week in df.dates.iloc[0]]
     #calculate change from baseline instead of absolute
     get_symptom_change_max = lambda x: np.max([x[d]-x[0] for d in date_keys])
@@ -376,18 +405,23 @@ def get_cluster_json(df,
                      add_metrics = True,
                      clustertype = None,
                      confounders=None,
+                     update_clusters=True,
                      n_clusters = 4,
+                     symptoms=None,
                      **kwargs):
     if organ_list is None:
         organ_list = Const.organ_list[:]
     clusterer = None
     if clustertype is not None:
         clusterer = keyword_clusterer(clustertype,n_clusters)
-    df = add_sd_dose_clusters(df.copy(),
-                              organ_subset = organ_list,
-                              clusterer=clusterer,
-                              n_clusters = n_clusters,
-                              **kwargs)
+    if update_clusters or ('dose_clusters' not in df.columns):
+        df = add_sd_dose_clusters(df.copy(),
+                                  organ_subset = organ_list,
+                                  clusterer=clusterer,
+                                  n_clusters = n_clusters,
+                                  **kwargs)
+    else:
+        print('skipping stuff')
     clust_dfs = []
     dose_cols = get_df_dose_cols(df,key='V') + ['mean_dose','volume']
     s_cols = get_df_symptom_cols(df)
@@ -412,13 +446,15 @@ def get_cluster_json(df,
     if add_metrics:
         old_cols = df.columns
         df = get_cluster_correlations(df,
-                                      thresholds=[5,7],
+                                      thresholds=[3,5,7],
                                       clust_key='dose_clusters',
                                       baselines=[False],
+                                      symptoms=symptoms,
                                       nWeeks=sdates)
         df = get_cluster_lrt(df,
                               clust_key='dose_clusters',
                               confounders=confounders,
+                              symptoms=symptoms,
                               nWeeks=sdates)
         stats_cols =sorted(set(df.columns) - set(old_cols))
     df = df.reset_index()

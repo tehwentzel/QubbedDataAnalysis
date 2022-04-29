@@ -9,7 +9,7 @@ export default function PatientScatterPlotD3(props){
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [formattedData,setFormattedData] = useState();
     const [dotsDrawn,setDotsDrawn] = useState(false);
-    const symptoms = ['drymouth','voice','teeth','taste','nausea','choke','vomit','pain','mucus','mucositis'];
+    // const symptoms = ['drymouth','voice','teeth','taste','nausea','choke','vomit','pain','mucus','mucositis'];
     const margin = 40;
     const maxR = 8;
     const curveMargin = 3;
@@ -28,10 +28,11 @@ export default function PatientScatterPlotD3(props){
     }
 
     function getShape(d){
+        // console.log('scatterd',d,props.sizeVar,d[props.sizeVar])
         let val = d[props.sizeVar];
         //visual error message lol
         if(val === undefined){
-            return d3.symbolWye;
+            return d3.symbolSquare;
         }
         let severe = val >= .5;
         let mostSevere = val >= .7;
@@ -265,7 +266,7 @@ export default function PatientScatterPlotD3(props){
         
                 let dateSliceStart = d.dates.indexOf(13);
                 let dateSliceStop = d.dates.indexOf(33)
-                for(let sympt of symptoms){
+                for(let sympt of props.symptomsOfInterest){
                     let svals = d['symptoms_'+sympt].slice(dateSliceStart,dateSliceStop+1)
                     newD[sympt] = Math.max(...svals)/10;
                 }
@@ -445,7 +446,7 @@ export default function PatientScatterPlotD3(props){
                 .attr('r',getR);
             
         }
-    },[svg,height,width,props.clusterData,formattedData,props.xVar,props.yVar])
+    },[svg,height,width,props.clusterData,formattedData,props.xVar,props.yVar,props.sizeVar])
 
     useEffect(function makeShape(){
         if(formattedData !== undefined & dotsDrawn & props.sizeVar !== undefined){

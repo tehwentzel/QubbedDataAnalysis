@@ -39,7 +39,7 @@ export default class DataService {
         }
     }
 
-    async getDoseClusterJson(organs,nClusters,clusterFeatures,clusterType,lrtConfounders){
+    async getDoseClusterJson(organs,nClusters,clusterFeatures,clusterType,lrtConfounders,symptoms){
         try{
             var params = {
                 'organs': organs,
@@ -47,6 +47,7 @@ export default class DataService {
                 'clusterFeatures':clusterFeatures,
                 'clusterType':clusterType,
                 'confounders':lrtConfounders,
+                'symptoms':symptoms,
             }
             let qstring = '/dose_clusters';
             qstring += this.getParamList(params)

@@ -14,8 +14,7 @@ export default function ClusterSymptomsD3(props){
     const maxWeeks = -1;
 
 
-    const thresholds = [5];
-    const categoricalColors = d3.scaleOrdinal(d3.schemePaired);
+    const thresholds = [5];;
     const getThresholdColor = x => d3.interpolateBlues(x/thresholds[thresholds.length-1]);
     const lineFunc = d3.line(d=>d[0],d=>d[1])
     const angleIncrement = 2*Math.PI/props.plotSymptoms.length;
@@ -53,7 +52,7 @@ export default function ClusterSymptomsD3(props){
                 .x(d => d[0])
                 .y(d => d[1]);
     
-            svg.selectAll('.axisGroup').exit().remove();
+            svg.selectAll('.axisGroup').remove();
             var axisGroup = svg.append('g').attr('class','axisGroup');
             var axisPaths = [];
             var endpoints = []
@@ -72,13 +71,14 @@ export default function ClusterSymptomsD3(props){
                 });
             }
 
+            var isMain = d => d.symptom === props.mainSymptom;
             axisGroup.selectAll('path')
                 .data(axisPaths).enter()
                 .append('path')
                 .attr('class','axisLine')
                 .attr('d',d=>d.path)
-                .attr('stroke-width',.5)
-                .attr('stroke','grey');
+                .attr('stroke-width',d=>isMain(d)? 1.5:.5)
+                .attr('stroke',d=>isMain(d)? 'black':'grey');
 
             axisGroup.selectAll('circle')
                 .data(endpoints).enter()
@@ -86,7 +86,8 @@ export default function ClusterSymptomsD3(props){
                 .attr('class','axisEndpoint')
                 .attr('cx',d=>d.x)
                 .attr('cy',d=>d.y)
-                .attr('r',3)
+                .attr('r',d=> isMain(d)? 4:3)
+                .attr('fill',d=> isMain(d)? 'blue':'grey')
                 .on('mouseover',function(e){
                     let d = d3.select(this).datum();
                     let tipText = d.symptom;
@@ -95,9 +96,15 @@ export default function ClusterSymptomsD3(props){
                     Utils.moveTTipEvent(tTip,e);
                 }).on('mouseout', function(e){
                     Utils.hideTTip(tTip);
+                }).on('dblclick',function(e){
+                    let d = d3.select(this).datum();
+                    let s = d.symptom;
+                    if(s !== props.mainSymptom){
+                        props.setMainSymptom(s);
+                    }
                 });
         }
-    },[svg,height,width,props.plotSymptoms])
+    },[svg,height,width,props.plotSymptoms,props.mainSymptom])
 
     useEffect(function draw(){
         
@@ -106,10 +113,11 @@ export default function ClusterSymptomsD3(props){
             setDrawn(false);
             let curveEndpoints = [];
             let linePoints = [];
-            let minDateIdx = props.data.dates.indexOf(minWeeks);
-            let maxDateIdx = props.data.dates.length;
-            if(maxWeeks > 0){
-                maxDateIdx = props.data.dates.indexOf(maxWeeks)
+            let minDateIdx = props.data.dates.indexOf(props.minWeeks);
+            let maxDateIdx = minDateIdx;
+            if(props.maxWeeks !== undefined){
+                let maxDateIdx = props.data.date.indexOf(props.maxWeeks)
+                maxDateIdx = Math.min(props.data.dates.length,maxDateIdx);
             }
             for(let symptom of props.plotSymptoms){
                 let correlation_key = 'cluster_' + symptom + '_';
@@ -130,7 +138,7 @@ export default function ClusterSymptomsD3(props){
                 let lineEntry = Object.assign(entryBase,{})
                 lineEntry.points = [];
 
-                let vals = props.data[symptom].map(x => x.slice(minDateIdx,maxDateIdx));
+                let vals = props.data[symptom].map(x => x.slice(minDateIdx,maxDateIdx+1));
                 let mvals = vals.map( v => Math.max(...v));
                 let mean = Utils.mean(mvals);
                 let median = Utils.median(mvals);
@@ -182,6 +190,7 @@ export default function ClusterSymptomsD3(props){
                 .attr('stroke-opacity',d=> (d.pval > .05)? 0: 1)
                 .on('mouseover',function(e){
                     let d = d3.select(this).datum();
+                    if(d === undefined){return;}
                     let tipText = d.symptom + '</br>' 
                         + d.name + ': ' + d.value + '</br>'
                         + 'aic improvement: ' + (-d.aic_diff).toFixed(2) + '</br>' 
@@ -197,18 +206,24 @@ export default function ClusterSymptomsD3(props){
                     Utils.moveTTipEvent(tTip,e);
                 }).on('mouseout', function(e){
                     Utils.hideTTip(tTip);
-                });
+                }).on('dblclick',function(e){
+                    let d = d3.select(this).datum();
+                    if(d === undefined){return;}
+                    if(d.symptom !== props.mainSymptom){
+                        props.setMainSymptom(d.symptom)
+                    }
+                });;
             setDrawn(true)
         }
             
-    },[props.data,svg])
+    },[props.data,svg,props.mainSymptom,props.minWeeks])
 
 
     useEffect(function brush(){
         if(svg !== undefined & drawn){
-            //brush here
+            //brush
         }
-    },[props.data,svg,drawn])
+    },[props.data,svg,drawn,props.mainSymptom])
 
 
     return (

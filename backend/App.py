@@ -108,33 +108,29 @@ def get_dose_cluster_json():
     organ_list = request.args.getlist('organs')
     if len(organ_list) <= 0:
         organ_list = None
-    # if organ_list is not None:
-    #     for o in organ_list:
-    #         if 'Lt_' in o:
-    #             alter = o.replace('Lt_','Rt_')
-    #             if alter not in organ_list:
-    #                 organ_list.append(alter)
-    #         if 'Rt_' in o:
-    #             alter = o.replace('Rt_','Lt_')
-    #             if alter not in organ_list:
-    #                 organ_list.append(alter)
     n_clusters = request.args.get('nClusters',4)
     clustertype = request.args.get('clusterType',None)
     # print('cluster type argument',clustertype)
     cluster_features = request.args.getlist('clusterFeatures')
     if len(cluster_features) <= 0:
         cluster_features = None
+
     covars = request.args.getlist('confounders')
     if len(covars) <= 0:
         covars = None
 
-    print('cluster_covariates',covars)
+    symptoms = request.args.getlist('symptoms')
+    if len(symptoms) <= 0:
+        symptoms = None
+
+    print('cluster symptoms',symptoms)
     ddict = get_cluster_json(data,
-    organ_list=organ_list,
-    n_clusters=int(n_clusters),
-    clustertype=clustertype,
-    features=cluster_features,
-    confounders=covars,
+        organ_list=organ_list,
+        n_clusters=int(n_clusters),
+        clustertype=clustertype,
+        features=cluster_features,
+        confounders=covars,
+        symptoms=symptoms,
     )
     # print('features for clusering',cluster_features)
     response = responsify(ddict)
