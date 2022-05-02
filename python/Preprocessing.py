@@ -101,11 +101,53 @@ def df_to_symptom_array(df,use_groups = True, use_domains = False, simplify = Fa
     vals = np.stack(df[symptom_cols].apply(stack_row,axis=1).values)
     return vals
 
-def reorder_clusters(df,cname,by='moderate_6wk_symptoms'):
+def add_sd_dose_clusters(sddf, 
+                         clusterer = None,
+                         features=None,
+                         reducer=None,
+                         organ_subset=None,
+                         normalize = True,
+                         prefix='',
+                         n_clusters = 4,
+                        ):
+    if clusterer is None:
+        clusterer = BayesianGaussianMixture(n_init=5,
+                                            n_components=n_clusters, 
+                                            covariance_type="full",
+                                            random_state=100)
+    if features is None:
+        features=['V35','V40','V45','V50','V55','V60','V65']
+    if reducer is None:
+        reducer= None#PCA(len(organ_list),whiten=True)
+    if organ_subset is None:
+        organ_subset = Const.organ_list[:]
+    organ_positions = [Const.organ_list.index(o) for o in organ_subset]
+    vals = np.stack(sddf[features].apply(lambda x: np.stack([np.array([ii[i] for i in organ_positions]).astype(float) for ii in x]).ravel(),axis=1).values)
+    if normalize:
+        vals = (vals - vals.mean(axis=0))/(vals.std(axis=0) + .01)
+    if reducer is not None:
+        vals = reducer.fit_transform(vals)
+    df = pd.DataFrame(vals,index = sddf.index)
+    clusters = clusterer.fit_predict(vals)
+    new_df = sddf.copy()
+    cname= prefix+'dose_clusters'
+    new_df[cname] = clusters
+    new_df = reorder_clusters(new_df,
+                              cname,
+                              by='mean_dose',
+                              organ_list=organ_subset#order by mean dose to clustered organs
+                             )
+    return new_df
+
+def reorder_clusters(df,cname,by='moderate_6wk_symptoms',organ_list=None):
     df = df.copy()
+    df2 = df.copy()
     severities = {}
     clusts = sorted(df[cname].unique())
-    getmean = lambda d: d[by].mean()
+    getmean = lambda d: d[by].astype(float).mean()
+    if organ_list is not None and Utils.iterable(df[by].iloc[0]):
+        keep_idx = [Const.organ_list.index(o) for o in organ_list]
+        df[by] = df[by].apply(lambda x: [x[i] for i in keep_idx])
     if Utils.iterable(df[by].iloc[0]):
         getmean = lambda d: np.stack(d[by].apply(lambda x: np.array(x).sum()).values).mean()
     for c in clusts:
@@ -114,47 +156,63 @@ def reorder_clusters(df,cname,by='moderate_6wk_symptoms'):
         severities[c] = avg_severity
     clust_order = np.argsort(sorted(severities.keys(), key = lambda x: severities[x]))
     clust_map = {c: clust_order[i] for i,c in enumerate(clusts)}
-    df[cname] = df[cname].apply(lambda x: clust_map.get(x))
-    return df
+    df2[cname] = df[cname].apply(lambda x: clust_map.get(x))
+    return df2
 
-def add_sd_symptom_clusters(sddf,
-                            use_groups = True,
-                            use_domains=False,
-                            sim_func = None, 
-                            n = 5, 
-                            link='ward',
-                            n_timesteps=9,
-                            simplify=True,
-                           ):
-    array = df_to_symptom_array(sddf,
-                                use_groups = use_groups,
-                                use_domains=use_domains, 
-                                simplify = simplify)
-    end = min(n_timesteps, array.shape[-1])
-    x = array[:,:,0:end]
-    if sim_func is None:
-        print('using default similarity')
-        sim_func = Metrics.DTWd2d()
+# def reorder_clusters(df,cname,by='moderate_6wk_symptoms'):
+#     df = df.copy()
+#     severities = {}
+#     clusts = sorted(df[cname].unique())
+#     getmean = lambda d: d[by].mean()
+#     if Utils.iterable(df[by].iloc[0]):
+#         getmean = lambda d: np.stack(d[by].apply(lambda x: np.array(x).sum()).values).mean()
+#     for c in clusts:
+#         subset = df[df[cname] == c]
+#         avg_severity = getmean(subset)
+#         severities[c] = avg_severity
+#     clust_order = np.argsort(sorted(severities.keys(), key = lambda x: severities[x]))
+#     clust_map = {c: clust_order[i] for i,c in enumerate(clusts)}
+#     df[cname] = df[cname].apply(lambda x: clust_map.get(x))
+#     return df
+
+# def add_sd_symptom_clusters(sddf,
+#                             use_groups = True,
+#                             use_domains=False,
+#                             sim_func = None, 
+#                             n = 5, 
+#                             link='ward',
+#                             n_timesteps=9,
+#                             simplify=True,
+#                            ):
+#     array = df_to_symptom_array(sddf,
+#                                 use_groups = use_groups,
+#                                 use_domains=use_domains, 
+#                                 simplify = simplify)
+#     end = min(n_timesteps, array.shape[-1])
+#     x = array[:,:,0:end]
+#     if sim_func is None:
+#         print('using default similarity')
+#         sim_func = Metrics.DTWd2d()
     
-    clusterer = Cluster.SimilarityClusterer(n,link=link)
-    sim = sim_func.get_similarity_matrix(x)
-    clusters = clusterer.fit_predict(sim)
+#     clusterer = Cluster.SimilarityClusterer(n,link=link)
+#     sim = sim_func.get_similarity_matrix(x)
+#     clusters = clusterer.fit_predict(sim)
     
-    #reorder clusters so larger == higher average rating
-    cluster_severities = {}
-    clusts = np.unique(clusters)
-    for c in clusts:
-        subset = x[np.argwhere(clusters  == c).ravel()]
-        #metric is take highest rating per patient and then average over the cluster
-        avg_severity = subset.max(axis=1).max(axis=1).mean()
-        cluster_severities[c] = avg_severity
-    clust_order = np.argsort(sorted(cluster_severities.keys(), key = lambda x: cluster_severities[x]))
-    clust_map = {c: clust_order[i] for i,c in enumerate(clusts)}
-    ordered_clusts = np.array([clust_map.get(x) for x in clusters]).astype(int)
+#     #reorder clusters so larger == higher average rating
+#     cluster_severities = {}
+#     clusts = np.unique(clusters)
+#     for c in clusts:
+#         subset = x[np.argwhere(clusters  == c).ravel()]
+#         #metric is take highest rating per patient and then average over the cluster
+#         avg_severity = subset.max(axis=1).max(axis=1).mean()
+#         cluster_severities[c] = avg_severity
+#     clust_order = np.argsort(sorted(cluster_severities.keys(), key = lambda x: cluster_severities[x]))
+#     clust_map = {c: clust_order[i] for i,c in enumerate(clusts)}
+#     ordered_clusts = np.array([clust_map.get(x) for x in clusters]).astype(int)
     
-    new_df = sddf.copy()
-    new_df['symptom_clusters'] = ordered_clusts
-    return new_df
+#     new_df = sddf.copy()
+#     new_df['symptom_clusters'] = ordered_clusts
+#     return new_df
 
 # def add_sd_clusters(sddf):
 #     df = add_sd_symptom_clusters(sddf)

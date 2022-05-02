@@ -11,10 +11,12 @@ rstats = importr('stats')
 def r_fisher_exact(x,y,
                    simulate=False,
                    alternative='two_sided',
-                   workspace=2e8,
+                   workspace=2e9,
                   ):
     x = FloatVector(x)
     y = FloatVector(x)
+    print(rstats.fisher_test)
+
     res = rstats.fisher_test(x,y,
                              simulate_p_value=simulate,
                              workspace=workspace,
