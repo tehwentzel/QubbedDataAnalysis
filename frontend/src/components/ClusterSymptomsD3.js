@@ -198,9 +198,6 @@ export default function ClusterSymptomsD3(props){
                         + 'p = ' + d.lrt_pval.toFixed(3) + '</br>'
                         + 'odds>4: ' + d.odds_ratio_5.toFixed(1) + ' p=' + d.pval_5.toFixed(3) + '</br>'
                         + 'odds>6: ' + d.odds_ratio_7.toFixed(1) + ' p=' + d.pval_7.toFixed(3) + '</br>'
-                    // let tipText = d.symptom + ' > ' + d.threshold + '</br>';
-                    // tipText += d.total +' out of ' + d.clusterSize + ' (' + (100*d.value).toFixed(1) + '%)' + '</br>'
-                    // tipText += 'odds ratio: ' + d.odds.toFixed(1) + ' (p=' + d.pval.toFixed(3) + ')' + '</br>'
                     tTip.html(tipText);
                 }).on('mousemove', function(e){
                     Utils.moveTTipEvent(tTip,e);

@@ -159,62 +159,66 @@ def add_total_doses(df,cols):
             df['total_'+col] = df[col].apply(np.sum)
     return df
 
-def var_test(df, testcol, ycol,xcols, 
-             boolean=True,
-             regularize = False,
-             scale=True):
-    y = df[ycol]
-    if testcol not in xcols:
-        xcols = xcols + [testcol]
-    x = df[xcols].astype(float)
-    if regularize:
-        for col in xcols:
-            x[col] = (x[col] - x[col].mean())/(x[col].std()+ .01)
-    if scale:
-        for col in xcols:
-            x[col] = (x[col] - x[col].min())/(x[col].max() - x[col].min())
-    for col in xcols:
-        if x[col].std() < .00001:
-            x = x.drop(col,axis=1)
-    x2 = x.copy()
-    x2 = x2.drop(testcol,axis=1)
-    if boolean:
-        model = sm.Logit
-        method = 'bfgs'
-    else:
-        model = sm.OLS
-        method= 'qr'
-    logit = model(y,x)
-    logit_res = logit.fit(maxiter=500,
-                          disp=False,
-                          method=method,
-                         )
+# def multi_var_tests(df, testcols, ycol,xcols, 
+#              boolean=True,
+#              regularize = True,
+#              scale=True):
+#     df = df.fillna(0)
+#     y = df[ycol]
+#     xcols = list(set(xcols).union(set(testcols)))
+#     x = df[xcols].astype(float)
+#     if regularize:
+#         for col in xcols:
+#             x[col] = (x[col] - x[col].mean())/(x[col].std()+ .01)
+#     if scale:
+#         for col in xcols:
+#             x[col] = (x[col] - x[col].min())/(x[col].max() - x[col].min())
+#     for col in xcols:
+#         if x[col].std() < .00001:
+#             print(col)
+#             x = x.drop(col,axis=1)
+#     x2 = x.copy()
+#     x2 = x2.drop(testcols,axis=1)
+#     boolean = (df[ycol].max() <= 1) and (len(df[ycol].unique()) <= 2)
+#     if boolean:
+#         model = sm.Logit
+#         method = 'bfgs'
+#     else:
+#         model = sm.OLS
+#         method= 'qr'
+#     logit = model(y,x)
+#     logit_res = logit.fit(maxiter=500,
+#                           disp=False,
+#                           method=method,
+#                          )
     
-    logit2 = model(y,x2)
-    logit2_res = logit2.fit(maxiter=500,
-                            disp=False,
-                            method=method,
-                           )
+#     logit2 = model(y,x2)
+#     logit2_res = logit2.fit(maxiter=500,
+#                             disp=False,
+#                             method=method,
+#                            )
     
-    llr_stat = 2*(logit_res.llf - logit2_res.llf)
-    llr_p_val = chi2.sf(llr_stat,1)
+#     llr_stat = 2*(logit_res.llf - logit2_res.llf)
+#     llr_p_val = chi2.sf(llr_stat,len(testcols))
     
-    aic_diff = logit_res.aic - logit2_res.aic
-    bic_diff = logit_res.bic - logit2_res.bic
+#     aic_diff = logit_res.aic - logit2_res.aic
+#     bic_diff = logit_res.bic - logit2_res.bic
     
-    results = {
-        'ttest_pval': logit_res.pvalues[testcol],
-        'ttest_tval': logit_res.tvalues[testcol],
-        'lrt_pval': llr_p_val,
-        'aic_diff': aic_diff,
-        'bic_diff': bic_diff
-    }
-    return results
+#     results = {
+#         'lrt_pval': llr_p_val,
+#         'aic_diff': aic_diff,
+#         'bic_diff': bic_diff
+#     }
+#     for testcol in testcols:
+#         results['ttest_pval_' + str(testcol)]= logit_res.pvalues[testcol]
+#         results['ttest_tval_' + str(testcol)]= logit_res.tvalues[testcol]
+#     return results
 
 def var_test(df, testcol, ycol,xcols, 
              boolean=True,
              regularize = False,
              scale=True):
+    df = df.fillna(0)
     y = df[ycol]
     if testcol not in xcols:
         xcols = xcols + [testcol]
@@ -230,6 +234,7 @@ def var_test(df, testcol, ycol,xcols,
             x = x.drop(col,axis=1)
     x2 = x.copy()
     x2 = x2.drop(testcol,axis=1)
+    boolean = (y.max() <= 1) and (len(y.unique()) <= 2)
     if boolean:
         model = sm.Logit
         method = 'bfgs'
@@ -274,7 +279,7 @@ def get_cluster_lrt(df,clust_key = 'dose_clusters',
     if symptoms is None:
         symptoms = Const.symptoms[:]
     if nWeeks is None:
-        nWeeks = [13,59]
+        nWeeks = [13,33]
     if confounders is None:
         confounders = [
             't4',
@@ -300,7 +305,7 @@ def get_cluster_lrt(df,clust_key = 'dose_clusters',
         if skey not in df.columns:
             continue
         max_symptoms = df[skey].apply(get_symptom_max).values
-        for threshold in [-1, 5, 7]:
+        for threshold in [-1,3, 5, 7]:
             colname=  'cluster_'+symptom
             boolean = threshold > 0
             if boolean:
@@ -342,9 +347,7 @@ def get_cluster_correlations(df,clust_key = 'dose_clusters',
     #calculate change from baseline instead of absolute
     get_symptom_change_max = lambda x: np.max([x[d]-x[0] for d in date_keys])
     get_symptom_max = lambda x: np.max([x[d] for d in date_keys])
-    df = df.copy()
-    clust_results = []
-    
+    df = df.copy()    
     for symptom in symptoms:
         skey = 'symptoms_'+symptom
         if skey not in df.columns:
