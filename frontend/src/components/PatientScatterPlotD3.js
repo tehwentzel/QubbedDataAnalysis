@@ -28,7 +28,6 @@ export default function PatientScatterPlotD3(props){
     }
 
     function getShape(d){
-        // console.log('scatterd',d,props.sizeVar,d[props.sizeVar])
         let val = d[props.sizeVar];
         //visual error message lol
         if(val === undefined){
@@ -265,7 +264,8 @@ export default function PatientScatterPlotD3(props){
                 newD.nstage = fromMap(d.n_stage);
         
                 let dateSliceStart = d.dates.indexOf(13);
-                let dateSliceStop = d.dates.indexOf(33)
+                let dateSliceStop = d.dates.indexOf(33);
+                console.log('symptoms',props.symptomsOfInterest)
                 for(let sympt of props.symptomsOfInterest){
                     let svals = d['symptoms_'+sympt].slice(dateSliceStart,dateSliceStop+1)
                     newD[sympt] = Math.max(...svals)/10;

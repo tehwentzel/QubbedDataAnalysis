@@ -28,6 +28,22 @@ export default class DataService {
         return paramQuery
     }
 
+    async testPost(data){
+        console.log('testing post')
+        if(data === undefined){
+            data = {'test': [1,2,3,4,4],'test2': 'lol'}
+        }
+        try{
+            this.api.post('/test', data).then(response => {
+                console.log('test post respsonse',response)
+            }).catch(error => {
+                console.log('test post error',error);
+            })
+        } catch(error){
+            console.log(error)
+        }
+    }
+
     async getDoseJson(){
         try{
             const dDataResponse = await this.api.get('/doses');
@@ -37,6 +53,24 @@ export default class DataService {
         } catch(error){
             console.log(error)
         }
+    }
+
+    async getClusterMetrics(clusterData,organs,lrtConfounders,symptoms){
+        let postData = {
+            'clusterData': clusterData,
+            'organs': organs,
+            'lrtConfounders':lrtConfounders,
+            'symptoms': symptoms,
+        }
+        console.log('post data',postData)
+        try{
+            const response = await this.api.post('/cluster_metrics', postData);
+            console.log('cluster metrics response',response.data);
+            return response.data;
+        } catch(error){
+            console.log(error);
+        }
+
     }
 
     async getDoseClusterJson(organs,nClusters,clusterFeatures,clusterType,lrtConfounders,symptoms){

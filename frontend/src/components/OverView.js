@@ -15,6 +15,7 @@ import SymptomPlotD3 from './SymptomPlotD3.js';
 import Spinner from 'react-bootstrap/Spinner';
 import PatientDoseView from './PatientDoseView.js';
 import ClusterMetricsD3 from './ClusterMetricsD3.js';
+import GamView from './GamView.js';
 
 export default function OverView(props){
     const ref = useRef(null)
@@ -25,8 +26,6 @@ export default function OverView(props){
     const [yVar, setYVar] = useState('dose_pca2');
     const [sizeVar, setSizeVar] = useState('drymouth');
 
-
-    const symptoms = ['drymouth','voice','teeth','taste','nausea','choke','vomit','pain','mucus','mucositis'];
     //for x and y in the scatterplot
     const varOptions = [
         'dose_pca1','dose_pca2','dose_pca3',
@@ -34,7 +33,7 @@ export default function OverView(props){
         'symptom_post_pca1','symptom_post_pca2','symptom_post_pca3',
         'symptom_treatment_pca1','symptom_treatment_pca2','symptom_treatment_pca3',
         'totalDose','tstage','nstage',
-    ].concat(symptoms);
+    ].concat(props.allSymptoms);
     //for shape stuff
     // const shapeOptions = [
     //     'tstage','nstage',
@@ -85,7 +84,7 @@ export default function OverView(props){
                         sizeVar={props.mainSymptom}
                         categoricalColors={props.categoricalColors}
                         svgPaths={props.svgPaths}
-                        symptomsOfInterest={props.symptomsOfInterest}
+                        symptomsOfInterest={props.allSymptoms}
                     ></PatientScatterPlotD3>
                 </Container>
             )
@@ -209,6 +208,24 @@ export default function OverView(props){
         }
     }
 
+    function makeGamPlot(){
+        if(props.clusterData != undefined & props.doseData != undefined){
+            return (
+                <GamView
+                    doseData={props.doseData}
+                    clusterData={props.clusterData}
+                ></GamView>
+            )
+        } else{
+            return (<Spinner 
+                as="span" 
+                animation = "border"
+                role='status'
+                className={'spinner'}/>
+            );
+        }
+    }
+
     function switchView(view){
         if(view == 'scatterplot'){
             let buttonHeight = 30;
@@ -259,6 +276,13 @@ export default function OverView(props){
                 </Row>
             )
         }
+        if(view == 'Gam'){
+            return (
+                <Row key={view} md={12} className={'noGutter fillSpace'}>
+                    {makeGamPlot()}
+                </Row>
+            )
+        }
         return (<Spinner 
             as="span" 
             animation = "border"
@@ -296,6 +320,7 @@ export default function OverView(props){
                     {makeToggleButton('symptom')}
                     {makeToggleButton('patients')}
                     {makeToggleButton('metric')}
+                    {makeToggleButton('gam')}
                 </Col>
                 <Col md={4}>
                     {makeSymptomDropdown(viewToggle)}

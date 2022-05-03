@@ -20,12 +20,12 @@ function App() {
 
   const [doseData,setDoseData] = useState(null);
   const [clusterData,setClusterData] = useState(null);
-  const [clusterOrgans,setClusterOrgans] = useState(['IPC','MPC','SPC'])
+  const [clusterOrgans,setClusterOrgans] = useState(['Extended_Oral_Cavity'])
   const [clusterOrganCue,setClusterOrganCue] = useState([])
   const [clusterDataLoading, setClusterDataLoading] = useState(false)
   const [nDoseClusters,setNDoseClusters] = useState(4);
-  const [clusterFeatures,setClusterFeatures] = useState(['V35','V40','V45','V50','V55','V60']);
-  const [lrtConfounders,setLrtConfounders] = useState(['t_severe','n_severe','hpv','Parotid_Gland_limit']);
+  const [clusterFeatures,setClusterFeatures] = useState(['V40','V45','V50','V55','V60']);
+  const [lrtConfounders,setLrtConfounders] = useState(['t3','t4','n_severe','hpv','Parotid_Gland_limit']);
   const [plotVar,setPlotVar] = useState('V55');
   const [activeCluster,setActiveCluster] = useState(0)
   // const [updateCued,setUpdateCued] = useState(false)
@@ -34,13 +34,14 @@ function App() {
   const [showContralateral,setShowContralateral] = useState(true);
 
   const [additiveClusterResults,setAdditiveClusterResults] = useState(null);
+  const [clusterMetricData,setClusterMetricData] = useState(null);
   const [symptomsOfInterest,setSymptomsOfInterest] = useState([
     'drymouth',
     'mucositis',
     'choke',
     'salivary_mean',
     'throat_mean',
-    'mouth_max',
+    'mouth_mean',
     'core_mean',
     'interference_mean',
     'hnc_mean',
@@ -159,8 +160,26 @@ function App() {
     setAdditiveClusterResults(response.data);
   }
 
+  var fetchClusterMetrics = async(cData,organs,lrtConfounders,symptoms)=>{
+    if(cData !== undefined & !clusterDataLoading){
+      // const response = await api.getClusterMetrics(cData,organs,lrtConfounders,symptoms);
+      // setClusterMetricData(response);
+      // console.log('cluster metric data', response)
+      api.getClusterMetrics(cData,organs,lrtConfounders,symptoms).then(response =>{
+        console.log('cluster metric data',response)
+        setClusterMetricData(response);
+      }).catch(error=>{
+        console.log('cluster metric data error',error);
+      })
+    }  
+  }
+
+  // useEffect(function testAPI(){
+  //   api.testPost();
+  // },[api])
 
   useEffect(() => {
+
     fetchDoseData();
     fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest);
     fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,symptomsOfInterest);
@@ -183,6 +202,13 @@ function App() {
       fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,[mainSymptom],lrtConfounders);
     }
     },[clusterData,mainSymptom,clusterDataLoading,lrtConfounders])
+  
+  //for later
+  // useEffect(()=>{
+  //   if(!clusterDataLoading & clusterData !== undefined){
+  //     fetchClusterMetrics(clusterData, clusterOrgans,lrtConfounders,[mainSymptom]);
+  //   }
+  // },[clusterDataLoading,clusterData,clusterOrgans,mainSymptom,lrtConfounders]);
 
   return (
     <div className="App">
@@ -246,8 +272,11 @@ function App() {
                     setActiveCluster={setActiveCluster}
                     clusterFeatures={clusterFeatures}
                     symptomsOfInterest={symptomsOfInterest}
+                    allSymptoms={allSymptoms}
                     additiveClusterResults={additiveClusterResults}
                     categoricalColors={categoricalColors}
+                    clusterMetricData={clusterMetricData}
+                    fetchClusterMetricData={fetchClusterMetrics}
                 ></OverView>
             </Row>
             <Row style={{'height': '50vh','width':'100%'}} className={'noGutter'} lg={12}>
@@ -266,8 +295,11 @@ function App() {
                     setActiveCluster={setActiveCluster}
                     clusterFeatures={clusterFeatures}
                     symptomsOfInterest={symptomsOfInterest}
+                    allSymptoms={allSymptoms}
                     additiveClusterResults={additiveClusterResults}
                     categoricalColors={categoricalColors}
+                    clusterMetricData={clusterMetricData}
+                    fetchClusterMetricData={fetchClusterMetrics}
                 ></OverView>
               {/* </Container> */}
             </Row>

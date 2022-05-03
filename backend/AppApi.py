@@ -159,60 +159,6 @@ def add_total_doses(df,cols):
             df['total_'+col] = df[col].apply(np.sum)
     return df
 
-# def multi_var_tests(df, testcols, ycol,xcols, 
-#              boolean=True,
-#              regularize = True,
-#              scale=True):
-#     df = df.fillna(0)
-#     y = df[ycol]
-#     xcols = list(set(xcols).union(set(testcols)))
-#     x = df[xcols].astype(float)
-#     if regularize:
-#         for col in xcols:
-#             x[col] = (x[col] - x[col].mean())/(x[col].std()+ .01)
-#     if scale:
-#         for col in xcols:
-#             x[col] = (x[col] - x[col].min())/(x[col].max() - x[col].min())
-#     for col in xcols:
-#         if x[col].std() < .00001:
-#             print(col)
-#             x = x.drop(col,axis=1)
-#     x2 = x.copy()
-#     x2 = x2.drop(testcols,axis=1)
-#     boolean = (df[ycol].max() <= 1) and (len(df[ycol].unique()) <= 2)
-#     if boolean:
-#         model = sm.Logit
-#         method = 'bfgs'
-#     else:
-#         model = sm.OLS
-#         method= 'qr'
-#     logit = model(y,x)
-#     logit_res = logit.fit(maxiter=500,
-#                           disp=False,
-#                           method=method,
-#                          )
-    
-#     logit2 = model(y,x2)
-#     logit2_res = logit2.fit(maxiter=500,
-#                             disp=False,
-#                             method=method,
-#                            )
-    
-#     llr_stat = 2*(logit_res.llf - logit2_res.llf)
-#     llr_p_val = chi2.sf(llr_stat,len(testcols))
-    
-#     aic_diff = logit_res.aic - logit2_res.aic
-#     bic_diff = logit_res.bic - logit2_res.bic
-    
-#     results = {
-#         'lrt_pval': llr_p_val,
-#         'aic_diff': aic_diff,
-#         'bic_diff': bic_diff
-#     }
-#     for testcol in testcols:
-#         results['ttest_pval_' + str(testcol)]= logit_res.pvalues[testcol]
-#         results['ttest_tval_' + str(testcol)]= logit_res.tvalues[testcol]
-#     return results
 
 def var_test(df, testcol, ycol,xcols, 
              boolean=True,
@@ -481,11 +427,7 @@ def get_cluster_json(df,
             sname = scol.replace('symptoms_','')
             clust_entry[sname] = subdf[scol].apply(lambda x: [int(i) for i in x]).values.tolist()
         for col in other_values:
-            unique = df[col].unique()
-            entry = {}
-            for val in unique:
-                clust_entry[col+'_'+str(val)] = float((subdf[col] == val).sum())
-                clust_entry[col+'_'+str(val)+'_mean'] = float((subdf[col] == val).mean())
+            clust_entry[col] = subdf[col].values.tolist()
         for statcol in stats_cols:
             val = subdf[statcol].iloc[0]
             clust_entry[statcol] = val
@@ -691,5 +633,5 @@ def select_single_organ_cluster_effects(df,
                 entry[k] = v
             results.append(entry)
     #sort by effect size of highest-dose cluster
-    results= sorted(results,key=lambda x: -x['ttest_tval_x'+str(n_clusters-1)])
+    # results= sorted(results,key=lambda x: -x['ttest_tval_x'+str(n_clusters-1)])
     return results

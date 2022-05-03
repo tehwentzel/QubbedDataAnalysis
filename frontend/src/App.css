@@ -41,27 +41,20 @@ svg > path, svg > circle{
   transform-origin: 0, 0;
 }
 
-.Dose2dContainer{
-  width: calc(50vh - 1em)!important;
+.clusterPlotCol{
   height: calc(25vh - 1em)!important;
   margin: .1em!important;
-  /* margin-top: 1em!important; */
 }
 
-.symptomPlotContainer{
-  width: calc(25vh - 1em)!important;
-  height: calc(25vh - 1em)!important;
-  margin: .1em!important;
-  /* margin-top: 1em!important; */
-}
+
 
 #clusterControlPanelContainer{
-  height: 290px;
+  height: 200px;
   overflow-y: show;
 }
 
 #clusterContainer{
-  height: calc(98vh - 290px);
+  height: calc(98vh - 200px);
 }
 
 .organPath{

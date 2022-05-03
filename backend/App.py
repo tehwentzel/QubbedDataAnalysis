@@ -47,6 +47,14 @@ def nested_responsify(dictionary):
 def test():
     return 'test succesful'
 
+@app.route('/test',methods=['GET','POST'])
+def test_post():
+    data = request.get_json(force=True)
+    print('_____________________')
+    print('test post recieved',data)
+    print('_____________________')
+    return 'lol'
+
 @app.route('/doses',methods=['GET'])
 def get_doses_json():
     ddict = sddf_to_json(data)
@@ -86,7 +94,7 @@ def get_single_organ_effects():
     covars = request.args.getlist('confounders')
     if len(covars) <= 0:
         covars = None
-    print('effect covars',covars)
+    # print('effect covars',covars)
     vals = select_single_organ_cluster_effects(
         data,
         symptoms=symptoms,
@@ -102,6 +110,23 @@ def get_single_organ_effects():
 
     response = responsify(vals)
     return response
+
+@app.route('/cluster_metrics',methods=['POST'])
+def cluster_metrics():
+    data = request.get_json(force=True)
+    print('______________')
+    print('cluster metric data')
+    print(data)
+    if data['clusterData'] is not None:
+        with open('cluster_post_test.json','w') as f:
+            simplejson.dump(data,f)
+    print('______________')
+    res = app.response_class(
+        response='no',
+        mimetype='application/json',
+        status=200
+    )
+    return res
 
 @app.route('/dose_clusters',methods=['GET'])
 def get_dose_cluster_json():
@@ -123,7 +148,7 @@ def get_dose_cluster_json():
     if len(symptoms) <= 0:
         symptoms = None
 
-    print('cluster symptoms',symptoms)
+    # print('cluster symptoms',symptoms)
     ddict = get_cluster_json(data,
         organ_list=organ_list,
         n_clusters=int(n_clusters),
@@ -165,3 +190,4 @@ def get_symtpom_clusters():
 def get_mdasi_data():
     sdict = read_json('../data/patients_symptom_data.json')
     return responsify(sdict)
+
