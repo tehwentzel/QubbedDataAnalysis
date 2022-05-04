@@ -174,7 +174,7 @@ export default function PatientDoseView(props){
             let width = showCounterfactuals? '48%':'90%'
             return (
                 <Container id={'pdose'+d.id} key={d.id+'_'+props.selectedPatientId} 
-                style={{'height':'12vh','width': width,'marginTop': '2em'}} 
+                style={{'height':'15vh','width': width,'marginTop': '2em'}} 
                     className={'inline'} key={i+props.plotVar+canClick} md={5}>
                     <span  className={'controlPanelTitle'}>
                         <Button

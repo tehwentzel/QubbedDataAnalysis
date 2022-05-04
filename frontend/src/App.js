@@ -37,14 +37,11 @@ function App() {
   const [clusterMetricData,setClusterMetricData] = useState(null);
   const [symptomsOfInterest,setSymptomsOfInterest] = useState([
     'drymouth',
+    'taste',
+    'swallow',
+    'voice',
     'mucositis',
     'choke',
-    'salivary_mean',
-    'throat_mean',
-    'mouth_mean',
-    'core_mean',
-    'interference_mean',
-    'hnc_mean',
   ]);
 
   const allSymptoms = [

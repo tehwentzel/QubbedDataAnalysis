@@ -15,7 +15,7 @@ export default function PatientScatterPlotD3(props){
     const curveMargin = 3;
     
     const tipChartSize = [150,80];
-    const tipSymptomChartSize = [160,110];
+    const tipSymptomChartSize = [160,15];//height is for each symptom here
 
     function getR(d){
         //if I want to make this fancy
@@ -142,6 +142,7 @@ export default function PatientScatterPlotD3(props){
     function makeTTipLrtChart(element, data){
         if(props.symptomsOfInterest === undefined){ return; }
         let [w,h] = tipSymptomChartSize
+        h = h*props.symptomsOfInterest.length
         const margin = 5;
         
         const maxHeight = (.5*h/props.symptomsOfInterest.length) - 2;
@@ -169,10 +170,11 @@ export default function PatientScatterPlotD3(props){
             }
             return entry
         });
+        // console.log('dots',xScale(sVals[0]['6W']))
         
         var plotDots = function(xKey,color){
             let cString = '.TipCircle'+xKey;
-            tipSvg.selectAll(cString).remove();
+            // tipSvg.selectAll(cString).remove();
             let dots = tipSvg.selectAll(cString)
                 .data(sVals)
                 .enter().append('circle')
@@ -265,7 +267,7 @@ export default function PatientScatterPlotD3(props){
         
                 let dateSliceStart = d.dates.indexOf(13);
                 let dateSliceStop = d.dates.indexOf(33);
-                console.log('symptoms',props.symptomsOfInterest)
+                // console.log('symptoms',props.symptomsOfInterest)
                 for(let sympt of props.symptomsOfInterest){
                     let svals = d['symptoms_'+sympt].slice(dateSliceStart,dateSliceStop+1)
                     newD[sympt] = Math.max(...svals)/10;

@@ -8,168 +8,147 @@ export default function ClusterSymptomsD3(props){
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [drawn, setDrawn] = useState(false);
 
-    // const plotSymptoms = ['drymouth','voice','teeth','taste','nausea','choke','vomit','pain','mucus','mucositis']
-    const minWeeks = 33;
-    const maxWeeks = -1;
+    const maxXLabelSize = 12;
 
+    const yMargin = 5;
+    const xMargin = 1;
+    const sideTextMargin = 30;
+    const spacing = 2;
 
-    const thresholds = [5,7,9]
+    const timeSteps = [
+        [0,1],
+        [2,3,4,5,6,7],
+        [13,33],
+    ];
 
-    const angleIncrement = 2*Math.PI/props.plotSymptoms.length;
-    
-    const margin = 10;
-    const radius = Math.min(height/2 - margin,width/2 - margin);
-    const valueRange = [0,10];
-    const scaleTransform = x => x;
-    // const getSeverityColor = x => d3.interpolateOranges(scaleTransform(x)/valueRange[1]);
-    const getSeverityColor = x => {
-        if(x < 5){
-            return '#af8dc3'
-        } else if(x < 7){
-            return '#f16913'
-        } else if(x < 9){
-            return '#d94801'
-        } else{
-            return '#8c2d04'
+    const getColor = (v) => {
+        if(v < 3){
+            return 'lightblue';
+        }else if(v < 5){
+            return '#fc8d59';
+        } else if(v < 7){
+            return '#d7301f';
+        } 
+        return '#7f0000'
+    }
+    function getAggSymptom(d,symptom, dates){
+        let s = d['symptoms_'+symptom];
+        if(s === undefined){
+            console.log('bad symptom',d,symptom,dates)
+            return 0
         }
+        let dVals = dates.map(i => s[d.dates.indexOf(i)]);
+        return Math.max(...dVals)
     }
-
-    function pol2rect(r, θ) { 
-        let x = r*Math.cos(θ) + width/2;
-        let y = r*Math.sin(θ) + height/2;
-        return [x,y];
-    }
-    function coordinateTransform(sname,value){
-        let angle = props.plotSymptoms.indexOf(sname)*angleIncrement;
-        let r = radius*value/valueRange[1];
-        return pol2rect(r,angle)
-    }
-
-    useEffect(function drawAxes(){
-        if(svg !== undefined){
-            // console.log('drawing axes')
-            const axLineFunc = d3.line()
-                .x(d => d[0])
-                .y(d => d[1]);
-    
-            svg.selectAll('.axisGroup').exit().remove();
-            var axisGroup = svg.append('g').attr('class','axisGroup');
-            var axisPaths = [];
-            var endpoints = []
-            for(let symptom of props.plotSymptoms){
-                let [x0,y0] = coordinateTransform(symptom,0);
-                let [x1,y1] = coordinateTransform(symptom,valueRange[1]);
-                let axPath = axLineFunc([[x0,y0],[x1,y1]]);
-                axisPaths.push({
-                    'path': axPath,
-                    'symptom': symptom,
-                });
-                endpoints.push({
-                    'x': x1,
-                    'y': y1,
-                    'symptom': symptom,
-                });
-            }
-
-            axisGroup.selectAll('path')
-                .data(axisPaths).enter()
-                .append('path')
-                .attr('class','axisLine')
-                .attr('d',d=>d.path)
-                .attr('stroke-width',.5)
-                .attr('stroke','grey');
-
-            axisGroup.selectAll('circle')
-                .data(endpoints).enter()
-                .append('circle')
-                .attr('class','axisEndpoint')
-                .attr('cx',d=>d.x)
-                .attr('cy',d=>d.y)
-                .attr('r',1)
-                .on('mouseover',function(e){
-                    let d = d3.select(this).datum();
-                    let tipText = d.symptom;
-                    tTip.html(tipText);
-                }).on('mousemove', function(e){
-                    Utils.moveTTipEvent(tTip,e);
-                }).on('mouseout', function(e){
-                    Utils.hideTTip(tTip);
-                });
-        }
-    },[svg,height,width,props.plotSymptoms])
 
     useEffect(function draw(){
         
         if(svg !== undefined & props.data != undefined & height > 0 & width > 0){
-            svg.selectAll('g').filter('.symptomCurveGroup').remove();
-            var curveGroup = svg.append('g').attr('class','symptomCurveGroup')
-            setDrawn(false);
-            let curvePoints = [];
-            let curveEndpoints = [];
-            let minDateIdx = props.data.dates.indexOf(minWeeks);
-            let maxDateIdx = props.data.dates.length;
-            let getRadius = v => 2+(5*(v/valueRange[1]))**(.5)
-            if(maxWeeks > 0){
-                let maxDateIdx = props.data.dates.indexOf(maxWeeks)
+            const nRows = Object.keys(props.plotSymptoms).length;
+            const rowHeight = ((height - 2*yMargin - maxXLabelSize)/(nRows)) - spacing;
+            const xLabelSize = Math.min(maxXLabelSize, rowHeight*.8);
+            const chartHeight = rowHeight - spacing;
+            const toPlot = props.plotSymptoms.filter(s => props.data['symptoms_'+s] !== undefined);
+            const barWidth = (width-2*xMargin - sideTextMargin)/(timeSteps.length)
+            const yScale = d3.scaleLinear()
+                .domain([0,10])
+                .range([1,chartHeight]);
+
+            const getX = (i) => {
+                return barWidth*i+xMargin+sideTextMargin;
             }
-            for(let threshold of thresholds){
-                let tholdEntry = {
-                    'color': 'blue',
-                    'points':[],
-                    'value': threshold,
+            const getY = (i) => {
+                return yMargin + rowHeight*i;
+            }
+
+            var plotData = [];
+            let textData = [];
+            for(let i in toPlot){
+                let s = toPlot[i];
+                let baseY = getY(i);
+                let yLabel = {
+                    'x': xMargin,
+                    'y': baseY + xLabelSize/2 + chartHeight/2,
+                    'text': s.substring(0,4),
+                    'anchor': 'start',
+                    'scale': 1,
                 }
-                for(let symptom of props.plotSymptoms){
-                    let vals = props.data['symptoms_'+symptom].slice(minDateIdx,maxDateIdx+1);
-                    let maxVal = Math.max(...vals)
-                    let [x,y] = coordinateTransform(symptom,scaleTransform(maxVal));
-                    tholdEntry.points.push([x,y]);
-                    if(maxVal > 0){
-                        curveEndpoints.push({
-                            'x': x,
-                            'y': y,
-                            'value': maxVal,
-                            'color': getSeverityColor(maxVal),
-                            'radius': getRadius(maxVal),
-                            'threshold': threshold,
-                            'symptom': symptom,
-                        })
+                textData.push(yLabel)
+                for(let ii in timeSteps){
+                    let x = getX(ii);
+                    let weeks = timeSteps[ii];
+                    if(i == 0){
+                        let wString = weeks[0] + '-' + weeks[weeks.length-1]
+                        let xLabel = {
+                            'x': x+2,
+                            'anchor': 'start',
+                            'y': height - xLabelSize,
+                            'text': wString,
+                            'scale': .8,
+                        }
+                        textData.push(xLabel);
                     }
+                    let sVal = getAggSymptom(props.data,s,weeks)
+                    let entry = {
+                        'value': sVal,
+                        'weeks': weeks,
+                        'symptom': s,
+                        'x': x,
+                        'height': yScale(sVal),
+                        'y': baseY + chartHeight - yScale(sVal),
+                        'color':getColor(sVal),
+                        'baseY': baseY,
+                    }
+                    plotData.push(entry)
                 }
-                tholdEntry.points.push(tholdEntry.points[0])
-                curvePoints.push(tholdEntry)
             }
-   
-            const axLineFunc = d3.line()
-                .x(d => d[0])
-                .y(d => d[1]);
+            console.log('patient',plotData)
+            svg.selectAll('rect').filter('.symptomRect').remove();
+            svg.selectAll('rect').filter('.symptomRect')
+                .data(plotData).enter()
+                .append('rect').attr('class','symptomRect')
+                .attr('x',d=>d.x)
+                .attr('y',d=>d.y)
+                .attr('width',barWidth)
+                .attr('height',d=>d.height)
+                .attr('fill',d=>d.color);
 
-            // curveGroup.selectAll('path').filter('.symptomCurve')
-            //     .data(curvePoints).enter()
-            //     .append('path').attr('class','symptomCurve')
-            //     .attr('d',d=> axLineFunc(d.points))
-            //     .attr('stroke',d=>d.color)
-            //     .attr('stroke-width',1)
-            //     .attr('stroke-opacity',.5)
-            //     .attr('fill',d=>d.color)
-            //     .attr('fill-opacity',.5);
-
-            curveGroup.selectAll('circle').filter('.symptomEndpoint')
-                .data(curveEndpoints).enter()
-                .append('circle').attr('class','symptomEndpoint')
-                .attr('cx',d=>d.x)
-                .attr('cy',d=>d.y)
-                .attr('r',d=>d.radius)
-                .attr('fill',d=>d.color)
+            svg.selectAll('rect').filter('.symptomOverlayRect').remove();
+            svg.selectAll('rect').filter('.symptomOverlayRect')
+                .data(plotData).enter()
+                .append('rect').attr('class','symptomOverlayRect')
+                .attr('x',d=>d.x)
+                .attr('y',d=>d.baseY)
+                .attr('width',barWidth)
+                .attr('height',chartHeight)
+                .attr('fill-opacity',0)
                 .on('mouseover',function(e){
                     let d = d3.select(this).datum();
-                    let tipText = d.symptom + ' ' + d.value;
+                    let tipText = 'max ' + d.symptom + ' at ' 
+                    +  d.weeks[0] + '-' + d.weeks[d.weeks.length-1] + ' wks: '
+                        + d.value;
                     tTip.html(tipText);
                 }).on('mousemove', function(e){
                     Utils.moveTTipEvent(tTip,e);
                 }).on('mouseout', function(e){
                     Utils.hideTTip(tTip);
+                }).on('dblclick',function(e){
+                    let d = d3.select(this).datum();
+                    if(props.activeCluster !== d.cluster){
+                        props.setActiveCluster(d.cluster)
+                    }
                 });
-            setDrawn(true)
+
+            svg.selectAll('text').remove();
+            svg.selectAll('text').data(textData)
+                .enter().append('text').attr('class','psAxisText')
+                .attr('x',d=>d.x)
+                .attr('y',d=>d.y)
+                .attr('font-size',d=>d.scale*xLabelSize)
+                .attr('text-anchor',d=>d.anchor)
+                .html(d=>d.text);
+            // const dateIdxs = props.data.dates.map(time)
+
         }
             
     },[props.data,svg,props.plotSymptoms])
