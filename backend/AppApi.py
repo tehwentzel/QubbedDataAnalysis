@@ -8,10 +8,12 @@ from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from sklearn.cluster import SpectralClustering, KMeans, AgglomerativeClustering
 from sklearn.decomposition import PCA
 from scipy.stats import chi2
+from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
 from ast import literal_eval
 import statsmodels.api as sm
 import Metrics
 
+import joblib
 import warnings
 from statsmodels.tools.sm_exceptions import ConvergenceWarning, HessianInversionWarning
 warnings.simplefilter('ignore', ConvergenceWarning)
@@ -538,6 +540,104 @@ def multi_var_tests(df, testcols, ycol,xcols,
         results['ttest_tval_' + str(testcol)]= logit_res.tvalues[testcol]
     return results
 
+# def select_single_organ_cluster_effects(df,
+#                                         symptoms=None,
+#                                         base_organs=None,
+#                                         covars=None,
+#                                         n_clusters=4,
+#                                         clustertype=None,
+#                                         threshold=None,
+#                                         drop_base_cluster=True,
+#                                         features=None,
+#                                         organ_list=None):
+#     if base_organs is None:
+#         base_organs = []
+#     if organ_list is None:
+#         #imma just skip stuff that's like probably not relevant for this usage
+#         exclude = set(['Brainstem',"Spinal_Cord",
+#                    'Lt_Brachial_Plexus','Rt_Brachial_Plexus',
+#                    'Lower_Lip',"Upper_Lip",
+#                    'Hyoid_bone','Mandible',
+#                    'Cricoid_cartilage',
+#                     'Thyroid_cartilage',
+#                   ])
+#         organ_list = [o for o in Const.organ_list if o not in exclude]
+#     if symptoms is None:
+#         symptoms=Const.symptoms[:]
+#     if isinstance(symptoms,str):
+#         symptoms=[symptoms]
+#     df = add_late_symptoms(df,symptoms)
+#     df = add_confounder_dose_limits(df)
+#     olists = [base_organs] if len(base_organs) > 0 else []
+#     for o in organ_list:
+#         if o in base_organs:
+#             continue
+#         if 'Rt_' in o:
+#             continue
+#         new_list = [o]
+#         if len(base_organs) > 0:
+#             new_list = new_list + base_organs
+#         if 'Lt_' in o:
+#             new_list.append(o.replace('Lt_','Rt_'))
+#         if len(new_list) > len(base_organs):
+#             olists.append(new_list)
+#     if covars is None:
+#         covars = [
+#             'Parotid_Gland_limit',
+#           'IPC_limit','MPC_limit','SPC_limit',
+#           't4','n3','hpv','total_dose',
+#           "BOT","Tonsil",
+#          ]
+#     df = df.copy()
+#     df['total_dose'] = df.mean_dose.apply(lambda x: np.sum(x))
+#     results = []
+#     base_pval = 1
+#     completed_clusters = set([])
+    
+#     clusterer = None
+#     if clustertype is not None:
+#         clusterer = keyword_clusterer(clustertype,n_clusters)
+#     for olist in olists:
+#         prefix = '_'.join(olist)+'_'
+#         df  = add_sd_dose_clusters(df,
+#                                      features = features,
+#                                      organ_subset=olist,
+#                                      prefix=prefix,
+#                                     clusterer=clusterer,
+#                                      n_clusters=n_clusters,
+#             )
+#         clustname = prefix+'dose_clusters'
+#         xvals = []
+#         for cval in df[clustname].unique():
+#             if cval == 0 and drop_base_cluster:
+#                 continue
+#             df['x'+str(cval)] = (df[clustname] == cval).astype(int)
+#             xvals.append('x'+str(cval))
+            
+#         for symptom in symptoms:
+#             outcome = symptom + '_late'
+#             if threshold is None:
+#                 df['y'] = df[outcome]
+#             else:
+#                 df['y'] = (df[outcome] >= threshold)
+#             res = multi_var_tests(df,xvals,'y',covars,boolean=(threshold is not None))
+#             entry = {
+#                 'outcome':outcome,
+#                 'base_organs':base_organs,
+#                 'added_organs':sorted(set(olist)-set(base_organs)),
+#                 'threshold':threshold,
+#                 'clustertype':clustertype,
+#             }
+#             if ''.join(olist) == ''.join(base_organs):
+#                 base_pval = res['lrt_pval']
+#             entry['pval_change'] = base_pval - res['lrt_pval']
+#             for k,v in res.items():
+#                 entry[k] = v
+#             results.append(entry)
+#     #sort by effect size of highest-dose cluster
+#     results= sorted(results,key=lambda x: -x['ttest_tval_x'+str(n_clusters-1)])
+#     return results
+
 def select_single_organ_cluster_effects(df,
                                         symptoms=None,
                                         base_organs=None,
@@ -583,11 +683,11 @@ def select_single_organ_cluster_effects(df,
         covars = [
             'Parotid_Gland_limit',
           'IPC_limit','MPC_limit','SPC_limit',
-          't4','n3','hpv','total_mean_dose',
+          't4','n3','hpv','total_dose',
           "BOT","Tonsil",
          ]
     df = df.copy()
-    df['total_mean_dose'] = df.mean_dose.apply(lambda x: np.sum(x))
+    df['total_dose'] = df.mean_dose.apply(lambda x: np.sum(x))
     results = []
     base_pval = 1
     completed_clusters = set([])
@@ -596,42 +696,266 @@ def select_single_organ_cluster_effects(df,
     if clustertype is not None:
         clusterer = keyword_clusterer(clustertype,n_clusters)
         
-    for olist in olists:
-        prefix = '_'.join(olist)+'_'
-        df  = add_sd_dose_clusters(df,
-                                     features = features,
-                                     organ_subset=olist,
-                                     prefix=prefix,
-                                    clusterer=clusterer,
-                                     n_clusters=n_clusters,
-            )
-        clustname = prefix+'dose_clusters'
-        xvals = []
-        for cval in df[clustname].unique():
-            if cval == 0 and drop_base_cluster:
-                continue
-            df['x'+str(cval)] = (df[clustname] == cval).astype(int)
-            xvals.append('x'+str(cval))
-        for symptom in symptoms:
-            outcome = symptom + '_late'
-            if threshold is None:
-                df['y'] = df[outcome]
-            else:
-                df['y'] = (df[outcome] >= threshold)
-            res = multi_var_tests(df,xvals,'y',covars,boolean=(threshold is not None))
-            entry = {
-                'outcome':outcome,
-                'base_organs':base_organs,
-                'added_organs':sorted(set(olist)-set(base_organs)),
-                'threshold':threshold,
-                'clustertype':clustertype,
-            }
-            if ''.join(olist) == ''.join(base_organs):
-                base_pval = res['lrt_pval']
-            entry['pval_change'] = base_pval - res['lrt_pval']
-            for k,v in res.items():
-                entry[k] = v
-            results.append(entry)
-    #sort by effect size of highest-dose cluster
-    # results= sorted(results,key=lambda x: -x['ttest_tval_x'+str(n_clusters-1)])
+    rlist = joblib.Parallel(n_jobs=4)(joblib.delayed(parallel_cluster_lrt)((
+        df,olist,base_organs,symptoms,covars,features,clusterer,n_clusters,clustertype,threshold,drop_base_cluster,
+    )) for olist in olists)
+    for rl in rlist:
+        results.extend(rl)
+    results= sorted(results,key=lambda x: -x['ttest_tval_x'+str(n_clusters-1)])
     return results
+
+def parallel_cluster_lrt(args):
+    [df,olist,base_organs,symptoms,covars,features,clusterer,n_clusters,clustertype,threshold,drop_base_cluster] = args
+    prefix = '_'.join(olist)+'_'
+    df  = add_sd_dose_clusters(
+        df,
+        features = features,
+        organ_subset=olist,
+        prefix=prefix,
+        clusterer=clusterer,
+        n_clusters=n_clusters,
+    )
+    clustname = prefix+'dose_clusters'
+    xvals = []
+    base_pval = 1
+    for cval in df[clustname].unique():
+        if cval == 0 and drop_base_cluster:
+            continue
+        df['x'+str(cval)] = (df[clustname] == cval).astype(int)
+        xvals.append('x'+str(cval))
+    results=[]
+    for symptom in symptoms:
+        outcome = symptom + '_late'
+        if threshold is None:
+            df['y'] = df[outcome]
+        else:
+            df['y'] = (df[outcome] >= threshold)
+        res = multi_var_tests(df,xvals,'y',covars,boolean=(threshold is not None))
+        entry = {
+            'outcome':outcome,
+            'base_organs':base_organs,
+            'added_organs':sorted(set(olist)-set(base_organs)),
+            'threshold':threshold,
+            'clustertype':clustertype,
+        }
+        if ''.join(olist) == ''.join(base_organs):
+            base_pval = res['lrt_pval']
+        entry['pval_change'] = base_pval - res['lrt_pval']
+        for k,v in res.items():
+            entry[k] = v
+        results.append(entry)
+    return results
+
+def get_sample_cluster_metrics_input():
+    with open(Const.data_dir+'cluster_post_test.json','r') as f:
+        post_data= simplejson.load(f)
+    return post_data
+
+def extract_dose_vals(df,organs,features):
+    oidxs = [Const.organ_list.index(o) for o in organs if o in Const.organ_list]
+    df = df.copy()
+    vals = []
+    names = []
+    for f in features:
+        for (oname, oidx) in zip(organs,oidxs):
+            values = df[f].apply(lambda x: x[oidx]).values
+            vals.append(values.reshape((-1,1)))
+            names.append(f+'_'+oname)
+    vals = np.hstack(vals)
+    vals = pd.DataFrame(vals,columns=names,index=df.index)
+    return vals 
+
+def get_outcomes(df,symptoms,dates,threshold=None):
+    date_idxs = [i for i,d in enumerate(df.dates.iloc[0]) if d in dates]
+    res = []
+    get_max_sval = lambda s: df['symptoms_'+s].apply(lambda x: np.max([x[i] for i in date_idxs]) ).values
+    res = {symp:get_max_sval(symp) for symp in symptoms}
+    return pd.DataFrame(res,index=df.index)
+
+def add_post_clusters(df,post_results):
+    cmap = {}
+    for c_entry in post_results['clusterData']:
+        cId = c_entry['clusterId']
+        for pid in c_entry['ids']:
+            cmap[int(pid)] = cId
+    df = df.copy()
+    df['post_cluster'] = df.id.apply(lambda i: cmap.get(int(i),-1))
+    return df
+
+def get_rule_inference_data(df,
+                           organs,
+                           symptoms,
+                           features, 
+                           dates, 
+                           cluster=None):
+    if cluster is not None:
+        df = df[df.post_cluster.astype(int) == int(c)]
+    df_doses = extract_dose_vals(df,organs,features)
+    outcome = get_outcomes(df,symptoms,dates)
+    return df_doses,outcome
+        
+        
+def process_rule(args):
+    [df,col,y,currval,min_split_size,min_odds] = args
+    vals = df[col]
+    rule = vals >= currval
+    entry = {
+        'features': [col],
+        'thresholds': [currval],
+        'splits': [rule],
+        'rule': rule
+    }
+    entry = evaluate_rule(entry,y)
+    if valid_rule(entry,min_split_size,min_odds=min_odds):
+        return entry
+    return False
+    
+def get_rule_df(df,y,granularity=2,min_split_size=20,min_odds=1):
+    split_args = []
+    minval = df.values.min().min()
+    maxval = df.values.max().max()
+    granularity_vals = [i*granularity + minval for i in np.arange(np.ceil(maxval/granularity))]
+    for col in df.columns:
+        for g in granularity_vals:
+            split_args.append((df,col,y,g,min_split_size,min_odds))
+    splits = joblib.Parallel(n_jobs=4)(joblib.delayed(process_rule)(args) for args in split_args)
+    return [s for s in splits if s is not False]
+
+def combine_rule(r1,r2):
+    if r1 is None:
+        combined = r2
+    elif r2 is None:
+        combined = r1
+    else:
+        newthresholds = r1['thresholds'][:]
+        newfeatures = r1['features'][:]
+        newsplits = r1['splits'][:]
+        newrule = r1['rule']
+        for i,f in enumerate(r2['features']):
+            #only one split per feature
+            if f not in newfeatures:
+                newfeatures.append(f)
+                t = r2['thresholds'][i]
+                s = r2['splits'][i]
+                newthresholds.append(t)
+                newsplits.append(s)
+                newrule = newrule&s
+        combined = {
+            'features': list(newfeatures),
+            'thresholds': list(newthresholds),
+            'splits': newsplits,
+            'rule': newrule
+        }
+    return combined
+
+def evaluate_rule(rule, y):
+    r = rule['rule']
+    upper = y[r]
+    lower = y[~r]
+    entry = {k:v for k,v in rule.items()}
+    if lower.mean().values[0] > 0:
+        entry['odds_ratio'] = upper.mean().values[0]/lower.mean().values[0]
+    else:
+        entry['odds_ratio'] = -1
+    for prefix, yy in zip(['lower','upper'],[lower,upper]):
+        entry[prefix+'_count'] = yy.shape[0]
+        entry[prefix+'_tp'] = yy.sum().values[0]
+        entry[prefix+'_mean'] = yy.mean().values[0]
+    return entry 
+
+def valid_rule(r,min_split_size=20,min_odds=1):
+    if r['odds_ratio'] < min_odds:
+        return False
+    if min(r['upper_count'],r['lower_count']) <= min_split_size:
+        return False
+    return True
+
+def filter_rules(rulelist, bests):
+    is_best = lambda r: r['odds_ratio'] >= bests.get(stringify_features(r['features']),1)
+    filtered = [r for r in rulelist if is_best(r)]
+    return filtered
+    
+def stringify_features(l):
+    #turns a list of features in the form 'VXX_Organ' into a hashable set
+    #removes V thing becuase I think it shold be per organ
+    return ''.join([ll[3:] for ll in l])
+
+def combine_and_eval_rule(args):
+    [baserule,rule,outcome_df] = args
+    r = combine_rule(baserule,rule)
+    r = evaluate_rule(r,outcome_df)
+    return r
+
+def get_best_rules(front, allrules,dose_df,outcome_df,min_odds):
+    new_rules = []
+    bests = {}
+    if len(front) < 1:
+        front = [None]
+    minsplit = int(outcome_df.shape[0]/4)
+    for baserule in front:
+        combined_rules = joblib.Parallel(n_jobs=4)(joblib.delayed(combine_and_eval_rule)((baserule,r,outcome_df)) for r in allrules)
+        for combined_rule in combined_rules:
+            if valid_rule(combined_rule,minsplit,min_odds):
+                if baserule is not None and combined_rule['odds_ratio'] <= baserule.get('odds_ratio',1):
+                    continue
+                rname = stringify_features(combined_rule['features'])
+                if bests.get(rname,0) < combined_rule['odds_ratio']:
+                    bests[rname] = combined_rule['odds_ratio']
+                    new_rules.append(combined_rule)
+    new_rules = filter_rules(new_rules,bests)
+    return new_rules
+    
+def format_rule_json(rule):
+    newrule = {k:v for k,v in rule.items() if k not in ['splits','rule']}
+    r = rule['rule']
+    upper= r[r]
+    lower = r[~r]
+    newrule['upper_ids'] = r[r].index.tolist()
+    newrule['lower_ids'] = r[~r].index.tolist()
+    return newrule 
+
+def get_rule_stuff(df,post_results=None):
+    if post_results is None:
+        print('using test post results')
+        post_results = get_sample_cluster_metrics_input()
+    
+    df = add_post_clusters(df,post_results)
+    df = add_confounder_dose_limits(df)
+    
+    organs = post_results.get('organs',['IPC','MPC','SPC'])
+    symptoms = post_results.get('symptoms',['drymouth'])
+    organ_features = post_results.get('clusterFeatures',['V35','V40','V45','V55'])
+    s_dates = post_results.get('symptom_dates',[13,33])
+    threshold = post_results.get('threshold',5)
+    cluster = post_results.get('cluster',None)
+    maxdepth = post_results.get('max_depth',3)
+    min_odds = post_results.get('min_odds',1)
+    max_rules = post_results.get('max_rules',15)
+    
+    dose_df, outcome_df = get_rule_inference_data(
+        df,
+        organs,
+        symptoms,
+        organ_features,
+        s_dates,
+        cluster=cluster,
+    )
+    y = (outcome_df>=threshold)
+    if cluster is None:
+        granularity = 5
+    else:
+        granularity = 2
+    rules = get_rule_df(dose_df,y,min_odds=1,granularity=granularity)
+    sort_rules = lambda rlist: sorted(rlist, key=lambda x: -x['odds_ratio'])
+    rules = sort_rules(rules)
+    rules = rules[:max_rules]
+    frontier = [None]
+    best_rules = []
+    depth = 0
+    while (depth < maxdepth) and (frontier is not None) and (len(frontier) > 0):
+        frontier = get_best_rules(frontier,rules,dose_df,y,min_odds=min_odds)
+        depth += 1
+        best_rules.extend(frontier[:max_rules])
+    best_rules = joblib.Parallel(n_jobs=4)(joblib.delayed(format_rule_json)(br) for br in best_rules)
+    best_rules = sort_rules(best_rules)
+    return best_rules[:max_rules]

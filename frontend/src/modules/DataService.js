@@ -73,6 +73,36 @@ export default class DataService {
 
     }
 
+    async getClusterRules(clusterData,organs,symptoms,organFeatures,threshold,cluster){
+        let postData = {
+            'clusterData': clusterData,
+            'organs': organs,
+            'symptoms': symptoms,
+            'clusterFeatures': organFeatures,
+            'threshold': threshold,
+            'cluster': cluster,
+        }
+        let goodPostData = {}
+        for(let key of Object.keys(postData)){
+            let entry = postData[key];
+            if(entry !== undefined){
+                goodPostData[key] = entry
+            }
+        }
+        // console.log('rule post data',goodPostData)
+        if(goodPostData.clusterData === undefined){
+            return undefined
+        }
+        try{
+            const response = await this.api.post('/rules', goodPostData);
+            // console.log('rules response',response.data);
+            return response.data;
+        } catch(error){
+            console.log(error);
+        }
+
+    }
+
     async getDoseClusterJson(organs,nClusters,clusterFeatures,clusterType,lrtConfounders,symptoms){
         try{
             var params = {

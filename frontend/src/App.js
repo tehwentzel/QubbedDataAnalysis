@@ -72,6 +72,10 @@ function App() {
   ]
   const [mainSymptom,setMainSymptom] = useState('drymouth');
 
+  const [ruleData,setRuleData] = useState();
+  const [ruleThreshold,setRuleThreshold] = useState(5);
+  const [ruleCluster,setRuleCluster] = useState();
+
   const [svgPaths,setSvgPaths] = useState();
   // const [patientIds, setPatientIds] = useState([0]);
   // const [selectedWindow, setSelectedWindow] = useState('doses');
@@ -171,9 +175,16 @@ function App() {
     }  
   }
 
-  // useEffect(function testAPI(){
-  //   api.testPost();
-  // },[api])
+  var fetchClusterRules = async(cData,organs,symptoms,clusterFeatures,threshold,cluster)=>{
+    if(cData !== undefined & !clusterDataLoading){
+      api.getClusterRules(cData,organs,symptoms,clusterFeatures,threshold,cluster).then(response=>{
+        console.log('rule data main',response);
+        setRuleData(response);
+      }).catch(error=>{
+        console.log('rule data error',error);
+      })
+    }
+  }
 
   useEffect(() => {
 
@@ -198,7 +209,13 @@ function App() {
     if(clusterData !== undefined & !clusterDataLoading){
       fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,[mainSymptom],lrtConfounders);
     }
-    },[clusterData,mainSymptom,clusterDataLoading,lrtConfounders])
+  },[clusterData,mainSymptom,clusterDataLoading,lrtConfounders])
+
+  useEffect(function updateRules(){
+    if(clusterData !== undefined & clusterData !== null & !clusterDataLoading){
+      fetchClusterRules(clusterData,clusterOrgans,[mainSymptom],clusterFeatures,ruleThreshold,ruleCluster);
+    }
+  },[clusterData,clusterOrgans,mainSymptom,clusterFeatures,ruleThreshold,ruleCluster,clusterDataLoading])
   
   //for later
   // useEffect(()=>{
@@ -207,6 +224,35 @@ function App() {
   //   }
   // },[clusterDataLoading,clusterData,clusterOrgans,mainSymptom,lrtConfounders]);
 
+  function makeOverview(){
+    return (
+      <Row style={{'height': '50vh','overflowY':'hidden'}} className={'noGutter'} lg={12}>
+        <OverView
+            doseData={doseData}
+            clusterData={clusterData}
+            selectedPatientId={selectedPatientId}
+            setSelectedPatientId={setSelectedPatientId}
+            plotVar={plotVar}
+            clusterOrgans={clusterOrgans}
+            activeCluster={activeCluster}
+            svgPaths={svgPaths}
+            mainSymptom={mainSymptom}
+            setMainSymptom={setMainSymptom}
+            setActiveCluster={setActiveCluster}
+            clusterFeatures={clusterFeatures}
+            symptomsOfInterest={symptomsOfInterest}
+            allSymptoms={allSymptoms}
+            additiveClusterResults={additiveClusterResults}
+            categoricalColors={categoricalColors}
+            clusterMetricData={clusterMetricData}
+            fetchClusterMetricData={fetchClusterMetrics}
+            ruleData={ruleData}
+            ruleThreshold={ruleThreshold}
+            ruleCluster={ruleCluster}
+        ></OverView>
+    </Row>
+    )
+  }
   return (
     <div className="App">
 
@@ -254,52 +300,8 @@ function App() {
               </Row>    
           </Col>  
           <Col style={{'height': '100vh','overflowY':'hidden'}} className={'noGutter'} lg={6}>
-            <Row style={{'height': '50vh','overflowY':'hidden'}} className={'noGutter'} lg={12}>
-                <OverView
-                    doseData={doseData}
-                    clusterData={clusterData}
-                    selectedPatientId={selectedPatientId}
-                    setSelectedPatientId={setSelectedPatientId}
-                    plotVar={plotVar}
-                    clusterOrgans={clusterOrgans}
-                    activeCluster={activeCluster}
-                    svgPaths={svgPaths}
-                    mainSymptom={mainSymptom}
-                    setMainSymptom={setMainSymptom}
-                    setActiveCluster={setActiveCluster}
-                    clusterFeatures={clusterFeatures}
-                    symptomsOfInterest={symptomsOfInterest}
-                    allSymptoms={allSymptoms}
-                    additiveClusterResults={additiveClusterResults}
-                    categoricalColors={categoricalColors}
-                    clusterMetricData={clusterMetricData}
-                    fetchClusterMetricData={fetchClusterMetrics}
-                ></OverView>
-            </Row>
-            <Row style={{'height': '50vh','width':'100%'}} className={'noGutter'} lg={12}>
-              {/* <Container md={12} className={'noGutter fillSpace'}> */}
-                <OverView
-                    doseData={doseData}
-                    clusterData={clusterData}
-                    selectedPatientId={selectedPatientId}
-                    setSelectedPatientId={setSelectedPatientId}
-                    plotVar={plotVar}
-                    clusterOrgans={clusterOrgans}
-                    activeCluster={activeCluster}
-                    svgPaths={svgPaths}
-                    mainSymptom={mainSymptom}
-                    setMainSymptom={setMainSymptom}
-                    setActiveCluster={setActiveCluster}
-                    clusterFeatures={clusterFeatures}
-                    symptomsOfInterest={symptomsOfInterest}
-                    allSymptoms={allSymptoms}
-                    additiveClusterResults={additiveClusterResults}
-                    categoricalColors={categoricalColors}
-                    clusterMetricData={clusterMetricData}
-                    fetchClusterMetricData={fetchClusterMetrics}
-                ></OverView>
-              {/* </Container> */}
-            </Row>
+            {makeOverview()}
+            {makeOverview()}
         </Col>
       </Row>
     </div>

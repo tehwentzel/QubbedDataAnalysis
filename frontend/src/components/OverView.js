@@ -15,7 +15,7 @@ import SymptomPlotD3 from './SymptomPlotD3.js';
 import Spinner from 'react-bootstrap/Spinner';
 import PatientDoseView from './PatientDoseView.js';
 import ClusterMetricsD3 from './ClusterMetricsD3.js';
-import GamView from './GamView.js';
+import RuleView from './RuleView.js';
 
 export default function OverView(props){
     const ref = useRef(null)
@@ -208,13 +208,15 @@ export default function OverView(props){
         }
     }
 
-    function makeGamPlot(){
-        if(props.clusterData != undefined & props.doseData != undefined){
+    function makeRulePlot(){
+        if(props.ruleData != undefined & props.doseData != undefined){
             return (
-                <GamView
+                <RuleView
                     doseData={props.doseData}
-                    clusterData={props.clusterData}
-                ></GamView>
+                    ruleData={props.ruleData}
+                    svgPaths={props.svgPaths}
+                    mainSymptom={props.mainSymptom}
+                ></RuleView>
             )
         } else{
             return (<Spinner 
@@ -276,10 +278,10 @@ export default function OverView(props){
                 </Row>
             )
         }
-        if(view == 'Gam'){
+        if(view == 'rules'){
             return (
                 <Row key={view} md={12} className={'noGutter fillSpace'}>
-                    {makeGamPlot()}
+                    {makeRulePlot()}
                 </Row>
             )
         }
@@ -320,7 +322,7 @@ export default function OverView(props){
                     {makeToggleButton('symptom')}
                     {makeToggleButton('patients')}
                     {makeToggleButton('metric')}
-                    {makeToggleButton('gam')}
+                    {makeToggleButton('rules')}
                 </Col>
                 <Col md={4}>
                     {makeSymptomDropdown(viewToggle)}
