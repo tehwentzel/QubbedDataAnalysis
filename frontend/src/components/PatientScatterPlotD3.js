@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import useSVGCanvas from './useSVGCanvas.js';
 import Utils from '../modules/Utils.js'
-import {forceSimulation,forceCollide,forceCenter, forceManyBody, thresholdFreedmanDiaconis, symbolWye, precisionPrefix} from 'd3';
+import {forceSimulation,forceCollide} from 'd3';
 
 export default function PatientScatterPlotD3(props){
     const d3Container = useRef(null);

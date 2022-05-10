@@ -789,7 +789,7 @@ def get_rule_inference_data(df,
                            dates, 
                            cluster=None):
     if cluster is not None:
-        df = df[df.post_cluster.astype(int) == int(c)]
+        df = df[df.post_cluster.astype(int) == int(cluster)]
     df_doses = extract_dose_vals(df,organs,features)
     outcome = get_outcomes(df,symptoms,dates)
     return df_doses,outcome

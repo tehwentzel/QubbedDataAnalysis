@@ -216,6 +216,12 @@ export default function OverView(props){
                     ruleData={props.ruleData}
                     svgPaths={props.svgPaths}
                     mainSymptom={props.mainSymptom}
+                    clusterData={props.clusterData}
+                    ruleThreshold={props.ruleThreshold}
+                    ruleCluster={props.ruleCluster}
+                    setRuleThreshold={props.setRuleThreshold}
+                    setRuleCluster={props.setRuleCluster}
+                    activeCluster={props.activeCluster}
                 ></RuleView>
             )
         } else{

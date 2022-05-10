@@ -89,6 +89,15 @@ export default class Utils {
         return false
     }
 
+    static allNotUndefined(arr){
+        for(let a of arr){
+            if(a === undefined | a === null){
+                return false
+            }
+        }
+        return true
+    }
+
     static arrayUnions(...arrays){
         //should, in theory, join a list of arrays.  May not work
         var newArray = [];

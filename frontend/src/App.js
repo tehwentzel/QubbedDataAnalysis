@@ -20,7 +20,7 @@ function App() {
 
   const [doseData,setDoseData] = useState(null);
   const [clusterData,setClusterData] = useState(null);
-  const [clusterOrgans,setClusterOrgans] = useState(['Extended_Oral_Cavity'])
+  const [clusterOrgans,setClusterOrgans] = useState(['Extended_Oral_Cavity','Tongue'])
   const [clusterOrganCue,setClusterOrganCue] = useState([])
   const [clusterDataLoading, setClusterDataLoading] = useState(false)
   const [nDoseClusters,setNDoseClusters] = useState(4);
@@ -186,6 +186,12 @@ function App() {
     }
   }
 
+  useEffect(function updateRuleCluster(){
+    if(ruleCluster !== null & ruleCluster !== undefined & ruleCluster !== activeCluster){
+      setRuleCluster(activeCluster);
+    }
+  },[activeCluster]);
+
   useEffect(() => {
 
     fetchDoseData();
@@ -216,6 +222,7 @@ function App() {
       fetchClusterRules(clusterData,clusterOrgans,[mainSymptom],clusterFeatures,ruleThreshold,ruleCluster);
     }
   },[clusterData,clusterOrgans,mainSymptom,clusterFeatures,ruleThreshold,ruleCluster,clusterDataLoading])
+  
   
   //for later
   // useEffect(()=>{
@@ -249,6 +256,8 @@ function App() {
             ruleData={ruleData}
             ruleThreshold={ruleThreshold}
             ruleCluster={ruleCluster}
+            setRuleThreshold={setRuleThreshold}
+            setRuleCluster={setRuleCluster}
         ></OverView>
     </Row>
     )
