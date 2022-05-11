@@ -44,17 +44,6 @@ export default class DataService {
         }
     }
 
-    async getDoseJson(){
-        try{
-            const dDataResponse = await this.api.get('/doses');
-            // console.log('dose data');
-            // console.log(dDataResponse);
-            return dDataResponse;
-        } catch(error){
-            console.log(error)
-        }
-    }
-
     async getClusterMetrics(clusterData,organs,lrtConfounders,symptoms){
         let postData = {
             'clusterData': clusterData,
@@ -103,6 +92,23 @@ export default class DataService {
 
     }
 
+    async getDoseJson(organs,clusterFeatures){
+        try{
+            var params = {
+                'organs': organs,
+                'features': clusterFeatures,
+            };
+            let qString = '/doses'
+            qString += this.getParamList(params)
+            const dDataResponse = await this.api.get(qString);
+            // console.log('dose data');
+            // console.log(dDataResponse);
+            return dDataResponse;
+        } catch(error){
+            console.log(error)
+        }
+    }
+    
     async getDoseClusterJson(organs,nClusters,clusterFeatures,clusterType,lrtConfounders,symptoms){
         try{
             var params = {

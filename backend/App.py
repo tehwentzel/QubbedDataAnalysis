@@ -57,7 +57,13 @@ def test_post():
 
 @app.route('/doses',methods=['GET'])
 def get_doses_json():
-    ddict = sddf_to_json(data)
+    organs = request.args.getlist('organs',None)
+    if len(organs) <= 0:
+        organs = None
+    features = request.args.getlist('features')
+    if len(features) <= 0:
+        features = None
+    ddict = sddf_to_json(data,pca_organs=organs,dose_pca_features=features)
     return responsify(ddict)
 
 @app.route('/single_organ_effects',methods=['GET'])

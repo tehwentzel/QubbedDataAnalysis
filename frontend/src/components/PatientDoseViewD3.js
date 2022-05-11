@@ -142,6 +142,7 @@ export default function PatientDoseViewD3(props){
                         'organ_name': organ,
                         'plotVar': plotVar,
                         'path': path,
+                        'mainPlotVal': props.data[props.plotVar][pos],
                     }
                     pathData.push(entry)
                     if(dVal > maxDVal){ maxDVal = dVal; }
@@ -181,6 +182,7 @@ export default function PatientDoseViewD3(props){
                     let d = d3.select(this).datum();
                     let tipText = d.organ_name + '</br>' 
                         + d.plotVar + ': ' + d.dVal.toFixed(1) + '</br>'
+                        + props.plotVar + ': ' + d.mainPlotVal + '</br>'
                     tTip.html(tipText);
                     addPatientDvh(tTip,props.data,d.organ_name)
                 }).on('mousemove', function(e){

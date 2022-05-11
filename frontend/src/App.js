@@ -131,8 +131,8 @@ function App() {
   },[])
 
 
-  var fetchDoseData = async() => {
-    const response = await api.getDoseJson();
+  var fetchDoseData = async(orgs,cFeatures) => {
+    const response = await api.getDoseJson(orgs,cFeatures);
     setDoseData(response.data);
   }
 
@@ -194,7 +194,7 @@ function App() {
 
   useEffect(() => {
 
-    fetchDoseData();
+    fetchDoseData(clusterOrgans,clusterFeatures);
     fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest);
     fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,symptomsOfInterest);
   },[])
@@ -207,6 +207,12 @@ function App() {
     }
   },[clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest])
 
+  useEffect(function updateDoses(){
+    if(!clusterDataLoading & clusterData !== undefined){
+      fetchDoseData(clusterOrgans,clusterFeatures)
+    }
+  },[clusterOrgans,clusterFeatures])
+  
   useEffect(function clearCue(){
     setClusterOrganCue(new Array());
   },[clusterOrgans])

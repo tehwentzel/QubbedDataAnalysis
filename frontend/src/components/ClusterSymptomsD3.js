@@ -132,8 +132,8 @@ export default function ClusterSymptomsD3(props){
                     'radius': .1,
                     'odds_ratio_5': props.data['cluster_'+symptom+'_5_odds_ratio'],
                     'odds_ratio_7': props.data['cluster_'+symptom+'_7_odds_ratio'],
-                    'pval_5': props.data['cluster_'+symptom+'_5_pval'],
-                    'pval_7': props.data['cluster_'+symptom+'_7_pval'],
+                    // 'pval_5': props.data['cluster_'+symptom+'_5_pval'],
+                    // 'pval_7': props.data['cluster_'+symptom+'_7_pval'],
                 }
                 let lineEntry = Object.assign(entryBase,{})
                 lineEntry.points = [];
@@ -196,8 +196,8 @@ export default function ClusterSymptomsD3(props){
                         + 'aic improvement: ' + (-d.aic_diff).toFixed(2) + '</br>' 
                         + 'lrt tval: ' + d.ttest_tval.toFixed(2) + '</br>'
                         + 'p = ' + d.lrt_pval.toFixed(3) + '</br>'
-                        + 'odds>4: ' + d.odds_ratio_5.toFixed(1) + ' p=' + d.pval_5.toFixed(3) + '</br>'
-                        + 'odds>6: ' + d.odds_ratio_7.toFixed(1) + ' p=' + d.pval_7.toFixed(3) + '</br>'
+                        + 'odds>4: ' + d.odds_ratio_5.toFixed(1) + '</br>'
+                        + 'odds>6: ' + d.odds_ratio_7.toFixed(1) + '</br>'
                     tTip.html(tipText);
                 }).on('mousemove', function(e){
                     Utils.moveTTipEvent(tTip,e);

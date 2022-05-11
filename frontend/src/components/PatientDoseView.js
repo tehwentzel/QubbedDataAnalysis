@@ -134,6 +134,9 @@ export default function PatientDoseView(props){
             let activeIds = props.clusterData.filter(x => x.clusterId == props.activeCluster).map(x=>x.ids)[0];
             //get data in selected cluster
             //data for second column
+            if(activeIds === undefined){
+                return
+            }
             let toCompare = parseInt(props.selectedPatientId);
             if(toCompare === undefined | toCompare < 0){
                 toCompare = parseInt(activeIds[0]);

@@ -22,12 +22,13 @@ export default function OverView(props){
 
     const [viewToggle,setViewToggle] = useState('symptom')
 
-    const [xVar,setXVar] = useState('dose_pca1');
-    const [yVar, setYVar] = useState('dose_pca2');
+    const [xVar,setXVar] = useState('cluster_organ_pca1');
+    const [yVar, setYVar] = useState('cluster_organ_pca2');
     const [sizeVar, setSizeVar] = useState('drymouth');
 
     //for x and y in the scatterplot
     const varOptions = [
+        'cluster_organ_pca1','cluster_organ_pca2','cluster_organ_pca3',
         'dose_pca1','dose_pca2','dose_pca3',
         'symptom_all_pca1','symptom_all_pca2','symptom_all_pca3',
         'symptom_post_pca1','symptom_post_pca2','symptom_post_pca3',

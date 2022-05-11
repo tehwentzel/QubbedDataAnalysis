@@ -9,7 +9,6 @@ export default function PatientScatterPlotD3(props){
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [formattedData,setFormattedData] = useState();
     const [dotsDrawn,setDotsDrawn] = useState(false);
-    // const symptoms = ['drymouth','voice','teeth','taste','nausea','choke','vomit','pain','mucus','mucositis'];
     const margin = 40;
     const maxR = 8;
     const curveMargin = 3;
@@ -24,32 +23,67 @@ export default function PatientScatterPlotD3(props){
         if(val === undefined){
             val = .4;
         }
-        return maxR*(val**.5);
+        return maxR*(val**.25);
+    }
+
+    // function getShape(d){
+    //     let val = d[props.sizeVar];
+    //     //visual error message lol
+    //     if(val === undefined){
+    //         return d3.symbolSquare;
+    //     }
+    //     let severe = val >= .5;
+    //     let mostSevere = val >= .7;
+    //     if(props.sizeVar === 'tstage' || props.sizeVar === 'nstage'){
+    //         severe = val > .5;
+    //         mostSevere = val >= .99;
+    //     }
+    //     let symbol = d3.symbol();
+    //     let size =12*getR(d);
+    //     let sType = d3.symbolCircle;
+    //     if(mostSevere){
+    //         sType = d3.symbolDiamond;
+    //         // size *= 1.5;//circles are smaller for some reason
+    //     } else if(severe){
+    //         sType = d3.symbolTriangle;
+    //         // size *= 1.5;
+    //     }
+    //     return symbol.size(size).type(sType)();
+    // }
+
+    function radToCartesian(angle,scale=1){
+        let x = Math.cos(angle)*scale;
+        let y = Math.sin(angle)*scale;
+        return [x,y];
+    }
+
+    function circlePath(r){
+        let path = 'm 0,0 '
+            + 'M ' + (-r) + ', 0 '
+            + 'a ' + r + ',' + r + ' 0 1,0 ' + (2*r) + ',0 '
+            + 'a ' + r + ',' + r + ' 0 1,0 ' + (-2*r) + ',0 z';
+        return path;
     }
 
     function getShape(d){
         let val = d[props.sizeVar];
-        //visual error message lol
+        let size = getR(d);
         if(val === undefined){
-            return d3.symbolSquare;
+            return d3.symbol().size(size).type(d3.symbolSquare);
         }
-        let severe = val >= .5;
-        let mostSevere = val >= .7;
-        if(props.sizeVar === 'tstage' || props.sizeVar === 'nstage'){
-            severe = val > .5;
-            mostSevere = val >= .99;
+        let string = circlePath(size) + ' M 0,0 ';
+        let currAngle = -Math.PI/2;
+        var arcLength = 2*Math.PI/11;
+        var addArc = (pString,angle) => {
+            let [x,y] = radToCartesian(angle);
+            let newString = " L" + size*x + ',' + size*y + ' 0,0';
+            return pString + newString;
         }
-        let symbol = d3.symbol();
-        let size =12*getR(d);
-        let sType = d3.symbolCircle;
-        if(mostSevere){
-            sType = d3.symbolDiamond;
-            // size *= 1.5;//circles are smaller for some reason
-        } else if(severe){
-            sType = d3.symbolTriangle;
-            // size *= 1.5;
+        for(let i = 0; i < val; i += .1){
+            string = addArc(string,currAngle);
+            currAngle += arcLength;
         }
-        return symbol.size(size).type(sType)();
+        return string;
     }
 
     function getMaxSymptoms(pEntry,symptom,dates){
@@ -240,7 +274,7 @@ export default function PatientScatterPlotD3(props){
             function formatData(d){
                 let newD = Object.assign(d,{})
             
-                for(let prefix of ['dose','symptom_all','symptom_post','symptom_treatment']){
+                for(let prefix of ['cluster_organ','dose','symptom_all','symptom_post','symptom_treatment']){
                     let pcaVal = d[prefix+'_pca']
                     for(let num of [1,2,3]){
                         newD[prefix+'_pca'+num] = pcaVal[num-1];
@@ -423,8 +457,7 @@ export default function PatientScatterPlotD3(props){
                     .attr('class','scatterPoint')
                     .attr('transform',d=> {return 'translate(' + d.x + ',' + d.y + ')';})
                     .attr('d',getShape)
-                    .attr('fill', d => d.color)
-                    .attr('r',getR);
+                    .attr('fill', d => d.color);
 
                 // onHover(scatterGroup);
                 // uncollide();
@@ -444,8 +477,7 @@ export default function PatientScatterPlotD3(props){
                 .transition(t)
                 .attr('transform',d=> {return 'translate(' + d.x + ',' + d.y + ')';})
                 .attr('d',getShape)
-                .attr('fill', d => d.color)
-                .attr('r',getR);
+                .attr('fill', d => d.color);
             
         }
     },[svg,height,width,props.clusterData,formattedData,props.xVar,props.yVar,props.sizeVar])
@@ -468,15 +500,15 @@ export default function PatientScatterPlotD3(props){
                 .enter()
                 .append('circle').attr('class','scatterPoint')
                 .merge(scatterGroup)
-                .attr('opacity', (d)=> isActive(d)? 1:.4)
+                .attr('opacity', (d)=> isActive(d)? 1:.5)
                 .attr('stroke','black')
                 .attr('stroke-width', (d) => {
-                    let w = 0.1;
+                    let w = 1;
                     if(isActive(d)){
-                        w = .3;
+                        w = 1.5;
                     }
                     if(isSelected(d)){
-                        w *= 10;
+                        w *= 2;
                     }
                     return w;
                 }).on('mouseover',function(e){
