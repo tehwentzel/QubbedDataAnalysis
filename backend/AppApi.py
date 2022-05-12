@@ -748,15 +748,16 @@ def combine_rule(r1,r2):
         newfeatures = r1['features'][:]
         newsplits = r1['splits'][:]
         newrule = r1['rule']
+        fstring = stringify_features(newfeatures)
         for i,f in enumerate(r2['features']):
             #only one split per feature
-            if f not in newfeatures:
+            if stringify_features([f]) not in fstring:
                 newfeatures.append(f)
                 t = r2['thresholds'][i]
                 s = r2['splits'][i]
                 newthresholds.append(t)
                 newsplits.append(s)
-                newrule = newrule&s
+                newrule = newrule*s
         combined = {
             'features': list(newfeatures),
             'thresholds': list(newthresholds),
@@ -770,6 +771,8 @@ def evaluate_rule(rule, y):
     upper = y[r]
     lower = y[~r]
     entry = {k:v for k,v in rule.items()}
+    entry['info'] = mutual_info_classif(r.values.reshape(-1,1),y.values.ravel(),
+                                        random_state=1,discrete_features=True,n_neighbors=5)[0]
     if lower.mean().values[0] > 0:
         entry['odds_ratio'] = upper.mean().values[0]/lower.mean().values[0]
     else:
@@ -787,15 +790,15 @@ def valid_rule(r,min_split_size=20,min_odds=1):
         return False
     return True
 
-def filter_rules(rulelist, bests):
-    is_best = lambda r: r['odds_ratio'] >= bests.get(stringify_features(r['features']),1)
+def filter_rules(rulelist, bests,criteria):
+    is_best = lambda r: r[criteria] >= bests.get(stringify_features(r['features']),1)
     filtered = [r for r in rulelist if is_best(r)]
     return filtered
     
 def stringify_features(l):
     #turns a list of features in the form 'VXX_Organ' into a hashable set
     #removes V thing becuase I think it shold be per organ
-    return ''.join([ll[3:] for ll in l])
+    return ''.join(sorted([ll[3:] for ll in l]))
 
 def combine_and_eval_rule(args):
     [baserule,rule,outcome_df] = args
@@ -803,7 +806,7 @@ def combine_and_eval_rule(args):
     r = evaluate_rule(r,outcome_df)
     return r
 
-def get_best_rules(front, allrules,dose_df,outcome_df,min_odds):
+def get_best_rules(front, allrules,dose_df,outcome_df,min_odds,criteria='odds_ratio'):
     new_rules = []
     bests = {}
     if len(front) < 1:
@@ -813,20 +816,18 @@ def get_best_rules(front, allrules,dose_df,outcome_df,min_odds):
         combined_rules = joblib.Parallel(n_jobs=4)(joblib.delayed(combine_and_eval_rule)((baserule,r,outcome_df)) for r in allrules)
         for combined_rule in combined_rules:
             if valid_rule(combined_rule,minsplit,min_odds):
-                if baserule is not None and combined_rule['odds_ratio'] <= baserule.get('odds_ratio',1):
+                if baserule is not None and combined_rule[criteria] <= baserule.get(criteria,1):
                     continue
                 rname = stringify_features(combined_rule['features'])
-                if bests.get(rname,0) < combined_rule['odds_ratio']:
-                    bests[rname] = combined_rule['odds_ratio']
+                if bests.get(rname,0) < combined_rule[criteria]:
+                    bests[rname] = combined_rule[criteria]
                     new_rules.append(combined_rule)
-    new_rules = filter_rules(new_rules,bests)
+    new_rules = filter_rules(new_rules,bests,criteria)
     return new_rules
     
 def format_rule_json(rule):
     newrule = {k:v for k,v in rule.items() if k not in ['splits','rule']}
     r = rule['rule']
-    upper= r[r]
-    lower = r[~r]
     newrule['upper_ids'] = r[r].index.tolist()
     newrule['lower_ids'] = r[~r].index.tolist()
     return newrule 
@@ -847,30 +848,40 @@ def get_rule_stuff(df,post_results=None):
     cluster = post_results.get('cluster',None)
     maxdepth = post_results.get('max_depth',3)
     min_odds = post_results.get('min_odds',1)
+    criteria = post_results.get('criteria','info')
     max_rules = post_results.get('max_rules',15)
+    granularity = post_results.get('granularity',2)
+    predict_cluster = post_results.get('predictCluster',None)
     
-    dose_df, outcome_df = get_rule_inference_data(
-        df,
-        organs,
-        symptoms,
-        organ_features,
-        s_dates,
-        cluster=cluster,
-    )
-    y = (outcome_df>=threshold)
-    if cluster is None:
-        granularity = 5
+    if criteria not in ['odds_ratio','info']:
+        criteria = 'odds_ratio'
+    
+    df = df.set_index('id')
+    if predict_cluster is not None and predict_cluster >= 0:
+        cluster = None
+        dose_df = extract_dose_vals(df,organs,organ_features)
+        df['temp_outcome'] = df.post_cluster.apply(lambda x: x == predict_cluster)
+        y = df[['temp_outcome']]
     else:
-        granularity = 2
+        dose_df, outcome_df = get_rule_inference_data(
+            df,
+            organs,
+            symptoms,
+            organ_features,
+            s_dates,
+            cluster=cluster,
+        )
+        y = (outcome_df>=threshold)
+    
     rules = get_rule_df(dose_df,y,min_odds=1,granularity=granularity)
-    sort_rules = lambda rlist: sorted(rlist, key=lambda x: -x['odds_ratio'])
+    sort_rules = lambda rlist: sorted(rlist, key=lambda x: -x[criteria])
     rules = sort_rules(rules)
     rules = rules[:max_rules]
     frontier = [None]
     best_rules = []
     depth = 0
     while (depth < maxdepth) and (frontier is not None) and (len(frontier) > 0):
-        frontier = get_best_rules(frontier,rules,dose_df,y,min_odds=min_odds)
+        frontier = get_best_rules(frontier,rules,dose_df,y,min_odds=min_odds,criteria=criteria)
         depth += 1
         best_rules.extend(frontier[:max_rules])
     best_rules = joblib.Parallel(n_jobs=4)(joblib.delayed(format_rule_json)(br) for br in best_rules)

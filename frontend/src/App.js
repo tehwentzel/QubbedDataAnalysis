@@ -22,7 +22,7 @@ function App() {
   const [clusterData,setClusterData] = useState(null);
   const [clusterOrgans,setClusterOrgans] = useState(['Extended_Oral_Cavity','Tongue'])
   const [clusterOrganCue,setClusterOrganCue] = useState([])
-  const [clusterDataLoading, setClusterDataLoading] = useState(false)
+  const [clusterDataLoading, setClusterDataLoading] = useState(false);
   const [nDoseClusters,setNDoseClusters] = useState(4);
   const [clusterFeatures,setClusterFeatures] = useState(['V40','V45','V50','V55','V60']);
   const [lrtConfounders,setLrtConfounders] = useState(['t3','t4','n_severe','hpv','Parotid_Gland_limit']);
@@ -75,6 +75,10 @@ function App() {
   const [ruleData,setRuleData] = useState();
   const [ruleThreshold,setRuleThreshold] = useState(5);
   const [ruleCluster,setRuleCluster] = useState();
+  const [ruleMaxDepth,setRuleMaxDepth] = useState(3);
+  const [maxRules,setMaxRules] = useState(15);
+  const [ruleCriteria,setRuleCriteria] = useState('info');
+  const [ruleTargetCluster,setRuleTargetCluster] = useState(3)
 
   const [svgPaths,setSvgPaths] = useState();
   // const [patientIds, setPatientIds] = useState([0]);
@@ -175,11 +179,21 @@ function App() {
     }  
   }
 
-  var fetchClusterRules = async(cData,organs,symptoms,clusterFeatures,threshold,cluster)=>{
+  var fetchClusterRules = async(cData,organs,
+    symptoms,clusterFeatures,
+    threshold,cluster,
+    maxDepth,maxR,rCriteria,targetCluster
+    )=>{
     if(cData !== undefined & !clusterDataLoading){
-      api.getClusterRules(cData,organs,symptoms,clusterFeatures,threshold,cluster).then(response=>{
-        console.log('rule data main',response);
-        setRuleData(response);
+      setRuleData(undefined);
+      api.getClusterRules(cData,organs,
+        symptoms,clusterFeatures,
+        threshold,cluster,
+        maxDepth,maxR,
+        rCriteria,targetCluster,
+        ).then(response=>{
+          console.log('rule data main',response);
+          setRuleData(response);
       }).catch(error=>{
         console.log('rule data error',error);
       })
@@ -212,7 +226,7 @@ function App() {
       fetchDoseData(clusterOrgans,clusterFeatures)
     }
   },[clusterOrgans,clusterFeatures])
-  
+
   useEffect(function clearCue(){
     setClusterOrganCue(new Array());
   },[clusterOrgans])
@@ -225,9 +239,13 @@ function App() {
 
   useEffect(function updateRules(){
     if(clusterData !== undefined & clusterData !== null & !clusterDataLoading){
-      fetchClusterRules(clusterData,clusterOrgans,[mainSymptom],clusterFeatures,ruleThreshold,ruleCluster);
+      fetchClusterRules(clusterData,clusterOrgans,
+        [mainSymptom],clusterFeatures,ruleThreshold,
+        ruleCluster,ruleMaxDepth,maxRules,ruleCriteria,ruleTargetCluster);
     }
-  },[clusterData,clusterOrgans,mainSymptom,clusterFeatures,ruleThreshold,ruleCluster,clusterDataLoading])
+  },[clusterData,clusterOrgans,mainSymptom,
+    clusterFeatures,ruleThreshold,ruleCluster,
+    clusterDataLoading,ruleMaxDepth,maxRules,ruleCriteria,ruleTargetCluster])
   
   
   //for later
@@ -264,6 +282,14 @@ function App() {
             ruleCluster={ruleCluster}
             setRuleThreshold={setRuleThreshold}
             setRuleCluster={setRuleCluster}
+            maxRules={maxRules}
+            setMaxRules={setMaxRules}
+            ruleMaxDepth={ruleMaxDepth}
+            setRuleMaxDepth={setRuleMaxDepth}
+            ruleCriteria={ruleCriteria}
+            setRuleCriteria={setRuleCriteria}
+            ruleTargetCluster={ruleTargetCluster}
+            setRuleTargetCluster={setRuleTargetCluster}
         ></OverView>
     </Row>
     )

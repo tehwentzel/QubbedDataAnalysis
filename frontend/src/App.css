@@ -26,6 +26,16 @@ svg > path, svg > circle{
   cursor: pointer;
 }
 
+.center-block {
+  display: table!important;  /* Instead of display:block */
+  margin-left: auto!important;
+  margin-right: auto!important;
+}
+
+.form-label{
+  margin: 0px!important;
+}
+
 .spinner{
   height: min(50%,50px)!important;
   width: min(50%,50px)!important;

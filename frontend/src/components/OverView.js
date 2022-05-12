@@ -210,29 +210,39 @@ export default function OverView(props){
     }
 
     function makeRulePlot(){
-        if(props.ruleData != undefined & props.doseData != undefined){
-            return (
-                <RuleView
-                    doseData={props.doseData}
-                    ruleData={props.ruleData}
-                    svgPaths={props.svgPaths}
-                    mainSymptom={props.mainSymptom}
-                    clusterData={props.clusterData}
-                    ruleThreshold={props.ruleThreshold}
-                    ruleCluster={props.ruleCluster}
-                    setRuleThreshold={props.setRuleThreshold}
-                    setRuleCluster={props.setRuleCluster}
-                    activeCluster={props.activeCluster}
-                ></RuleView>
-            )
-        } else{
-            return (<Spinner 
-                as="span" 
-                animation = "border"
-                role='status'
-                className={'spinner'}/>
-            );
-        }
+        // if(props.ruleData != undefined & props.doseData != undefined){
+        return (
+            <RuleView
+                doseData={props.doseData}
+                ruleData={props.ruleData}
+                svgPaths={props.svgPaths}
+                mainSymptom={props.mainSymptom}
+                clusterData={props.clusterData}
+                ruleThreshold={props.ruleThreshold}
+                ruleCluster={props.ruleCluster}
+                setRuleThreshold={props.setRuleThreshold}
+                setRuleCluster={props.setRuleCluster}
+                activeCluster={props.activeCluster}
+                maxRules={props.maxRules}
+                setMaxRules={props.setMaxRules}
+                ruleMaxDepth={props.ruleMaxDepth}
+                setRuleMaxDepth={props.setRuleMaxDepth}
+                selectedPatientId={props.selectedPatientId}
+                setSelectedPatientId={props.setSelectedPatientId}
+                ruleCriteria={props.ruleCriteria}
+                setRuleCriteria={props.setRuleCriteria}
+                ruleTargetCluster={props.ruleTargetCluster}
+                setRuleTargetCluster={props.setRuleTargetCluster}
+            ></RuleView>
+        )
+        // } else{
+        //     return (<Spinner 
+        //         as="span" 
+        //         animation = "border"
+        //         role='status'
+        //         className={'spinner'}/>
+        //     );
+        // }
     }
 
     function switchView(view){

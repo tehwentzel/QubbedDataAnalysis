@@ -54,7 +54,7 @@ export default class DataService {
         console.log('post data',postData)
         try{
             const response = await this.api.post('/cluster_metrics', postData);
-            console.log('cluster metrics response',response.data);
+            // console.log('cluster metrics response',response.data);
             return response.data;
         } catch(error){
             console.log(error);
@@ -62,7 +62,13 @@ export default class DataService {
 
     }
 
-    async getClusterRules(clusterData,organs,symptoms,organFeatures,threshold,cluster){
+    async getClusterRules(
+        clusterData,organs,
+        symptoms,organFeatures,
+        threshold,cluster,
+        maxDepth,maxRules,
+        ruleCriteria,predictCluster,
+        ){
         let postData = {
             'clusterData': clusterData,
             'organs': organs,
@@ -70,6 +76,10 @@ export default class DataService {
             'clusterFeatures': organFeatures,
             'threshold': threshold,
             'cluster': cluster,
+            'max_depth': maxDepth,
+            'max_rules': maxRules,
+            'criteria': ruleCriteria,
+            'predictCluster': predictCluster,
         }
         let goodPostData = {}
         for(let key of Object.keys(postData)){
@@ -78,7 +88,7 @@ export default class DataService {
                 goodPostData[key] = entry
             }
         }
-        // console.log('rule post data',goodPostData)
+        console.log('rule post data',goodPostData)
         if(goodPostData.clusterData === undefined){
             return undefined
         }

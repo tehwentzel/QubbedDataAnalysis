@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import useSVGCanvas from './useSVGCanvas.js';
 import Utils from '../modules/Utils.js'
-import {forceSimulation,forceCollide,forceX,forceY} from 'd3';
+import {forceSimulation,forceCollide,forceX,forceY, interpolatePiYG} from 'd3';
 export default function RuleViewD3(props){
     const d3Container = useRef(null);
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
@@ -12,8 +12,10 @@ export default function RuleViewD3(props){
     const outcomeDates = [13,33];
     const xMargin = 10;
     const yMargin = 10;
-    const xLabelSize = 8;
-    const R = 2;
+    
+    const xLabelSize = 9;
+    const R = 3;
+    const yPadding = 10*R;
     const splitAxes = false;
     const oThreshold = props.ruleThreshold;
 
@@ -45,19 +47,17 @@ export default function RuleViewD3(props){
 
     useEffect(function draw(){
         if( Utils.allNotUndefined([svg,props.svgPaths,props.rule,props.doseData]) ){
-            console.log('rule',props.rule)
             const organList = props.doseData[0].organList;
             const nFeatures = props.rule.features.length;
             const rFeatures = props.rule.features;
             const stepWidth = (width-2*xMargin)/(nFeatures+1);
             const lineFunc = d3.line();
             const curveFunc = d3.curveBasis();
-            const yRange = [height-2*yMargin-xLabelSize,2*yMargin];
+            const yRange = [height-yMargin-xLabelSize-yPadding,yMargin+yPadding];
+            const inTop = (d) => (props.rule.upper_ids.indexOf(d.id) >= 0);
+            const inBottom = (d) => (props.rule.lower_ids.indexOf(d.id) >= 0);
             const validPatient = (d) => {
-                let inTop = props.rule.upper_ids.indexOf(d.id) >= 0;
-                if(inTop){ return true; }
-                let inBottom = props.rule.lower_ids.indexOf(d.id) >= 0;
-                return inBottom;
+                return (inTop(d) | inBottom(d))
             }
             let doseData = props.doseData.filter(validPatient)
 
@@ -75,7 +75,7 @@ export default function RuleViewD3(props){
                 let threshold = props.rule.thresholds[i];
                 let accessor = makeAccessor(fName,organList);
                 let [feature, ...organ] = fName.split('_');
-                organ = organ.join('_')
+                organ = organ.join('_');
                 if(accessor !== null){
                     let extents = d3.extent(doseData, accessor);
                     let getY = d3.scaleLinear()
@@ -83,8 +83,8 @@ export default function RuleViewD3(props){
                         .range(yRange);
                     let fX = getX(fName);
                     let axisPoints = [
-                        [fX,yRange[0]+yMargin],
-                        [fX,yRange[1]-yMargin],
+                        [fX,yRange[0]+yPadding],
+                        [fX,yRange[1]-yPadding],
                     ]
                     let splitEntry = {
                         'feature': feature,
@@ -106,7 +106,19 @@ export default function RuleViewD3(props){
 
             const finalYScale = d3.scaleLinear()
                 .domain([0,nFeatures])
-                .range([height-2*yMargin,2*yMargin]);
+                .range([yRange[0]-(yPadding/4),yRange[1]+(yPadding/4)]);
+
+            const finalX = getX('outcome');
+            let finalSplitEntry = {
+                'feature': 'group',
+                'organ': 'split',
+                'name': 'split-group',
+                'x': finalX,
+                'threshold': nFeatures,
+                'thresholdY': finalYScale(nFeatures-.5),
+                'path': lineFunc([[finalX,yRange[0]+yPadding],[finalX,yRange[1]-yPadding]])
+            }
+            splitData.push(finalSplitEntry);
             splitData.sort((a,b) => a.x - b.x);
             var patientDots = [];
             var patientPaths = [];
@@ -118,6 +130,7 @@ export default function RuleViewD3(props){
                 let numSplits = 0;
                 let sVal = getOutcome(p);
                 for(let split of splitData){
+                    if(!inGroup | split.name =='split-group'){ continue; }
                     let pVal = split.accessor(p);
                     let x = split.x;
                     if(splitAxes & (sVal >= oThreshold)){
@@ -136,6 +149,7 @@ export default function RuleViewD3(props){
                         'value': pVal,
                         'organ': split.organ,
                         'name': split.name,
+                        'inTop': inTop(p),
                         'id': p.id,
                         'outcome':sVal,
                     }
@@ -160,20 +174,20 @@ export default function RuleViewD3(props){
                     'name': props.mainSymptom + '_' + oThreshold,
                     'feature': oThreshold,
                     'id': p.id,
+                    'inTop': inTop(p),
                     'outcome': sVal,
                 }
                 tempDots.push(finalDot);
                 pathPoints.push([oX,oY]);
-                // if(nFeatures > 0){
-                    let lineEntry = {
-                        'points':pathPoints,
-                        'path': lineFunc(pathPoints),
-                        'id': p.id,
-                        'inGroup': inGroup,
-                        'outcome':sVal,
-                    }
-                    patientPaths.push(lineEntry);
-                // }
+                let lineEntry = {
+                    'points':pathPoints,
+                    'path': lineFunc(pathPoints),
+                    'id': p.id,
+                    'inGroup': inGroup,
+                    'outcome':sVal,
+                    'inTop': inTop(p),
+                }
+                patientPaths.push(lineEntry);
                 for(let e of tempDots){
                     e.inGroup = inGroup;
                     patientDots.push(e);
@@ -189,16 +203,25 @@ export default function RuleViewD3(props){
                 .attr('stroke-width',3)
                 .attr('stroke-opacity',.5);
 
+            const makeLabel = (d) => {
+                let organ = d.organ + '';
+                organ = organ.replace('t_','').replace('_','');
+                organ = organ.substring(0,4);
+                let string = organ + '-' + d.feature
+                string += ' >' + d.threshold;
+                return string;
+            }
             svg.selectAll('text').filter('.labelText').remove();
             svg.selectAll('text').filter('.labelText')
                 .data(splitData).enter()
                 .append('text').attr('class','labelText')
-                .attr('x',d=>d.x-(stepWidth/4))
-                .attr('y',yRange[0]+yMargin+xLabelSize)
+                .attr('x',d=>d.x)
+                .attr('text-anchor','middle')
+                .attr('y',yRange[0]+xLabelSize+yPadding)
                 .attr('font-size',xLabelSize)
-                .html(d=>d.organ.substring(0,4) + '-' + d.feature);
+                .html(makeLabel);
 
-            const [tRectW, tRectH] = [25,3]
+            const [tRectW, tRectH] = [width/(2+nFeatures),2]
             svg.selectAll('rect').filter('.thresholdRect').remove();
             let rects = svg.selectAll('rect').filter('.thresholdRect')
                 .data(splitData).enter()
@@ -207,7 +230,7 @@ export default function RuleViewD3(props){
                 .attr('y',d=> d.thresholdY - tRectH/2)
                 .attr('width',tRectW)
                 .attr('height',tRectH)
-                .attr('fill','green')
+                .attr('fill','black')
             
             setPointData(patientDots);
             if(patientPaths.length > 0){
@@ -220,17 +243,20 @@ export default function RuleViewD3(props){
     useEffect(function drawDots(){
         if(pointData !== undefined & svg !== undefined){
             svg.selectAll('circle').filter('.patientCircle').remove();
+            const isActive = (d) => parseInt(d.id) == parseInt(props.selectedPatientId);
             let dots = svg.selectAll('circle').filter('.patientCircle')
                 .data(pointData).enter()
                 .append('circle').attr('class','patientCircle')
                 .attr('cx', d=>d.x)
                 .attr('cy',d=>d.y)
-                .attr('fill',d=>(d.outcome >= oThreshold)? 'red':'blue')
-                .attr('opacity', .5)
+                .attr('fill',d=>d.inTop? 'red':'blue')
+                .attr('opacity', (d) => isActive(d)? 1: .7)
+                .attr('stroke','black')
+                .attr('stroke-width',d=>isActive(d)? R:.01)
                 .attr('r',R);
 
             function boundX(d){
-                let bx = Math.max(R+xMargin, Math.min(width-xMargin-R, d.x));
+                let bx = Math.max(R, Math.min(width-R, d.x));
                 if(splitAxes){
                     if(d.outcome >= oThreshold){
                         bx = Math.max(d.axisX+R,bx);
@@ -240,7 +266,7 @@ export default function RuleViewD3(props){
                 }
                 return bx;
             }
-            function boundY(d){return Math.max(R+yMargin, Math.min(height-yMargin-R, d.y))}
+            function boundY(d){return Math.max(R+yMargin, Math.min(height-xLabelSize-R, d.y))}
             var ticked = (d)=>{
                 dots.attr('cx',d=>boundX(d))
                     .attr('cy',d=>boundY(d));
@@ -255,7 +281,7 @@ export default function RuleViewD3(props){
         }
     },[svg,pointData]);
 
-    useEffect(function drawDots(){
+    useEffect(function drawLines(){
         
         if(pathData !== undefined & svg !== undefined){
             svg.selectAll('path').filter('.patientLine').remove();
@@ -263,11 +289,12 @@ export default function RuleViewD3(props){
                 .data(pathData).enter()
                 .append('path').attr('class','patientLine')
                 .attr('d',d=>d.path)
-                .attr('stroke',d=>(d.outcome >= oThreshold)? 'red':'blue')
-                .attr('stroke-width',.5)
+                .attr('stroke',d=>(d.inTop)? 'red':'grey')
+                .attr('stroke-width',1)
                 .attr('fill','none')
-                .attr('stroke-opacity', .1);
-            
+                .attr('stroke-opacity', .2);
+            svg.selectAll('.patientCircle').raise();
+            svg.selectAll('.thresholdRect').raise();
         }
     },[svg,pathData])
 
