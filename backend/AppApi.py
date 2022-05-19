@@ -4,9 +4,16 @@ from Constants import Const
 import json
 import Utils
 import re
+
+from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor, RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.svm import SVC, SVR
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from sklearn.cluster import SpectralClustering, KMeans, AgglomerativeClustering
 from sklearn.decomposition import PCA
+from sklearn.metrics import roc_auc_score, f1_score, recall_score, precision_score, precision_recall_fscore_support, matthews_corrcoef
+
 from scipy.stats import chi2
 from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
 from ast import literal_eval
@@ -110,20 +117,6 @@ def add_symptom_groups(df):
         df['symptoms_'+name+'_mean'] = smean.tolist()
     return df
     
-def load_dose_symptom_data():
-    data = pd.read_csv(Const.data_dir + 'dose_symptoms_merged.csv')
-    to_drop = [c for c in data.columns if 'symptom' in c and ('symptoms_' not in c or 'original' in c)]
-    data = data.drop(to_drop,axis=1)
-    dose_cols = get_df_dose_cols(data)
-    s_cols = get_df_symptom_cols(data) 
-    for c in dose_cols + s_cols + ['max_dose','mean_dose','volume','dates']:
-        try:
-            data[c] = data[c].apply(literal_eval)
-        except Exception as e:
-            print(c,e)
-    data = add_symptom_groups(data)
-    return data
-
 def add_confounder_dose_limits(df,organ_list=None):
     #dose limits as binary values from https://applications.emro.who.int/imemrf/Rep_Radiother_Oncol/Rep_Radiother_Oncol_2013_1_1_35_48.pdf
     #not inlcudeing other stuff like eyes at this time
@@ -160,6 +153,22 @@ def add_total_doses(df,cols):
         if col in df.columns:
             df['total_'+col] = df[col].apply(np.sum)
     return df
+
+def load_dose_symptom_data():
+    data = pd.read_csv(Const.data_dir + 'dose_symptoms_merged.csv')
+    to_drop = [c for c in data.columns if 'symptom' in c and ('symptoms_' not in c or 'original' in c)]
+    data = data.drop(to_drop,axis=1)
+    dose_cols = get_df_dose_cols(data)
+    s_cols = get_df_symptom_cols(data) 
+    for c in dose_cols + s_cols + ['max_dose','mean_dose','volume','dates']:
+        try:
+            data[c] = data[c].apply(literal_eval)
+        except Exception as e:
+            print(c,e)
+    data = add_symptom_groups(data)
+    data = add_total_doses(data,['mean_dose'])
+    data = add_confounder_dose_limits(data)
+    return data
 
 
 def var_test(df, testcol, ycol,xcols, 
@@ -219,7 +228,6 @@ def var_test(df, testcol, ycol,xcols,
 def get_cluster_lrt(df,clust_key = 'dose_clusters',
                              symptoms=None,
                              nWeeks = None,
-                             thresholds=None,
                              confounders=None,
                             ):
     #add tests for pvalues for data
@@ -242,12 +250,11 @@ def get_cluster_lrt(df,clust_key = 'dose_clusters',
     date_keys = [df.dates.iloc[0].index(week) for week in nWeeks if week in df.dates.iloc[0]]
     #calculate change from baseline instead of absolute
     get_symptom_max = lambda x: np.max([x[d] for d in date_keys])
-    df = add_confounder_dose_limits(df)
     
-    tdose_cols = [c.replace('total_','') for c in confounders if 'total_' in c]
+    tdose_cols = [c.replace('total_','') for c in confounders if ('total_' in c)]
     if len(tdose_cols) > 0:
+        print('tdose cols',tdose_cols)
         df = add_total_doses(df,tdose_cols)
-        
     for symptom in symptoms:
         skey = 'symptoms_'+symptom
         if skey not in df.columns:
@@ -613,7 +620,7 @@ def select_single_organ_cluster_effects(df,
     if clustertype is not None:
         clusterer = keyword_clusterer(clustertype,n_clusters)
         
-    rlist = joblib.Parallel(n_jobs=4)(joblib.delayed(parallel_cluster_lrt)((
+    rlist = joblib.Parallel(n_jobs=-2)(joblib.delayed(parallel_cluster_lrt)((
         df,olist,base_organs,symptoms,covars,features,clusterer,n_clusters,clustertype,threshold,drop_base_cluster,
     )) for olist in olists)
     for rl in rlist:
@@ -668,7 +675,7 @@ def get_sample_cluster_metrics_input():
         post_data= simplejson.load(f)
     return post_data
 
-def extract_dose_vals(df,organs,features):
+def extract_dose_vals(df,organs,features,include_limits = False):
     oidxs = [Const.organ_list.index(o) for o in organs if o in Const.organ_list]
     df = df.copy()
     vals = []
@@ -680,6 +687,10 @@ def extract_dose_vals(df,organs,features):
             names.append(f+'_'+oname)
     vals = np.hstack(vals)
     vals = pd.DataFrame(vals,columns=names,index=df.index)
+    if include_limits:
+        limit_cols = [t for t in df.columns if '_limit' in t]
+        for l in limit_cols:
+            vals[l] = df[l].astype(int).fillna(0)
     return vals 
 
 def get_outcomes(df,symptoms,dates,threshold=None):
@@ -704,16 +715,17 @@ def get_rule_inference_data(df,
                            symptoms,
                            features, 
                            dates, 
+                            include_limits=False,
                            cluster=None):
     if cluster is not None:
         df = df[df.post_cluster.astype(int) == int(cluster)]
-    df_doses = extract_dose_vals(df,organs,features)
+    df_doses = extract_dose_vals(df,organs,features,include_limits=include_limits)
     outcome = get_outcomes(df,symptoms,dates)
     return df_doses,outcome
         
         
 def process_rule(args):
-    [df,col,y,currval,min_split_size,min_odds] = args
+    [df,col,y,currval,min_split_size,min_odds,min_info] = args
     vals = df[col]
     rule = vals >= currval
     entry = {
@@ -723,19 +735,22 @@ def process_rule(args):
         'rule': rule
     }
     entry = evaluate_rule(entry,y)
-    if valid_rule(entry,min_split_size,min_odds=min_odds):
+    if valid_rule(entry,min_split_size,min_odds=min_odds,min_info=min_info):
         return entry
     return False
     
-def get_rule_df(df,y,granularity=2,min_split_size=20,min_odds=1):
+def get_rule_df(df,y,granularity=2,min_split_size=10,min_odds=0,min_info=.01):
     split_args = []
     minval = df.values.min().min()
     maxval = df.values.max().max()
     granularity_vals = [i*granularity + minval for i in np.arange(np.ceil(maxval/granularity))]
     for col in df.columns:
-        for g in granularity_vals:
-            split_args.append((df,col,y,g,min_split_size,min_odds))
-    splits = joblib.Parallel(n_jobs=4)(joblib.delayed(process_rule)(args) for args in split_args)
+        if '_limit' in col:
+            split_args.append((df,col,y,.5,1,0,0))
+        else:
+            for g in granularity_vals:
+                split_args.append((df,col,y,g,min_split_size,min_odds,min_info))
+    splits = joblib.Parallel(n_jobs=-2)(joblib.delayed(process_rule)(args) for args in split_args)
     return [s for s in splits if s is not False]
 
 def combine_rule(r1,r2):
@@ -776,22 +791,18 @@ def evaluate_rule(rule, y):
     if lower.mean().values[0] > 0:
         entry['odds_ratio'] = upper.mean().values[0]/lower.mean().values[0]
     else:
-        entry['odds_ratio'] = -1
+        entry['odds_ratio'] = upper.mean().values[0]
     for prefix, yy in zip(['lower','upper'],[lower,upper]):
         entry[prefix+'_count'] = yy.shape[0]
         entry[prefix+'_tp'] = yy.sum().values[0]
         entry[prefix+'_mean'] = yy.mean().values[0]
     return entry 
 
-def valid_rule(r,min_split_size=20,min_odds=1):
-    if r['odds_ratio'] < min_odds:
-        return False
-    if min(r['upper_count'],r['lower_count']) <= min_split_size:
-        return False
-    return True
 
-def filter_rules(rulelist, bests,criteria):
-    is_best = lambda r: r[criteria] >= bests.get(stringify_features(r['features']),1)
+
+def filter_rules(rulelist, bests,tholds,criteria):
+    is_best = lambda r: (r[criteria] >= bests.get(stringify_features(r['features']),0)) and (
+        stringify_thresholds(r['thresholds']) == tholds.get(stringify_features(r['features'])) )
     filtered = [r for r in rulelist if is_best(r)]
     return filtered
     
@@ -800,38 +811,68 @@ def stringify_features(l):
     #removes V thing becuase I think it shold be per organ
     return ''.join(sorted([ll[3:] for ll in l]))
 
+def stringify_thresholds(t):
+    return ''.join([str(int(tt)) for tt in t])
+
 def combine_and_eval_rule(args):
     [baserule,rule,outcome_df] = args
     r = combine_rule(baserule,rule)
     r = evaluate_rule(r,outcome_df)
     return r
 
-def get_best_rules(front, allrules,dose_df,outcome_df,min_odds,criteria='odds_ratio'):
+def get_best_rules(front, allrules,outcome_df,min_odds,criteria='info'):
     new_rules = []
     bests = {}
+    best_thresholds = {}
     if len(front) < 1:
         front = [None]
-    minsplit = int(outcome_df.shape[0]/4)
+    minsplit = max(5,int(outcome_df.shape[0]/10))
     for baserule in front:
-        combined_rules = joblib.Parallel(n_jobs=4)(joblib.delayed(combine_and_eval_rule)((baserule,r,outcome_df)) for r in allrules)
+        combined_rules = joblib.Parallel(n_jobs=-2)(joblib.delayed(combine_and_eval_rule)((baserule,r,outcome_df)) for r in allrules)
         for combined_rule in combined_rules:
             if valid_rule(combined_rule,minsplit,min_odds):
-                if baserule is not None and combined_rule[criteria] <= baserule.get(criteria,1):
+                if (baserule is not None) and combined_rule[criteria] <= baserule.get(criteria,0):
                     continue
                 rname = stringify_features(combined_rule['features'])
                 if bests.get(rname,0) < combined_rule[criteria]:
+                    #look at best info/odds ratio fro each set of organs
                     bests[rname] = combined_rule[criteria]
-                    new_rules.append(combined_rule)
-    new_rules = filter_rules(new_rules,bests,criteria)
+                    #svae thresholds as a tie-breaker
+                    best_thresholds[rname] = stringify_thresholds(combined_rule['thresholds'])
+                new_rules.append(combined_rule)
+    new_rules = filter_rules(new_rules,bests,best_thresholds,criteria)
     return new_rules
     
-def format_rule_json(rule):
+def format_rule_json(args):
+    (rule,y,symptom_y) = args
     newrule = {k:v for k,v in rule.items() if k not in ['splits','rule']}
     r = rule['rule']
     newrule['upper_ids'] = r[r].index.tolist()
     newrule['lower_ids'] = r[~r].index.tolist()
+    
+    x = r.values.reshape(-1,1)
+    if rule['odds_ratio'] < 1:
+        x = ~x
+    y = y.values
+    recall = recall_score(y,x)
+    precision = precision_score(y,x)
+    newrule['recall'] = recall
+    newrule['precision'] = precision
+    newrule['f1'] = (2*recall*precision)/(recall+precision)
+    newrule['roc_auc'] = roc_auc_score(y,x)
+    newrule['roc_auc_symptom'] = roc_auc_score(symptom_y, x)
+    newrule['f1_symptom'] = f1_score(symptom_y, x)
     return newrule 
 
+def valid_rule(r,min_split_size=10,min_odds=0,min_info=.01):
+    if r['odds_ratio'] < min_odds:
+        return False
+    if r.get('info',0) <= min_info:
+        return False
+    if min(r['upper_count'],r['lower_count']) < min_split_size:
+        return False
+    return True
+    
 def get_rule_stuff(df,post_results=None):
     if post_results is None:
         print('using test post results')
@@ -840,18 +881,21 @@ def get_rule_stuff(df,post_results=None):
     df = add_post_clusters(df,post_results)
     df = add_confounder_dose_limits(df)
     
-    organs = post_results.get('organs',['IPC','MPC','SPC'])
+    organs = post_results.get('organs',Const.organ_list[:])
     symptoms = post_results.get('symptoms',['drymouth'])
     organ_features = post_results.get('clusterFeatures',['V35','V40','V45','V55'])
     s_dates = post_results.get('symptom_dates',[13,33])
-    threshold = post_results.get('threshold',5)
+    threshold = post_results.get('threshold',6)
     cluster = post_results.get('cluster',None)
     maxdepth = post_results.get('max_depth',3)
-    min_odds = post_results.get('min_odds',1)
+    min_odds = post_results.get('min_odds',0)
+    min_info = post_results.get('min_info',.02)
     criteria = post_results.get('criteria','info')
     max_rules = post_results.get('max_rules',15)
-    granularity = post_results.get('granularity',2)
-    predict_cluster = post_results.get('predictCluster',None)
+    max_frontier = post_results.get('max_frontier',20)
+    granularity = post_results.get('granularity',3)
+    predict_cluster = post_results.get('predictCluster',-1)
+    use_limits = post_results.get('useLimits',True)
     
     if criteria not in ['odds_ratio','info']:
         criteria = 'odds_ratio'
@@ -859,31 +903,202 @@ def get_rule_stuff(df,post_results=None):
     df = df.set_index('id')
     if predict_cluster is not None and predict_cluster >= 0:
         cluster = None
-        dose_df = extract_dose_vals(df,organs,organ_features)
-        df['temp_outcome'] = df.post_cluster.apply(lambda x: x == predict_cluster)
-        y = df[['temp_outcome']]
-    else:
-        dose_df, outcome_df = get_rule_inference_data(
+    dose_df, outcome_df = get_rule_inference_data(
             df,
             organs,
             symptoms,
             organ_features,
             s_dates,
             cluster=cluster,
+            include_limits=use_limits,
         )
-        y = (outcome_df>=threshold)
-    
-    rules = get_rule_df(dose_df,y,min_odds=1,granularity=granularity)
+    symptom_bool = (outcome_df>=threshold)
+    if predict_cluster is not None and predict_cluster >= 0:
+        df['temp_outcome'] = df.post_cluster.apply(lambda x: x == predict_cluster)
+        y = df[['temp_outcome']]
+    else:
+        y = symptom_bool
+    rules = get_rule_df(dose_df,y,min_odds=min_odds,granularity=granularity)
     sort_rules = lambda rlist: sorted(rlist, key=lambda x: -x[criteria])
     rules = sort_rules(rules)
-    rules = rules[:max_rules]
+    min_info = min(rules[0].get('info',0.0)*.6,float(min_info))
+    rules = [r for r in rules if r.get('info',0) >= min_info]
+    if len(rules) > 800:
+        rules = rules[:800]
+    print('n rules',len(rules))
     frontier = [None]
     best_rules = []
     depth = 0
     while (depth < maxdepth) and (frontier is not None) and (len(frontier) > 0):
-        frontier = get_best_rules(frontier,rules,dose_df,y,min_odds=min_odds,criteria=criteria)
+        frontier = get_best_rules(frontier,rules,y,min_odds=min_odds,criteria=criteria)
+        frontier = sorted(frontier, key = lambda x: -x[criteria] if x is not None else 0)
+        frontier = frontier[:max_frontier]
         depth += 1
-        best_rules.extend(frontier[:max_rules])
-    best_rules = joblib.Parallel(n_jobs=4)(joblib.delayed(format_rule_json)(br) for br in best_rules)
+        best_rules.extend(frontier)
+        print('lb',len(best_rules))
+        print()
+    
     best_rules = sort_rules(best_rules)
-    return best_rules[:max_rules]
+    best_rules = best_rules[:max_rules]
+    best_rules = joblib.Parallel(n_jobs=-2)(joblib.delayed(format_rule_json)((br,y,symptom_bool)) for br in best_rules)
+    print([(r['features'],r.get('info')) for r in best_rules])
+    pos_ids = y[y.values.astype(bool)].index.values.tolist()    
+    for br in best_rules:
+        br['target_ids'] = pos_ids
+    return best_rules
+
+
+def get_metrics_model(key,is_boolean=True,balance=True,**kwargs):
+    model = None
+    bkey = 'balanced' if balance else None
+    key = key.lower()
+    if key == 'forest':
+        if is_boolean:
+            model = RandomForestClassifier(n_estimators=100,max_depth=4,class_weight=bkey,**kwargs)
+        else:
+            model = RandomForestRegressor(n_estimators=100,max_depth=4,**kwargs)
+    elif key == 'adaboost_forest':
+        if is_boolean:
+            model = AdaBoostClassifier(base_estimator=DecisionTreeClassifier(class_weight=bkey,**kwargs))
+        else:
+            model = AdaBoostRegressor(base_estimator=DecisionTreeRegressor(**kwargs))
+    elif key == 'adaboost_regression':
+        if is_boolean:
+            model = AdaBoostClassifier(base_estimator=LogisticRegression(class_weight=bkey,**kwargs))
+        else:
+            model = AdaBoostRegressor(base_estimator=LinearRegression(**kwargs))  
+    elif key == 'linear_svm':
+        if is_boolean:
+            model = SVC(kernel='linear',probability=True,class_weight=bkey,**kwargs)
+        else:
+            model = SVR(kernel='linear',**kwargs)
+    elif key == 'rbf_svm':
+        if is_boolean:
+            model = SVC(kernel='rbf',probability=True,class_weight=bkey,**kwargs)
+        else:
+            model = SVR(kernel='rbf',**kwargs)
+    else:
+        if is_boolean:
+            model = LogisticRegression(class_weight=bkey,**kwargs)
+        else:
+            model = LinearRegression(**kwargs)
+    return model
+
+
+def get_stratification_metrics(y,ypred):
+    #binary
+    squeeze = lambda x: np.argmax(x,axis=1).ravel()
+#     y_true = pd.get_dummies(y.loc[:,model.classes_]).values#one-hot encoe
+    y_true = y.reshape(-1,1)#binary output shoud work like this idk
+    roc = roc_auc_score(y_true,ypred[:,1])
+    [precision,recall,fscore,support] = precision_recall_fscore_support(y_true,squeeze(ypred),average='binary')
+    fbeta = lambda b: (1+b**2)*(precision*recall + .001)/((b**2)*precision + recall + .001)
+    f_half = fbeta(.5)
+    f2 = fbeta(2)
+    matthews = matthews_corrcoef(y_true,squeeze(ypred))
+    dor = ((recall*precision) + .001)/((1-recall)*(1-precision) + .001)
+    results=  {
+        'roc': roc, 
+        'mcc': matthews,
+        'dor': dor,
+        'precision': precision,
+        'recall':recall,
+        'f1': fscore,
+        'f_half': f_half,
+        'f2': f2,
+    }
+    return results
+
+def predict_cv(model,x,y,cvsize=None):
+    #currently leave-one-out
+    predictions = []
+    y = y.reshape(-1,1)
+    if cvsize == None:
+        cvsize = int(x.shape[0]*.1)+1
+    nsteps = int(np.ceil(x.shape[0]/cvsize))
+    start = 0
+    for i in range(nsteps):
+        stop = min(start + cvsize,x.shape[0])
+        test_idx = np.arange(start,stop)
+        x_train = np.delete(x, test_idx,axis=0)
+        x_test = x[test_idx]
+        y_train = np.delete(y,test_idx)
+        y_test = y[test_idx]
+        
+        if x_test.ndim < 2:
+            x_test = x_test.reshape(1,-1)
+        model.fit(x_train,y_train)
+        
+        ypred = model.predict_proba(x_test)
+        predictions.append(ypred)
+        
+        start=stop
+    ypred = np.concatenate(predictions)
+    ypred = ypred.reshape(x.shape[0],-1)
+    return ypred
+
+def get_cluster_metrics(df,post_results=None):
+    if post_results is None:
+        print('using test post results')
+        post_results = get_sample_cluster_metrics_input()
+    
+    df = add_post_clusters(df,post_results)
+    df = add_confounder_dose_limits(df)
+    
+    symptom = post_results.get('symptom','drymouth')
+    s_dates = post_results.get('symptom_dates',[13,33])
+    thresholds = post_results.get('thresholds',[3,5,7])
+    
+    confounders = post_results.get('confounders',['t3','t4','n3','n2','hpv'])
+    model_type = post_results.get('modelType','regression')
+    balance_model = post_results.get('balance',True)
+    m = lambda : get_metrics_model(model_type,balance=balance_model,is_boolean=True)
+    # model = m()get_metrics_model(model_type,balance=balance_model,is_boolean=True)
+    x_clust = Utils.onehotify(df[['post_cluster']])
+    
+    outcome = get_outcomes(df,[symptom],s_dates)
+    
+    x_conf = Utils.onehotify(df[confounders].fillna(0),drop_first=True)
+#     x_conf = (x_conf - x_conf.min())/(x_conf.max() - x_conf.min())
+    x_conf = (x_conf - x_conf.mean())/x_conf.std()
+    
+    argList = [(x_clust, x_conf, outcome,m(),t,symptom) for t in thresholds]
+    stacked_results = joblib.Parallel( n_jobs=-2 )(joblib.delayed(get_cluster_cv_metrics)(args) for args in argList)
+    results = []
+    for sr in stacked_results:
+        results.extend(sr)
+    return results
+
+def get_cluster_cv_metrics(args):
+    [x_clust,x_conf,outcome,model,threshold,symptom] = args
+    y = (outcome > threshold).values
+    ypred_base = predict_cv(model,x_conf.values,y)
+    x_full = pd.concat([x_clust.iloc[:,1:],x_conf],axis=1)
+    ypred_full = predict_cv(model,x_full.values,y)
+    res_base = get_stratification_metrics(y,ypred_base)
+    results = []
+    def get_diff(r):
+        diff = {}
+        for k,v in r.items():
+            if res_base.get(k) is not None:
+                diff[k] = v - res_base.get(k)
+        return diff
+    res_full = get_stratification_metrics(y,ypred_full)
+    res_dict = {'all': res_full}
+    for col in x_clust.columns:
+        if '_-1' in col:
+            continue
+        x_temp = pd.concat([x_conf,x_clust[[col]]],axis=1)
+        ypred_temp = predict_cv(model,x_temp.values,y)
+        temp_res = get_stratification_metrics(y,ypred_temp)
+        res_dict[col] = temp_res
+    for name, item in res_dict.items():
+        entry = {k:v for k,v in item.items()}
+        temp_diff = get_diff(item)
+        for k,v in temp_diff.items():
+            entry[k+'_change']= v
+        entry['cluster'] = name
+        entry['threshold'] = threshold
+        entry['symptom'] = symptom
+        results.append(entry)
+    return results

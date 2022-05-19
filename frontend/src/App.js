@@ -14,36 +14,64 @@ import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
 import * as constants from './modules/Constants.js';
 import * as d3 from 'd3';
+import { active } from 'd3';
 
 function App() {
   var api = new DataService();
 
+  //data with entries for each patient
   const [doseData,setDoseData] = useState(null);
+  //agregated data with stats for each cluster ,including ids
   const [clusterData,setClusterData] = useState(null);
-  const [clusterOrgans,setClusterOrgans] = useState(['Extended_Oral_Cavity','Tongue'])
+  //organs used to cluster the patients
+  const [clusterOrgans,setClusterOrgans] = useState([
+    'Tongue','Genioglossus_M','Mylogeniohyoid_M',
+    'Rt_Parotid_Gland','Lt_Parotid_Gland',
+    'Rt_Submandibular_Gland','Lt_Submandibular_Gland',
+  ])
+  //used to hold the organs we select for the next time we query the clustering
   const [clusterOrganCue,setClusterOrganCue] = useState([])
+  //used to check if we're waiting for new clusters so we don't query anything else in the meaning
   const [clusterDataLoading, setClusterDataLoading] = useState(false);
-  const [nDoseClusters,setNDoseClusters] = useState(4);
+  //# of clusters used
+  const [nDoseClusters,setNDoseClusters] = useState(3);
+  //which dose features we use for each organ
   const [clusterFeatures,setClusterFeatures] = useState(['V40','V45','V50','V55','V60']);
-  const [lrtConfounders,setLrtConfounders] = useState(['t3','t4','n_severe','hpv','Parotid_Gland_limit']);
+  //used to determine the confounders used in the models for determining p-values
+  const [lrtConfounders,setLrtConfounders] = useState([
+    't3','t4',
+    'n_severe','hpv',
+    'Parotid_Gland_limit','Esophagus_limit',
+    'total_mean_dose',
+  ]);
+  //which variable is being ploted when showing patient dose distirbutions
   const [plotVar,setPlotVar] = useState('V55');
-  const [activeCluster,setActiveCluster] = useState(0)
+  //which cluster is the focus on in the detail views
+  const [activeCluster,setActiveCluster] = useState(0);
   // const [updateCued,setUpdateCued] = useState(false)
+  //which patient is focused on in detail views when appropriate
   const [selectedPatientId, setSelectedPatientId] = useState(-1);
+  //what type of clustering to use.  bgmm = bayesian gaussian mixutre model.
   const [clusterType,setClusterType] = useState('bgmm');
+  //wheter to show one or both sides of the head in the dose diagram.  probably should always be true
   const [showContralateral,setShowContralateral] = useState(true);
-
+  //data results from testin the effects of other organs on clustering results
   const [additiveClusterResults,setAdditiveClusterResults] = useState(null);
+  //I dont think I use this
   const [clusterMetricData,setClusterMetricData] = useState(null);
+  //which symptoms we're including in the plots
   const [symptomsOfInterest,setSymptomsOfInterest] = useState([
     'drymouth',
+    'salivary_mean',
+    'salivary_max',
     'taste',
     'swallow',
     'voice',
     'mucositis',
     'choke',
+    'pain',
   ]);
-
+  //all possible symptoms I coded into the data
   const allSymptoms = [
     'drymouth',
     'salivary_mean',
@@ -72,17 +100,26 @@ function App() {
   ]
   const [mainSymptom,setMainSymptom] = useState('drymouth');
 
+  //data for query looking at boolean splits in the 'rule' view
   const [ruleData,setRuleData] = useState();
+  //threshold for symptoms to use as the target class
   const [ruleThreshold,setRuleThreshold] = useState(5);
+  //the cluster we should use for the rule mining when predicing symptoms.  default undefined means using the whole cohort
   const [ruleCluster,setRuleCluster] = useState();
+  //the max # of splits to allow
   const [ruleMaxDepth,setRuleMaxDepth] = useState(3);
-  const [maxRules,setMaxRules] = useState(15);
+  //used to filter out the best rules at each depth
+  const [maxRules,setMaxRules] = useState(5);
+  //what to use to determine optimal splits. currently 'info' or 'odds ratio'
   const [ruleCriteria,setRuleCriteria] = useState('info');
-  const [ruleTargetCluster,setRuleTargetCluster] = useState(3)
+  //if > 0 and not undefined, we predict membership in a cluster instead of outcomes
+  const [ruleTargetCluster,setRuleTargetCluster] = useState(-1)
+  const [ruleUseAllOrgans,setRuleUseAllOrgans] = useState(false);
 
+  const [metricsModelType,setMetricsModelType] = useState('forest');
+  //hnc diagram svg patths
   const [svgPaths,setSvgPaths] = useState();
-  // const [patientIds, setPatientIds] = useState([0]);
-  // const [selectedWindow, setSelectedWindow] = useState('doses');
+
 
   //this use to be d3.scaleOrdinal but it wasn't wokring for some reason
   //returns color based on index bascially
@@ -134,6 +171,11 @@ function App() {
       })
   },[])
 
+  useEffect(function updateRuleTargetCluster(){
+    if(ruleTargetCluster >= 0 & ruleTargetCluster !== activeCluster){
+      setRuleTargetCluster(activeCluster);
+    }
+  },[activeCluster])
 
   var fetchDoseData = async(orgs,cFeatures) => {
     const response = await api.getDoseJson(orgs,cFeatures);
@@ -152,26 +194,26 @@ function App() {
   }
 
   var fetchAdditiveEffects= async(org,nClust,clustFeatures,clusterType,soi,lrtConfounders) => {
-    setAdditiveClusterResults(undefined);
-    const response = await api.getAdditiveOrganClusterEffects(
-      org,
-      nClust,
-      clustFeatures,
-      clusterType,
-      soi,
-      lrtConfounders,
-    );
-    // console.log('fetched addtive',response.data);
-    setAdditiveClusterResults(response.data);
+    // setAdditiveClusterResults(undefined);
+    // const response = await api.getAdditiveOrganClusterEffects(
+    //   org,
+    //   nClust,
+    //   clustFeatures,
+    //   clusterType,
+    //   soi,
+    //   lrtConfounders,
+    // );
+    // // console.log('fetched addtive',response.data);
+    // setAdditiveClusterResults(response.data);
   }
 
-  var fetchClusterMetrics = async(cData,organs,lrtConfounders,symptoms)=>{
+  var fetchClusterMetrics = async(cData,lrtConfounders,symptom,mType)=>{
     if(cData !== undefined & !clusterDataLoading){
       // const response = await api.getClusterMetrics(cData,organs,lrtConfounders,symptoms);
       // setClusterMetricData(response);
       // console.log('cluster metric data', response)
-      api.getClusterMetrics(cData,organs,lrtConfounders,symptoms).then(response =>{
-        console.log('cluster metric data',response)
+      api.getClusterMetrics(cData,lrtConfounders,symptom,mType).then(response =>{
+        // console.log('cluster metric data',response)
         setClusterMetricData(response);
       }).catch(error=>{
         console.log('cluster metric data error',error);
@@ -200,11 +242,6 @@ function App() {
     }
   }
 
-  useEffect(function updateRuleCluster(){
-    if(ruleCluster !== null & ruleCluster !== undefined & ruleCluster !== activeCluster){
-      setRuleCluster(activeCluster);
-    }
-  },[activeCluster]);
 
   useEffect(() => {
 
@@ -237,23 +274,34 @@ function App() {
     }
   },[clusterData,mainSymptom,clusterDataLoading,lrtConfounders])
 
+  useEffect(function updateRuleCluster(){
+    if(ruleCluster !== null & ruleCluster !== undefined & ruleCluster !== activeCluster){
+      setRuleCluster(activeCluster);
+    }
+  },[activeCluster]);
+
+  useEffect(()=>{
+    if(!clusterDataLoading & clusterData !== undefined & clusterData !== null){
+      fetchClusterMetrics(clusterData, lrtConfounders,mainSymptom,metricsModelType);
+    }
+  },[clusterDataLoading,clusterData,mainSymptom,lrtConfounders,metricsModelType]);
+  
   useEffect(function updateRules(){
     if(clusterData !== undefined & clusterData !== null & !clusterDataLoading){
-      fetchClusterRules(clusterData,clusterOrgans,
+      let rOrgans = [...clusterOrgans];
+      if(ruleUseAllOrgans){
+        rOrgans = [...constants.ORGANS_TO_SHOW];
+      }
+      fetchClusterRules(clusterData,rOrgans,
         [mainSymptom],clusterFeatures,ruleThreshold,
         ruleCluster,ruleMaxDepth,maxRules,ruleCriteria,ruleTargetCluster);
     }
   },[clusterData,clusterOrgans,mainSymptom,
     clusterFeatures,ruleThreshold,ruleCluster,
-    clusterDataLoading,ruleMaxDepth,maxRules,ruleCriteria,ruleTargetCluster])
+    clusterDataLoading,ruleMaxDepth,maxRules,
+    ruleCriteria,ruleTargetCluster,ruleUseAllOrgans])
   
   
-  //for later
-  // useEffect(()=>{
-  //   if(!clusterDataLoading & clusterData !== undefined){
-  //     fetchClusterMetrics(clusterData, clusterOrgans,lrtConfounders,[mainSymptom]);
-  //   }
-  // },[clusterDataLoading,clusterData,clusterOrgans,mainSymptom,lrtConfounders]);
 
   function makeOverview(){
     return (
@@ -276,7 +324,7 @@ function App() {
             additiveClusterResults={additiveClusterResults}
             categoricalColors={categoricalColors}
             clusterMetricData={clusterMetricData}
-            fetchClusterMetricData={fetchClusterMetrics}
+            setClusterMetricData={setClusterMetricData}
             ruleData={ruleData}
             ruleThreshold={ruleThreshold}
             ruleCluster={ruleCluster}
@@ -290,6 +338,8 @@ function App() {
             setRuleCriteria={setRuleCriteria}
             ruleTargetCluster={ruleTargetCluster}
             setRuleTargetCluster={setRuleTargetCluster}
+            ruleUseAllOrgans={ruleUseAllOrgans}
+            setRuleUseAllOrgans={setRuleUseAllOrgans}
         ></OverView>
     </Row>
     )

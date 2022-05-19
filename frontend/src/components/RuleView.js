@@ -29,13 +29,24 @@ export default function RuleView(props){
     const filterCluster = parseInt(props.ruleCluster) === parseInt(props.activeCluster)
 
     function makeRow(rule,key){
+        let title = 'OR: ' + rule.odds_ratio.toFixed(2) 
+            + ' |Info Gain: ' + rule.info.toFixed(3)   
+            + ' |ROC:' + rule.roc_auc.toFixed(2)
+            + ' |F1:' + rule.f1.toFixed(2) 
+            + ' |Prsn:' + rule.precision.toFixed(2) 
+            + ' |Rcl:' + rule.recall.toFixed(2);
+        if (props.ruleTargetCluster >= 0){
+            title += ' |Outcome ROC:' + rule.roc_auc_symptom.toFixed(2) 
+            + ' |Outcome F1:' + rule.f1_symptom.toFixed(2);
+        }
+
         return (
         <Row 
             key={key+props.mainSymptom+props.ruleCluster+props.ruleThreshold} 
-            style={{'display':'inline-block','width':'50%','height': '20em'}}
+            style={{'display':'inline-block','width':'50%','height': '20em','marginBottom':'1em'}}
         >
-            <span className={'noGutter controlPanelTitle'}>
-            {'OR: ' + rule.odds_ratio.toFixed(2) + ' | Info Gain: ' + rule.info.toFixed(3)}
+            <span  style={{'fontSize':'.7em'}}>
+            {title}
             </span>
             <Row  
                 className={'noGutter fillWidth'} 
@@ -122,6 +133,33 @@ export default function RuleView(props){
         )
     }
 
+    function makeOrganSetToggle(){
+        var makeButton = (boolState)=>{
+            let active = (props.ruleUseAllOrgans === boolState);
+            let name = 'All';
+            if(!boolState){
+                name = 'Cluster'
+            }
+            return (
+                <Button
+                    variant={active? 'dark':'outline-secondary'}
+                    onClick={()=>{props.setRuleUseAllOrgans(boolState)}}
+                    disabled={active}
+                >{name}</Button>
+            )
+        }
+        return (
+            <div className={'center-block'}>
+            <Form.Label>{'Organs'}</Form.Label>
+            <InputGroup
+            >
+                {makeButton(true)}
+                {makeButton(false)}
+            </InputGroup>
+            </div>
+        )
+    }
+
     function handleChangeThreshold(t){
         t=parseInt(t);
         if(t !== props.ruleThreshold){
@@ -184,12 +222,14 @@ export default function RuleView(props){
                     key={i}
                     value={t}
                     eventKey={t}
+                    
                     onClick={e => handleChangeMaxRules(t)}
                 >{t}</Dropdown.Item>
             )
         });
         return (
             <DropdownButton
+                drop={'up'}
                 className={'controlDropdownButton'}
                 title={'Max Rules ' + props.maxRules}
             >{dItems}</DropdownButton>
@@ -238,7 +278,7 @@ export default function RuleView(props){
                 className={'spinner'}/>
             )
         }
-    },[props.ruleData,props.doseData])
+    },[props.ruleData,props.doseData,props.selectedPatientId])
 
     return (
         <div ref={ref} className={'noGutter fillSpace'}>
@@ -249,6 +289,7 @@ export default function RuleView(props){
                 <Col md={2} className={'noGutter'}>
                     {makeFilterToggle()}
                     {makeCriteriaToggle()}
+                    {makeOrganSetToggle()}
                     {makeThresholdDropDown()}
                     {makeMaxSplitsDropDown()}
                     {makeMaxRulesDropDown()}

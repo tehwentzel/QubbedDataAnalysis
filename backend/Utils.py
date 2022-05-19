@@ -70,11 +70,11 @@ def load_organ_centroids():
         test = simplejson.load(f)
     return test
 
-def onehotify(df,ignore=None):
+def onehotify(df,ignore=None,drop_first=False):
     df = df.copy()
     if ignore is None:
         ignore = set([])
-    subdf = pd.concat([pd.get_dummies(df[c],prefix=c) for c in df.columns if c not in ignore],axis=1)
+    subdf = pd.concat([pd.get_dummies(df[c],prefix=c,drop_first=drop_first) for c in df.columns if c not in ignore],axis=1)
     if ignore is not None:
-        return pd.concat([subdf,df[ignore]],axis=1)
+        return pd.concat([subdf,df[list(ignore)]],axis=1)
     return subdf

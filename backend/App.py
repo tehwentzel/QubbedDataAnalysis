@@ -119,20 +119,16 @@ def get_single_organ_effects():
 
 @app.route('/cluster_metrics',methods=['POST'])
 def cluster_metrics():
-    d = request.get_json(force=True)
+    post_results = request.get_json(force=True)
     print('______________')
     print('cluster metric data')
-    # print(d)
-    if d['clusterData'] is not None:
-        with open('cluster_post_test.json','w') as f:
-            simplejson.dump(d,f)
+    print('cluster post data', post_results.keys())
+
+    
+    cluster_metrics = get_cluster_metrics(data,post_results)
+    print('metrics done',cluster_metrics)
     print('______________')
-    res = app.response_class(
-        response='no',
-        mimetype='application/json',
-        status=200
-    )
-    return res
+    return responsify(cluster_metrics)
 
 @app.route('/rules',methods=['POST'])
 def dose_rules():
@@ -141,8 +137,10 @@ def dose_rules():
     print('______________')
     print('rule data')
     print(post_results.keys())
-    print('______________')
+    print(post_results.get('organs'))
+    
     rules = get_rule_stuff(data,post_results)
+    print('______________')
     return responsify(rules)
 
 @app.route('/dose_clusters',methods=['GET'])

@@ -102,7 +102,6 @@ export default function ClusterSymptomsD3(props){
                     plotData.push(entry)
                 }
             }
-            console.log('patient',plotData)
             svg.selectAll('rect').filter('.symptomRect').remove();
             svg.selectAll('rect').filter('.symptomRect')
                 .data(plotData).enter()

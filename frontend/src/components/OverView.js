@@ -16,6 +16,7 @@ import Spinner from 'react-bootstrap/Spinner';
 import PatientDoseView from './PatientDoseView.js';
 import ClusterMetricsD3 from './ClusterMetricsD3.js';
 import RuleView from './RuleView.js';
+import ClusterCVMetrics from './ClusterCVMetrics.js'
 
 export default function OverView(props){
     const ref = useRef(null)
@@ -177,6 +178,30 @@ export default function OverView(props){
         }
     }
 
+    function makeCVMetricsPlot(){
+        if(props.clusterData != undefined & props.clusterMetricData != undefined){
+            return (
+                <Container className={'noGutter fillSpace'}>
+                    <ClusterCVMetrics
+                        clusterData={props.clusterData}
+                        plotVar={props.plotVar}
+                        activeCluster={props.activeCluster}
+                        setActiveCluster={props.setActiveCluster}
+                        mainSymptom={props.mainSymptom}
+                        categoricalColors={props.categoricalColors}
+                        clusterMetricData={props.clusterMetricData}
+                    ></ClusterCVMetrics>
+                </Container>
+            )
+        } else{
+            return (<Spinner 
+                as="span" 
+                animation = "border"
+                role='status'
+                className={'spinner'}/>
+            );
+        }
+    }
     function makeMetricsPlot(){
         if(props.clusterData != undefined & props.doseData != undefined){
             return (
@@ -233,6 +258,10 @@ export default function OverView(props){
                 setRuleCriteria={props.setRuleCriteria}
                 ruleTargetCluster={props.ruleTargetCluster}
                 setRuleTargetCluster={props.setRuleTargetCluster}
+                selectedPatientId={props.selectedPatientId}
+                setSelectedPatientId={props.setSelectedPatientId}
+                ruleUseAllOrgans={props.ruleUseAllOrgans}
+                setRuleUseAllOrgans={props.setRuleUseAllOrgans}
             ></RuleView>
         )
         // } else{
@@ -302,6 +331,13 @@ export default function OverView(props){
                 </Row>
             )
         }
+        if(view == 'cv_metrics'){
+            return (
+                <Row key={view} md={12} className={'noGutter fillSpace'}>
+                    {makeCVMetricsPlot()}
+                </Row>
+            )
+        }
         return (<Spinner 
             as="span" 
             animation = "border"
@@ -339,6 +375,7 @@ export default function OverView(props){
                     {makeToggleButton('symptom')}
                     {makeToggleButton('patients')}
                     {makeToggleButton('metric')}
+                    {makeToggleButton('cv_metrics')}
                     {makeToggleButton('rules')}
                 </Col>
                 <Col md={4}>

@@ -44,16 +44,26 @@ export default class DataService {
         }
     }
 
-    async getClusterMetrics(clusterData,organs,lrtConfounders,symptoms){
+    async getClusterMetrics(clusterData,lrtConfounders,symptom,modelType){
         let postData = {
             'clusterData': clusterData,
-            'organs': organs,
             'lrtConfounders':lrtConfounders,
-            'symptoms': symptoms,
+            'symptom': symptom,
+            'modelType':modelType,
         }
-        console.log('post data',postData)
+        let goodPostData = {}
+        for(let key of Object.keys(postData)){
+            let entry = postData[key];
+            if(entry !== undefined){
+                goodPostData[key] = entry
+            }
+        }
+        if(goodPostData.clusterData === undefined){
+            return undefined
+        }
+        console.log('metrics post data',goodPostData)
         try{
-            const response = await this.api.post('/cluster_metrics', postData);
+            const response = await this.api.post('/cluster_metrics', goodPostData);
             // console.log('cluster metrics response',response.data);
             return response.data;
         } catch(error){
