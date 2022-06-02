@@ -170,7 +170,7 @@ def format_mdasi_columns(df):
 
 def filter_bad_mdasi_rows(df,missing_ratio_cutoff=.7):
     #drop things with these missing
-    required = ['baseline_mdasi_pain']
+    required = ['baseline_mdasi_drymouth']
     print('before drop count',df.shape[0])
     df = df.dropna(subset=required)
     #drop values with too many missing symptoms
@@ -194,13 +194,26 @@ def add_binary_clinical_stuff(df):
     df['digest_increase'] = (df['M6_mbs_digest'] - df['baseline_mbs_digest'] > 0).astype(int)
     return df
 
-def load_mdasi(file = None):
+def add_lstm_stuff(dframe):
+    dframe = dframe.set_index('id')
+    lstm_symptoms = pd.read_csv(Const.lstm_symptom_file).set_index('id').loc[dframe.index]
+    
+    replaced = []
+    for col in lstm_symptoms.columns:
+        if col != 'id' and col in dframe.columns:
+            dframe[col] = lstm_symptoms[col].values
+            replaced.append(col)
+    return dframe.reset_index()
+
+def load_mdasi(file = None,use_lstm=False):
     if file is None:
         file = Const.mdasi_folder + 'MDASI_09092021.xlsx'
     if 'xlsx' in file:
         dframe = pd.read_excel(file)
     else:
         dframe = pd.read_csv(file)
+    if use_lstm:
+        dframe = add_lstm_stuff(dframe)
     dframe =filter_bad_mdasi_rows(dframe)
     dframe = format_mdasi_columns(dframe)
     dframe = add_binary_clinical_stuff(dframe)
@@ -402,10 +415,14 @@ def add_late_outcomes(df,min_date = 14):
     print([(c,df[c].mean()) for c in df.columns if 'late_symptoms' in c or '6wk_symptoms' in c])
     return df
 
-def impute_and_group(df,use_domains=True):
-    idf = impute_symptom_df(df)
+def group_symptoms(idf,use_domains=True):
     idf = get_grouped_symptoms(idf,use_domains=use_domains)
     return add_late_outcomes(idf)
+    
+def impute_and_group(df,skip_inpute=False,use_domains=True):
+    if not skip_inpute:
+        df = impute_symptom_df(df)
+    return group_symptoms(df,use_domains=use_domains)
 
 def df_to_symptom_array(df,use_groups = True, use_domains = False, simplify = False):
     df = df.copy()

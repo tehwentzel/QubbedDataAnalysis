@@ -171,7 +171,8 @@ class RadDataset():
         
         dvh_df = self.clean_dvh_df(dvh_df)
         #changes Lt and Rt so that Lt is the side with the higher dose
-        self.dvh_df = set_dvh_lt_ipsilateral(dvh_df)
+        dvh_df = set_dvh_lt_ipsilateral(dvh_df) 
+        self.dvh_df = dvh_df
         self.all_patient_ids = sorted(self.dvh_df.id.values)
 
     def clean_dvh_df(self, df, organ_rename_dict = None):
@@ -214,7 +215,7 @@ class RadDataset():
             if organ not in rois:
                 entry = pd.Series([pid,'missing',organ],index=['id','Structure','ROI'])
                 pdf = pdf.append(entry,ignore_index=True)
-        return pdf
+        return pdf.reset_index()
     
     def add_missing_organs(self,df):
         dfs = []
@@ -804,25 +805,39 @@ class MdasiOrganData(OrganData):
             oars[oname] = odata
         return oars
     
-def set_dvh_lt_ipsilateral(dvh_df):
+def set_dvh_lt_ipsilateral(ddf,organ_list=None,print_diff = False):
     #change lt and rt laterality so Lt is the side with higher mean dose
-    df = dvh_df.copy()
+    df = ddf.copy()
     lt_rois = set([roi for roi in df.ROI.values if 'Lt_' in roi])
     rt_rois = set([roi for roi in df.ROI.values if 'Rt_' in roi])
-#     good = []
+    new_df = []
     for pid,subdf in df.groupby('id'):
+        organ_order = subdf.ROI.values.tolist()
         lt_side = subdf[subdf.ROI.apply(lambda x: x in lt_rois)]
         rt_side = subdf[subdf.ROI.apply(lambda x: x in rt_rois)]
-        lt_mean_dose = np.nanmean(lt_side.mean_dose + lt_side.V55)
-        rt_mean_dose = np.nanmean(rt_side.mean_dose + rt_side.V55)
-        if rt_mean_dose <= .01:
-            continue
-        ratio = (lt_mean_dose/rt_mean_dose)
-#         good.append(((lt_side.mean_dose.values > rt_side.mean_dose.values).mean() > .5) == (ratio > 1))
-        if ratio < 1:
-            df.loc[lt_side.index,'ROI'] = df.loc[lt_side.index].ROI.apply(lambda x: x.replace('Lt_','Rt_'))
-            df.loc[rt_side.index,'ROI'] = df.loc[rt_side.index].ROI.apply(lambda x: x.replace('Rt_','Lt_'))
-#     print(np.mean(good))
+        lt_mean_dose = np.nansum(lt_side.mean_dose)
+        rt_mean_dose = np.nansum(rt_side.mean_dose)
+#         if np.isnan(lt_mean_dose) or np.isnan(rt_mean_dose):
+#             new_df.append(subdf)
+#             continue
+        if pid in [176,264,124]:
+            print(pid,lt_mean_dose,rt_mean_dose)
+        if lt_mean_dose < rt_mean_dose:
+            subdf.loc[lt_side.index,'ROI'] = subdf.loc[lt_side.index].ROI.apply(lambda x: x.replace('Lt_','Rt_'))
+            subdf.loc[rt_side.index,'ROI'] = subdf.loc[rt_side.index].ROI.apply(lambda x: x.replace('Rt_','Lt_'))
+        old_index = subdf.index
+        subdf = subdf.set_index('ROI')
+        subdf = subdf.loc[organ_order]
+        subdf = subdf.reset_index()
+        subdf.index = old_index
+        new_df.append(subdf)
+    df = pd.concat(new_df)
+    if print_diff:
+        roi1 = ddf.ROI.values.tolist()
+        roi2 = df.ROI.values.tolist()
+        for r1,r2 in zip(roi1,roi2):
+            if r1 != r2:
+                print(r1,r2)
     return df
  
 def rename_gtvs(gtvlist):

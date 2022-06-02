@@ -19,6 +19,8 @@ class Const():
     organ_similarity_results_json = data_dir + 'patient_organ_similarity.json'
     symptom_similarity_results_json = data_dir + 'patient_symptom_similarity.json'
     
+    lstm_symptom_file = data_dir + 'LSTM-imputed-all-2.csv'
+    
     organ_svg_files = [ "../resources/" + 'hnc_organs_' + s + '.svg' for s in ['left','center','right','both']]
     
     organ_list = [

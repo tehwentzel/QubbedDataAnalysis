@@ -49,11 +49,12 @@ def merge_dose_symptom_dfs(imputed_symptom_df,rds,dvh_cols=None,roll_up=True):
     print('dose ids:',n_dose,'syptom ids:',n_imputed,'merged ids:',n_merged)
     return merged
 
-def get_merged_symp_dose_df(rds=None,**kwargs):
+def get_merged_symp_dose_df(rds=None,use_lstm=False,**kwargs):
     if rds is None:
         rds = RadDataset()
-    df = load_mdasi()
-    imputed_df = impute_and_group(df,use_domains=False)
+
+    df = load_mdasi(use_lstm=use_lstm)
+    imputed_df = impute_and_group(df,skip_inpute=use_lstm,use_domains=False)
     merged = merge_dose_symptom_dfs(imputed_df,rds,**kwargs)
     return merged
 
