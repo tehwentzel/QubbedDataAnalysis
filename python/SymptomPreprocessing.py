@@ -205,13 +205,18 @@ def add_lstm_stuff(dframe):
             replaced.append(col)
     return dframe.reset_index()
 
-def load_mdasi(file = None,use_lstm=False):
-    if file is None:
-        file = Const.mdasi_folder + 'MDASI_09092021.xlsx'
+
+def read_table(file):
     if 'xlsx' in file:
         dframe = pd.read_excel(file)
     else:
         dframe = pd.read_csv(file)
+    return dframe
+
+def load_mdasi(file = None,use_lstm=False):
+    if file is None:
+        file = Const.mdasi_folder + 'MDASI_09092021.xlsx'
+    dframe = read_table(file)
     if use_lstm:
         dframe = add_lstm_stuff(dframe)
     dframe =filter_bad_mdasi_rows(dframe)
@@ -419,9 +424,27 @@ def group_symptoms(idf,use_domains=True):
     idf = get_grouped_symptoms(idf,use_domains=use_domains)
     return add_late_outcomes(idf)
     
-def impute_and_group(df,skip_inpute=False,use_domains=True):
+def fill_missing_symptoms(mdasi):
+    mdasi= mdasi.copy()
+    scols = [c for c in mdasi.columns if 'symptoms_' in c]
+    def inpute_previous(array,col):
+        for i, val in enumerate(array):
+            if pd.isnull(val):
+                if i == 0:
+                    array[i] = mdasi[~pd.isnull(mdasi[col])][col].median()
+                else:
+                    array[i] = array[i-1]
+        #list because it saves better
+        return list(np.array(array).astype(float))
+    for col in scols:
+        mdasi[col] = mdasi[col].apply(lambda x: inpute_previous(x,col))
+    return mdasi
+
+def impute_and_group(df,skip_inpute=False,fill_na=True,use_domains=True):
     if not skip_inpute:
         df = impute_symptom_df(df)
+    elif fill_na:
+        df = fill_missing_symptoms(df)
     return group_symptoms(df,use_domains=use_domains)
 
 def df_to_symptom_array(df,use_groups = True, use_domains = False, simplify = False):
