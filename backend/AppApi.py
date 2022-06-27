@@ -154,8 +154,11 @@ def add_total_doses(df,cols):
             df['total_'+col] = df[col].apply(np.sum)
     return df
 
-def load_dose_symptom_data():
-    data = pd.read_csv(Const.data_dir + 'dose_symptoms_merged.csv')
+def load_dose_symptom_data(use_lstm=False):
+    if use_lstm:
+        data = pd.read_csv(Const.data_dir + 'lstm_dose_symptoms_merged.csv')
+    else:
+        data = pd.read_csv(Const.data_dir + 'dose_symptoms_merged.csv')
     to_drop = [c for c in data.columns if 'symptom' in c and ('symptoms_' not in c or 'original' in c)]
     data = data.drop(to_drop,axis=1)
     dose_cols = get_df_dose_cols(data)
@@ -452,6 +455,7 @@ def add_dose_pca(df, features,organs=None,n_dims=3):
         oidx = [Const.organ_list.index(i) for i in organs if i in Const.organ_list]
         for f in features:
             df[f] = df[f].apply(lambda x: [x[i] for i in oidx])
+            df = df.copy()
     dose_x = np.stack(df[features].apply(lambda x: np.stack(x).ravel(),axis=1).values)
     dose_x_pca = PCA(n_dims).fit_transform(dose_x)
     return [x.tolist() for x in dose_x_pca]
@@ -470,10 +474,11 @@ def sddf_to_json(df,
     if add_pca:
         if dose_pca_features is None:
             dose_pca_features = ['V35','V40','V45','V50','V55','V60','V65']
-
+        df =df.copy() #fragmentation issues
         df['dose_pca'] = add_dose_pca(df,dose_pca_features) 
         if pca_organs is not None and len(pca_organs)*len(dose_pca_features) > 3:
             df['cluster_organ_pca'] = add_dose_pca(df,dose_pca_features,pca_organs,3)
+        
         symptom_cols = [c for c in df.columns if 'symptoms_' in c and 'original' not in c] 
         valid_sd = [i for i,date in enumerate(df.dates.iloc[0]) if date <= 33]
         late_sd = [i for i,date in enumerate(df.dates.iloc[0]) if date <= 33 and date > 7]
@@ -482,7 +487,7 @@ def sddf_to_json(df,
             symptom_x = np.stack(df[symptom_cols].apply(lambda x: np.stack([x[i] for i in pos_list]).ravel(),axis=1).values)
             symptom_x_pca = PCA(3).fit_transform(symptom_x)
             df['symptom_'+name+'_pca'] = [x.tolist() for x in symptom_x_pca]
-    
+        df = df.copy() #fragmentation issues
     is_dose_dvh = lambda x: re.match('D[0-9][0-9]?',x) is not None
     vol_dvh_too_high = lambda x: re.match('V[0-18-9][0-9]?',x) is not None
     for c in df.columns:
@@ -561,19 +566,23 @@ def multi_var_tests(df, testcols, ycol,xcols,
         results['odds_ratio_' + str(testcol)]= odds[testcol]
     return results
 
-
 def select_single_organ_cluster_effects(df,
-                                        symptoms=None,
+                                        symptom=None,
                                         base_organs=None,
                                         covars=None,
                                         n_clusters=4,
                                         clustertype=None,
-                                        threshold=None,
+                                        thresholds=None,
                                         drop_base_cluster=True,
                                         features=None,
+                                        clusters=None,
                                         organ_list=None):
     if base_organs is None:
         base_organs = []
+    if thresholds is None:
+        thresholds = [5]
+    if clusters is None:
+        clusters = [None,n_clusters-1]
     if organ_list is None:
         #imma just skip stuff that's like probably not relevant for this usage
         exclude = set(['Brainstem',"Spinal_Cord",
@@ -584,25 +593,24 @@ def select_single_organ_cluster_effects(df,
                     'Thyroid_cartilage',
                   ])
         organ_list = [o for o in Const.organ_list if o not in exclude]
-    if symptoms is None:
-        symptoms=Const.symptoms[:]
-    if isinstance(symptoms,str):
-        symptoms=[symptoms]
-    df = add_late_symptoms(df,symptoms)
+    if symptom is None:
+        symptom = drymouth
+
+    df = add_late_symptoms(df,[symptom])
     df = add_confounder_dose_limits(df)
-    olists = [base_organs] if len(base_organs) > 0 else []
+    
+    olists = []
     for o in organ_list:
         if o in base_organs:
-            continue
-        if 'Rt_' in o:
-            continue
-        new_list = [o]
-        if len(base_organs) > 0:
-            new_list = new_list + base_organs
-        if 'Lt_' in o:
-            new_list.append(o.replace('Lt_','Rt_'))
-        if len(new_list) > len(base_organs):
-            olists.append(new_list)
+            new_list = [bo for bo in base_organs if bo != o]
+            if len(new_list) > 0:
+                olists.append(new_list)
+        else:
+            new_list = [o]
+            if len(base_organs) > 0:
+                new_list = new_list + base_organs
+            if len(new_list) > len(base_organs):
+                olists.append(new_list)
     if covars is None:
         covars = [
             'Parotid_Gland_limit',
@@ -612,24 +620,29 @@ def select_single_organ_cluster_effects(df,
          ]
     df = df.copy()
     df['total_dose'] = df.mean_dose.apply(lambda x: np.sum(x))
-    results = []
-    base_pval = 1
-    completed_clusters = set([])
     
     clusterer = None
     if clustertype is not None:
         clusterer = keyword_clusterer(clustertype,n_clusters)
-        
-    rlist = joblib.Parallel(n_jobs=-2)(joblib.delayed(parallel_cluster_lrt)((
-        df,olist,base_organs,symptoms,covars,features,clusterer,n_clusters,clustertype,threshold,drop_base_cluster,
-    )) for olist in olists)
-    for rl in rlist:
-        results.extend(rl)
-    results= sorted(results,key=lambda x: -x['ttest_tval_x'+str(n_clusters-1)])
+    
+    top_c = str(n_clusters-1)
+    results = []
+    for cluster in clusters:
+        for threshold in thresholds:
+            make_args = lambda ol: (df,ol,base_organs,symptom,covars,cluster,features,clusterer,n_clusters,clustertype,threshold,drop_base_cluster,)
+            if len(base_organs) > 0:
+                base_results = parallel_cluster_lrt(make_args(base_organs))
+            rlist = joblib.Parallel(n_jobs=-2)(joblib.delayed(parallel_cluster_lrt)(make_args(olist)) for olist in olists)
+            print(len(rlist),len(olists))
+            for rl_item in rlist:
+                for key in ['lrt_pval','aic_diff','bic_diff']:
+                    rl_item[key+'_base'] = base_results[key] 
+                results.append(rl_item)
+    results= sorted(results,key=lambda x: x['bic_diff'])
     return results
 
 def parallel_cluster_lrt(args):
-    [df,olist,base_organs,symptoms,covars,features,clusterer,n_clusters,clustertype,threshold,drop_base_cluster] = args
+    [df,olist,base_organs,symptom,covars,cluster,features,clusterer,n_clusters,clustertype,threshold,drop_base_cluster] = args
     prefix = '_'.join(olist)+'_'
     df  = add_sd_dose_clusters(
         df,
@@ -640,35 +653,43 @@ def parallel_cluster_lrt(args):
         n_clusters=n_clusters,
     )
     clustname = prefix+'dose_clusters'
-    xvals = []
-    base_pval = 1
-    for cval in df[clustname].unique():
-        if cval == 0 and drop_base_cluster:
-            continue
-        df['x'+str(cval)] = (df[clustname] == cval).astype(int)
-        xvals.append('x'+str(cval))
-    results=[]
-    for symptom in symptoms:
-        outcome = symptom + '_late'
-        if threshold is None:
-            df['y'] = df[outcome]
-        else:
-            df['y'] = (df[outcome] >= threshold)
-        res = multi_var_tests(df,xvals,'y',covars,boolean=(threshold is not None))
-        entry = {
-            'outcome':outcome,
-            'base_organs':base_organs,
-            'added_organs':sorted(set(olist)-set(base_organs)),
-            'threshold':threshold,
-            'clustertype':clustertype,
-        }
-        if ''.join(olist) == ''.join(base_organs):
-            base_pval = res['lrt_pval']
-        entry['pval_change'] = base_pval - res['lrt_pval']
-        for k,v in res.items():
+    
+    if cluster is not None and cluster > 0:
+        df['x'] = (df[clustname] == cluster).astype(int)
+        xvals = ['x']
+    else:
+        xvals = []
+        for cval in df[clustname].unique():
+            if cval == 0 and drop_base_cluster:
+                continue
+            df['x'+str(cval)] = (df[clustname] == cval).astype(int)
+            xvals.append('x'+str(cval))
+        
+    outcome = symptom + '_late'
+    if threshold is None:
+        df['y'] = df[outcome]
+    else:
+        df['y'] = (df[outcome] >= threshold)
+    res = multi_var_tests(df,xvals,'y',covars,boolean=(threshold is not None))
+    
+    added = '-'.join(sorted(set(olist)-set(base_organs)))
+    removed=False
+    if len(added) <= 0:
+        added = '-'.join(sorted(set(base_organs)-set(olist)))
+        removed = True
+    entry = {
+        'symptom':symptom,
+        'base_organs':'-'.join(base_organs),
+        'added_organs':added,
+        'removed': removed,
+        'threshold':threshold if threshold is not None else 0,
+#         'clustertype':clustertype,
+        'cluster': cluster if cluster is not None else -1,
+    }
+    for k,v in res.items():
+        if 'ttest' not in k:
             entry[k] = v
-        results.append(entry)
-    return results
+    return entry
 
 def get_sample_cluster_metrics_input():
     with open(Const.data_dir+'cluster_post_test.json','r') as f:

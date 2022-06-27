@@ -10,7 +10,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 
 import PatientScatterPlotD3 from './PatientScatterPlotD3.js';
-import DoseEffectViewD3 from './DoseEffectViewD3.js';
+import DoseEffectView from './DoseEffectView.js';
 import SymptomPlotD3 from './SymptomPlotD3.js';
 import Spinner from 'react-bootstrap/Spinner';
 import PatientDoseView from './PatientDoseView.js';
@@ -154,18 +154,20 @@ export default function OverView(props){
     function makeEffectPlot(){
         if(props.clusterData != undefined & props.additiveClusterResults != undefined){
             return (
-                <Container key={props.mainSymptom} className={'noGutter fillSpace'}>
-                    <DoseEffectViewD3
+                    <DoseEffectView
                         doseData={props.doseData}
                         clusterData={props.clusterData}
-                        effectData={props.additiveClusterResults}
+                        additiveClusterResults={props.additiveClusterResults}
                         clusterOrgans={props.clusterOrgans}
                         activeCluster={props.activeCluster}
                         symptomsOfInterest={props.symptomsOfInterest}
                         mainSymptom={props.mainSymptom}
                         svgPaths={props.svgPaths}
-                    ></DoseEffectViewD3>
-                </Container>
+                        additiveCluster={props.additiveCluster}
+                        additiveClusterThreshold={props.additiveClusterThreshold}
+                        setAdditiveCluster={props.setAdditiveCluster}
+                        setAdditiveClusterThreshold={props.setAdditiveClusterThreshold}
+                    ></DoseEffectView>
             )
         } else{
             return (

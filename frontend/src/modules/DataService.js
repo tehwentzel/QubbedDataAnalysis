@@ -152,17 +152,17 @@ export default class DataService {
     }
 
     async getAdditiveOrganClusterEffects(baseOrgans,nClusters,features,clusterType,
-        symptoms,confounders,threshold,dropBaseCluster){
+        symptom,confounders,thresholds,clusters){
         try{
             let params = {
-                symptoms:symptoms,
+                symptom:symptom,
                 clusterType:clusterType,
                 nClusters:nClusters,
                 features:features,
                 baseOrgans:baseOrgans,
                 confounders:confounders,
-                threshold:threshold,
-                dropBaseCluseter:dropBaseCluster,
+                // thresholds:thresholds,
+                clusters:clusters,
             }
             let qstring = '/single_organ_effects';
             qstring += this.getParamList(params);

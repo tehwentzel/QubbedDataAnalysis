@@ -25,7 +25,7 @@ function App() {
   const [clusterData,setClusterData] = useState(null);
   //organs used to cluster the patients
   const [clusterOrgans,setClusterOrgans] = useState([
-    'Tongue','Genioglossus_M','Mylogeniohyoid_M',
+    'Tongue',
     'Rt_Parotid_Gland','Lt_Parotid_Gland',
     'Rt_Submandibular_Gland','Lt_Submandibular_Gland',
   ])
@@ -36,13 +36,15 @@ function App() {
   //# of clusters used
   const [nDoseClusters,setNDoseClusters] = useState(3);
   //which dose features we use for each organ
-  const [clusterFeatures,setClusterFeatures] = useState(['V40','V45','V50','V55','V60']);
+  const [clusterFeatures,setClusterFeatures] = useState(['V35','V40','V45','V50','V55','V60']);
   //used to determine the confounders used in the models for determining p-values
   const [lrtConfounders,setLrtConfounders] = useState([
-    't3','t4',
-    'n_severe','hpv',
-    'Parotid_Gland_limit','Esophagus_limit',
-    'total_mean_dose',
+    't_severe',
+    'n_severe',
+    'hpv',
+    'BOT','Tonsil',
+    'Parotid_Gland_limit',
+    'performance_1','performance_2',
   ]);
   //which variable is being ploted when showing patient dose distirbutions
   const [plotVar,setPlotVar] = useState('V55');
@@ -57,6 +59,8 @@ function App() {
   const [showContralateral,setShowContralateral] = useState(true);
   //data results from testin the effects of other organs on clustering results
   const [additiveClusterResults,setAdditiveClusterResults] = useState(null);
+  const [additiveClusterThreshold,setAdditiveClusterThreshold] = useState(5);
+  const [additiveCluster, setAdditiveCluster] = useState(-1);
   //I dont think I use this
   const [clusterMetricData,setClusterMetricData] = useState(null);
   //which symptoms we're including in the plots
@@ -107,7 +111,7 @@ function App() {
   //the cluster we should use for the rule mining when predicing symptoms.  default undefined means using the whole cohort
   const [ruleCluster,setRuleCluster] = useState();
   //the max # of splits to allow
-  const [ruleMaxDepth,setRuleMaxDepth] = useState(3);
+  const [ruleMaxDepth,setRuleMaxDepth] = useState(2);
   //used to filter out the best rules at each depth
   const [maxRules,setMaxRules] = useState(5);
   //what to use to determine optimal splits. currently 'info' or 'odds ratio'
@@ -116,7 +120,7 @@ function App() {
   const [ruleTargetCluster,setRuleTargetCluster] = useState(-1)
   const [ruleUseAllOrgans,setRuleUseAllOrgans] = useState(false);
 
-  const [metricsModelType,setMetricsModelType] = useState('forest');
+  const [metricsModelType,setMetricsModelType] = useState('regression');
   //hnc diagram svg patths
   const [svgPaths,setSvgPaths] = useState();
 
@@ -193,18 +197,22 @@ function App() {
     resetSelections();
   }
 
-  var fetchAdditiveEffects= async(org,nClust,clustFeatures,clusterType,soi,lrtConfounders) => {
-    // setAdditiveClusterResults(undefined);
-    // const response = await api.getAdditiveOrganClusterEffects(
-    //   org,
-    //   nClust,
-    //   clustFeatures,
-    //   clusterType,
-    //   soi,
-    //   lrtConfounders,
-    // );
-    // // console.log('fetched addtive',response.data);
-    // setAdditiveClusterResults(response.data);
+  var fetchAdditiveEffects= async(org,nClust,clustFeatures,clusterType,symp,lrtConfounders,thresholds,clusters) => {
+    setAdditiveClusterResults(undefined);
+    console.log('aadditive clusters',clusters)
+    if(clusterDataLoading){ return; }
+    const response = await api.getAdditiveOrganClusterEffects(
+      org,
+      nClust,
+      clustFeatures,
+      clusterType,
+      symp,
+      lrtConfounders,
+      thresholds,
+      clusters,
+    );
+    // console.log('fetched addtive',response.data);
+    setAdditiveClusterResults(response.data);
   }
 
   var fetchClusterMetrics = async(cData,lrtConfounders,symptom,mType)=>{
@@ -247,12 +255,12 @@ function App() {
 
     fetchDoseData(clusterOrgans,clusterFeatures);
     fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest);
-    fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,symptomsOfInterest);
+    fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,mainSymptom,lrtConfounders,[additiveClusterThreshold],[additiveCluster]);
   },[])
 
 
   useEffect(() => {
-    if(!clusterDataLoading){
+    if(clusterData !== undefined & clusterData !== null){
       // console.log('cluster organ query', clusterOrgans)
       fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest);
     }
@@ -270,9 +278,9 @@ function App() {
 
   useEffect(function updateEffect(){
     if(clusterData !== undefined & !clusterDataLoading){
-      fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,[mainSymptom],lrtConfounders);
+      fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,mainSymptom,lrtConfounders,[additiveClusterThreshold],[additiveCluster]);
     }
-  },[clusterData,mainSymptom,clusterDataLoading,lrtConfounders])
+  },[clusterDataLoading,clusterData,mainSymptom,clusterDataLoading,lrtConfounders,additiveClusterThreshold,additiveCluster])
 
   useEffect(function updateRuleCluster(){
     if(ruleCluster !== null & ruleCluster !== undefined & ruleCluster !== activeCluster){
@@ -296,8 +304,7 @@ function App() {
         [mainSymptom],clusterFeatures,ruleThreshold,
         ruleCluster,ruleMaxDepth,maxRules,ruleCriteria,ruleTargetCluster);
     }
-  },[clusterData,clusterOrgans,mainSymptom,
-    clusterFeatures,ruleThreshold,ruleCluster,
+  },[clusterData,mainSymptom,ruleThreshold,ruleCluster,
     clusterDataLoading,ruleMaxDepth,maxRules,
     ruleCriteria,ruleTargetCluster,ruleUseAllOrgans])
   
@@ -340,6 +347,10 @@ function App() {
             setRuleTargetCluster={setRuleTargetCluster}
             ruleUseAllOrgans={ruleUseAllOrgans}
             setRuleUseAllOrgans={setRuleUseAllOrgans}
+            additiveCluster={additiveCluster}
+            additiveClusterThreshold={additiveClusterThreshold}
+            setAdditiveCluster={setAdditiveCluster}
+            setAdditiveClusterThreshold={setAdditiveClusterThreshold}
         ></OverView>
     </Row>
     )
@@ -356,6 +367,7 @@ function App() {
                   clusterFeatures={clusterFeatures}
                   setClusterFeatures={setClusterFeatures}
                   clusterDataLoading={clusterDataLoading}
+                  setClusterDataLoading={setClusterDataLoading}
                   updateClusterOrgans={updateClusterOrgans}
                   plotVar={plotVar}
                   setPlotVar={setPlotVar}

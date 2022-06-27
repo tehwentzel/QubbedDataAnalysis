@@ -86,12 +86,6 @@ def get_single_organ_effects():
     
     n_clusters = request.args.get('nClusters',4)
     clustertype = request.args.get('clusterType',None)
-    drop_base_cluster=request.args.get('dropBaseCluster',False)
-    threshold = request.args.get('threshold',None)
-
-    threshold = as_float(threshold)
-    if threshold is not None and threshold < 0:
-        threshold = None
 
     if n_clusters is None:
         n_clusters = 0
@@ -101,17 +95,33 @@ def get_single_organ_effects():
     if len(covars) <= 0:
         covars = None
     # print('effect covars',covars)
+
+
+    thresholds = request.args.getlist('thresholds')
+    if len(thresholds) <= 0:
+        thresholds = None
+    else:
+        thresholds = [int(t) for t in thresholds]
+
+    clusters = request.args.getlist('clusters')
+    if len(clusters) <= 0:
+        clusters = None
+    else:
+        clusters = [int(c) for c in clusters]
+
+    symptom = request.args.get('symptom')
+
     vals = select_single_organ_cluster_effects(
         data,
-        symptoms=symptoms,
+        symptom=symptom,
         base_organs=base_organs,
         covars=covars,
         n_clusters=n_clusters,
-        threshold=threshold,
+        clusters=clusters,
+        thresholds=thresholds,
         features=features,
         clustertype=clustertype,
         organ_list=organ_list,
-        drop_base_cluster=drop_base_cluster,
     )
 
     response = responsify(vals)
@@ -148,7 +158,7 @@ def get_dose_cluster_json():
     organ_list = request.args.getlist('organs')
     if len(organ_list) <= 0:
         organ_list = None
-    n_clusters = request.args.get('nClusters',4)
+    n_clusters = request.args.get('nClusters',3)
     clustertype = request.args.get('clusterType',None)
     # print('cluster type argument',clustertype)
     cluster_features = request.args.getlist('clusterFeatures')
@@ -159,9 +169,7 @@ def get_dose_cluster_json():
     if len(covars) <= 0:
         covars = None
 
-    symptoms = request.args.getlist('symptoms')
-    if len(symptoms) <= 0:
-        symptoms = None
+    
 
     # print('cluster symptoms',symptoms)
     ddict = get_cluster_json(data,
@@ -170,7 +178,6 @@ def get_dose_cluster_json():
         clustertype=clustertype,
         features=cluster_features,
         confounders=covars,
-        symptoms=symptoms,
     )
     # print('features for clusering',cluster_features)
     response = responsify(ddict)

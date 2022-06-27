@@ -16,10 +16,18 @@ export default function ClusterControlPanel(props){
     const nClusterOptions = [2,3,4,5,6,7,8];
     const clusterTypeOptions = ['bgmm','gmm','kmeans','ward','spectral',];
     const lrtConfounderOptions = [
-        't4','n3','BOT','Tonsil',
-        't3','n2','t_severe','n_severe',
-        'hpv','total_mean_dose','Parotid_Gland_limit',
-        'IPC_limit','MPC_limit','SPC_limit','Larynx_limit',
+        't4','n3',
+        'BOT','Tonsil',
+        't3','n2',
+        't_severe','n_severe',
+        'hpv',
+        'total_mean_dose',
+        'Parotid_Gland_limit',
+        'IPC_limit','MPC_limit','SPC_limit',
+        'Larynx_limit',
+        'age','age_65',
+        'IMRT','VMAT','IMPRT',
+        'performance_1','performance_2','performance_high',
     ]
 
     const [featureButtons,setFeatureButtons] = useState(<></>);
@@ -79,6 +87,7 @@ export default function ClusterControlPanel(props){
         //since it would trigger a cluster api call half way through,
         //in case this is a future issue.
         //also tis doesnt work if one of these becomes asynce for some reason
+        props.setClusterDataLoading(true);
         if(tempClusterFeatures !== undefined & tempClusterFeatures.length > 0){
             let tempF = tempClusterFeatures.slice();
             props.setClusterFeatures(tempF)

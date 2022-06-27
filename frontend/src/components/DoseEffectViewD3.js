@@ -7,12 +7,15 @@ export default function DoseEffectViewD3(props){
     const d3Container = useRef(null);
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [pathsDrawn, setPathsDrawn] = useState(false);
-    const metric = 'aic_diff';
+    const metric = 'bic_diff';
+    const useChange = true;
     const metricTransform = x => -x;
     // console.log("dose effect",props,height,width)
 
     useEffect(function drawBorders(){
+        console.log('additive', props.svgPaths,props.effectData, svg)
         if(svg !== undefined & props.svgPaths !== undefined & props.effectData !== undefined){
+            console.log('drawborders')
             svg.selectAll('g').remove();
             svg.selectAll('path').remove();
             setPathsDrawn(false);
@@ -21,16 +24,16 @@ export default function DoseEffectViewD3(props){
             var effectOrgans = new Set();
             for(let olist of addedOrgans){
                 for(let organ of olist){
-                    if(organ.includes('Rt_') | props.clusterOrgans.indexOf(organ) >= 0){
-                        continue;
-                    } else{
-                        effectOrgans.add(organ)
-                    }
+                    if(props.clusterOrgans.indexOf(organ) < 0) { effectOrgans.add(organ); }
+                    // if(organ.includes('Rt_') | props.clusterOrgans.indexOf(organ) >= 0){
+                    //     continue;
+                    // } else{
+                    //     effectOrgans.add(organ)
+                    // }
                 }
             }
 
-            let dataSubset = props.effectData.filter(x=>x.outcome.includes(props.mainSymptom))
-            let baseline = dataSubset.filter(x=>x.added_organs.length <= 0)[0];
+            let dataSubset = props.effectData.filter(x=>x.symptom.includes(props.mainSymptom))
             
             var getDatapoint = (o) => {
                 let d = dataSubset.filter(x=>x.added_organs.includes(o));
@@ -43,7 +46,11 @@ export default function DoseEffectViewD3(props){
                 } else if(d[metric] === undefined){
                     return undefined;
                 }
-                return metricTransform(d[metric])
+                let v = d[metric];
+                if(useChange & (d[metric+'_base'] !== undefined) ){
+                    v = v - d[metric+'_base'];
+                }
+                return metricTransform(v)
             }
 
             let getClass = (d)=>{
@@ -100,10 +107,21 @@ export default function DoseEffectViewD3(props){
             let colorScale = d3.scaleLinear()
                 .domain([minVal,maxVal])
                 .range([0,1])
+            let interp = d3.interpolateBlues;
+            // let inclusterInterp = d3.interpolateReds;
+
+            if(minVal < 0){
+                colorScale = d3.scaleDiverging()
+                    .domain([minVal,0,maxVal])
+                    .range([0,.5,1])
+                interp = d3.interpolateGnBu;
+                // inclusterInterp = d3.interpolatePiYG;
+            }
 
             let getColor = (d)=>{
                 //fix later to have actual colors
                 let value = d.value;
+                console.log(d.organ,props.clusterOrgans.indexOf(d.organ))
                 if(value === undefined){
                     if(props.clusterOrgans.indexOf(d.organ) >= 0){
                         return 'red';
@@ -111,7 +129,10 @@ export default function DoseEffectViewD3(props){
                         return 'grey';
                     }
                 }
-                return d3.interpolateBlues(colorScale(value))
+                // if(props.clusterOrgans.indexOf(d.organ) >= 0){
+                //     return inclusterInterp(colorScale(value));
+                // }
+                return interp(colorScale(value))
             }
 
             svg.selectAll('g').filter('.organGroup').remove();
@@ -120,6 +141,7 @@ export default function DoseEffectViewD3(props){
             
             organGroup.selectAll('.organPath').remove();
 
+            const getStroke = d => (props.clusterOrgans.indexOf(d.organ) < 0)? 0.1:.6;
             const organShapes = organGroup
                 .selectAll('path').filter('.organPath')
                 .data(pathData)
@@ -128,20 +150,20 @@ export default function DoseEffectViewD3(props){
                 .attr('d',x=>x.path)
                 .attr('fill', x=>getColor(x))
                 .attr('stroke','black')
-                .attr('stroke-width','.1')
+                .attr('stroke-width',getStroke)
                 .on('mouseover',function(e){
                     let d = d3.select(this).datum();
                     let tipText = '';
-                    let keys = ['organ','pval_change','lrt_pval','aic_diff','bic_diff'];
-                    for(let key of Object.keys(d)){
+                    let keys = ['organ','threshold','cluster','lrt_pval','aic_diff','bic_diff'];
+                    for(let key of keys){
                         if(d[key] !== undefined){
-                            if(keys.indexOf(key) > -1 | key.includes('tval') | key.includes('pval')){
-                                tipText += key + ': '+ d[key] + '</br>';
+                            tipText += key + ': '+ d[key] + '</br>';
+                            let basekey = key+'_base'
+                            if(d[basekey] !== undefined){
+                                tipText += basekey + ': '+ d[basekey] + '</br>';
                             }
                         }
                     }
-                    // let tipText = d.organ+ '</br>' 
-                    // + metric + ': ' + d[metric] + '</br>';
                     tTip.html(tipText);
                 }).on('mousemove', function(e){
                     Utils.moveTTipEvent(tTip,e);

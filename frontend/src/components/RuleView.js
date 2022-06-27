@@ -29,15 +29,22 @@ export default function RuleView(props){
     const filterCluster = parseInt(props.ruleCluster) === parseInt(props.activeCluster)
 
     function makeRow(rule,key){
-        let title = 'OR: ' + rule.odds_ratio.toFixed(2) 
-            + ' |Info Gain: ' + rule.info.toFixed(3)   
-            + ' |ROC:' + rule.roc_auc.toFixed(2)
-            + ' |F1:' + rule.f1.toFixed(2) 
-            + ' |Prsn:' + rule.precision.toFixed(2) 
-            + ' |Rcl:' + rule.recall.toFixed(2);
+        const fix = val => {
+            if(val === undefined | val === null){
+                return 'N/A';
+            } else{
+                return val.toFixed(3)
+            }
+        }
+        let title = 'OR: ' + fix(rule.odds_ratio) 
+            + ' |Info Gain: ' + fix(rule.info)   
+            + ' |ROC:' + fix(rule.roc_auc)
+            + ' |F1:' + fix(rule.f1) 
+            + ' |Prsn:' + fix(rule.precision) 
+            + ' |Rcl:' + fix(rule.recall);
         if (props.ruleTargetCluster >= 0){
-            title += ' |Outcome ROC:' + rule.roc_auc_symptom.toFixed(2) 
-            + ' |Outcome F1:' + rule.f1_symptom.toFixed(2);
+            title += ' |Outcome ROC:' + fix(rule.roc_auc_symptom) 
+            + ' |Outcome F1:' + fix(rule.f1_symptom);
         }
 
         return (
