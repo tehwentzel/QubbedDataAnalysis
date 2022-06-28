@@ -38,9 +38,6 @@ export default function SymptomPCPD3(props){
         let xval = plotAxes.indexOf(axName)/plotAxes.length;
         let x = clipUnit(xval) * (width - margin) + margin;
         let y = height - (clipUnit(yval)*(height-margin)) - margin;
-        if(y>height | x > width){
-            console.log(axName,'h:',height,'w:',width,'x:',x,'y:',y,'xval:',xval,'yval:',yval)
-        }
         return [x,y];
     }
 
@@ -120,7 +117,6 @@ export default function SymptomPCPD3(props){
                     pathData.push(dpoint)
                 }
             }
-            // console.log('cdata',pathData)
 
             svg.selectAll('g').filter('.pcpCurveGroup').remove();
             var curveGroup = svg.append('g').attr('class','pcpCurveGroup');

@@ -76,7 +76,6 @@ export default function ClusterControlPanel(props){
     }
 
     function handleChangePlotVar(d,e){
-        // console.log('pvar',d,d!==props.plotVar)
         if(props.plotVar !== d){
             props.setPlotVar(d);
         }
@@ -170,14 +169,12 @@ export default function ClusterControlPanel(props){
     useEffect(function showConfounders(){
         if(tempConfounders === undefined){ return; }
         let cb = makeDropDownList(tempConfounders,lrtConfounderOptions,setTempConfounders)//handleChangeLrtConfounders);
-        // console.log('tempConfounders',tempConfounders,cb)
         setConfounderButtons(cb);
     },[tempConfounders]);
 
     useEffect(function showSymptoms(){
         if(tempSOIs === undefined){ return; }
         let sb = makeDropDownList(tempSOIs,props.allSymptoms,setTempSOIs)//handleChangeSOIs);
-        // console.log('tempConfounders',tempConfounders,cb)
         setSymptomButtons(sb);
     },[tempSOIs,props.allSymptoms])
 

@@ -60,7 +60,6 @@ export default function ClusterCVMetricsD3(props){
                 diffs.push(dEntry);
             }
             
-            console.log('metric data',props.metric,data,diffs)
             setData(data);
             setDataDiffs(diffs);
             setClusterOrder(['baseline'].concat(clusters));
@@ -139,7 +138,6 @@ export default function ClusterCVMetricsD3(props){
             }
         }
 
-        console.log('barpoints',barPoints)
         svg.selectAll('.clusterRect').remove()
         var rects = svg.selectAll('rect').filter('.clusterRect')
             .data(barPoints).enter()
@@ -181,7 +179,6 @@ export default function ClusterCVMetricsD3(props){
             .attr('y',textSize)
             .attr('font-size',2+textSize)
             .html(d=> props.metric + ' (' + symptom + '>'+d.threshold+")");
-        console.log('rects',rects)
         
         
     },[svg,data,dataDiffs])

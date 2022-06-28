@@ -446,7 +446,6 @@ export default function PatientScatterPlotD3(props){
                         //for some reason this doesn't work on the first go still
                         drawHull(newData);
                         setDotsDrawn(true);
-                        console.log('hulls should be drawn');
 
                     })
             }

@@ -167,6 +167,8 @@ export default function OverView(props){
                         additiveClusterThreshold={props.additiveClusterThreshold}
                         setAdditiveCluster={props.setAdditiveCluster}
                         setAdditiveClusterThreshold={props.setAdditiveClusterThreshold}
+                        nDoseCluster={props.nDoseClusters}
+                        clusterFeatures={props.clusterFeatures}
                     ></DoseEffectView>
             )
         } else{

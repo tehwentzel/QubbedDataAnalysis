@@ -332,7 +332,6 @@ export default function RuleViewD3(props){
 
     useEffect(function brush(){
         if(!dotsDrawn | svg === undefined){return}
-        console.log('pid',props.selectedPatientId);
         let dots = svg.selectAll('circle')
         dots.attr('stroke-width',d=>isActive(d)? R:.01)
             .attr('opacity', (d) => isActive(d)? 1: .7)

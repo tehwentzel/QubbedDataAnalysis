@@ -45,7 +45,6 @@ export default function ClusterCVMetrics(props){
     }
     useEffect(function makePlots(){
         if(props.clusterMetricData !== undefined & props.clusterData !== undefined){
-            console.log('metric data outer',props.clusterMetricData)
             let components = metrics.map(makeMetricPlot);
             setVizComponents(components);
         } else{

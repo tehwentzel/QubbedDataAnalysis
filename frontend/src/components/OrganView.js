@@ -159,8 +159,6 @@ export default function OrganView(props){
         } catch{
             console.log('problem getting neighbors', props.organClusters.patients);
         }
-        // console.log("neighbors",pList.map(x=>x.id))
-        // console.log(pList.map(x=>x.similarity))
         const cameraPositionZ = 500;
 
         const getOrganModel = function(organName, scale=1){

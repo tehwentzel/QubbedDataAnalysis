@@ -7,19 +7,20 @@ export default function DoseEffectViewD3(props){
     const d3Container = useRef(null);
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [pathsDrawn, setPathsDrawn] = useState(false);
-    const metric = 'bic_diff';
     const useChange = true;
-    const metricTransform = x => -x;
-    // console.log("dose effect",props,height,width)
+    
 
     useEffect(function drawBorders(){
-        console.log('additive', props.svgPaths,props.effectData, svg)
         if(svg !== undefined & props.svgPaths !== undefined & props.effectData !== undefined){
-            console.log('drawborders')
+            const metric = props.colorMetric;
             svg.selectAll('g').remove();
             svg.selectAll('path').remove();
             setPathsDrawn(false);
 
+            var metricTransform = x => -x;
+            if(metric.includes('pval')){
+                metricTransform = x => -(1/x);
+            }
             var addedOrgans = props.effectData.map(d=>d.added_organs);
             var effectOrgans = new Set();
             for(let olist of addedOrgans){
@@ -33,8 +34,14 @@ export default function DoseEffectViewD3(props){
                 }
             }
 
-            let dataSubset = props.effectData.filter(x=>x.symptom.includes(props.mainSymptom))
+            let dataSubset = props.effectData.filter(x=>x.symptom.includes(props.mainSymptom));
+            let baseline = dataSubset.filter(x => parseInt(x.featurePos) == 0)[0];
+            var baselineValue = 0;
+            if(baseline !== undefined){
+                baselineValue = baseline[metric+'_base'];
+            } 
             
+            dataSubset = dataSubset.filter(x=>parseInt(x.featurePos) == props.fPos);
             var getDatapoint = (o) => {
                 let d = dataSubset.filter(x=>x.added_organs.includes(o));
                 return d[0];
@@ -47,8 +54,8 @@ export default function DoseEffectViewD3(props){
                     return undefined;
                 }
                 let v = d[metric];
-                if(useChange & (d[metric+'_base'] !== undefined) ){
-                    v = v - d[metric+'_base'];
+                if(useChange &  baselineValue !== undefined){
+                    v = v - baselineValue;
                 }
                 return metricTransform(v)
             }
@@ -82,7 +89,6 @@ export default function DoseEffectViewD3(props){
                     organPaths.push(organ);
                 }
             }
-            // console.log('opaths',organPaths)
             for(let organ of organPaths){
                 let entry = {
                     'path': paths[organ],
@@ -107,21 +113,18 @@ export default function DoseEffectViewD3(props){
             let colorScale = d3.scaleLinear()
                 .domain([minVal,maxVal])
                 .range([0,1])
-            let interp = d3.interpolateBlues;
-            // let inclusterInterp = d3.interpolateReds;
+            let interp = props.linearInterpolator;
 
             if(minVal < 0){
                 colorScale = d3.scaleDiverging()
                     .domain([minVal,0,maxVal])
                     .range([0,.5,1])
-                interp = d3.interpolateGnBu;
-                // inclusterInterp = d3.interpolatePiYG;
+                interp = props.divergentInterpolator;
             }
 
             let getColor = (d)=>{
                 //fix later to have actual colors
                 let value = d.value;
-                console.log(d.organ,props.clusterOrgans.indexOf(d.organ))
                 if(value === undefined){
                     if(props.clusterOrgans.indexOf(d.organ) >= 0){
                         return 'red';
@@ -164,6 +167,8 @@ export default function DoseEffectViewD3(props){
                             }
                         }
                     }
+                    tipText += metric + ' improvement: ' + d.value + '</br>'
+                    tipText += 'baseline ' + metric + ': ' + baselineValue;
                     tTip.html(tipText);
                 }).on('mousemove', function(e){
                     Utils.moveTTipEvent(tTip,e);
@@ -176,7 +181,7 @@ export default function DoseEffectViewD3(props){
             transform += ' scale(' + width/box.width + ',' + (-height/box.height) + ')';
             organGroup.attr('transform',transform);
         }
-    },[svg,props.svgPaths,props.effectData,props.clusterOrgans])
+    },[svg,props.svgPaths,props.effectData,props.clusterOrgans,props.colorMetric,props.fPos])
     
     return (
         <div

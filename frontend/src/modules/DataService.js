@@ -98,7 +98,7 @@ export default class DataService {
                 goodPostData[key] = entry
             }
         }
-        console.log('rule post data',goodPostData)
+        // console.log('rule post data',goodPostData)
         if(goodPostData.clusterData === undefined){
             return undefined
         }
@@ -161,14 +161,14 @@ export default class DataService {
                 features:features,
                 baseOrgans:baseOrgans,
                 confounders:confounders,
-                // thresholds:thresholds,
+                thresholds:thresholds,
                 clusters:clusters,
             }
             let qstring = '/single_organ_effects';
             qstring += this.getParamList(params);
             console.log('additiveClusterString',qstring)
             const dataResponse = await this.api.get(qstring);
-            console.log('additiveClusterEffectData',dataResponse);
+            // console.log('additiveClusterEffectData',dataResponse);
             return dataResponse
         }catch(error){
             console.log('error getting additive cluster effects',error);
@@ -179,8 +179,8 @@ export default class DataService {
     async getOrganJson(){
         try{
             const oDataResponse = await this.api.get('/organ_values_denoised');
-            console.log('organ data');
-            console.log(oDataResponse);
+            // console.log('organ data');
+            // console.log(oDataResponse);
             return oDataResponse;
         } catch(error){
             console.log(error)
@@ -190,8 +190,8 @@ export default class DataService {
     async getOrganClusterJson(){
         try{
             const oDataResponse = await this.api.get('/organ_clusters');
-            console.log('organ clusters');
-            console.log(oDataResponse);
+            // console.log('organ clusters');
+            // console.log(oDataResponse);
             return oDataResponse;
         } catch(error){
             console.log(error)
@@ -201,8 +201,8 @@ export default class DataService {
     async getSymptomJson(){
         try{
             const sDataResponse = await await this.api.get('/mdasi');
-            console.log('symptom data');
-            console.log(sDataResponse);
+            // console.log('symptom data');
+            // console.log(sDataResponse);
             return sDataResponse;
         } catch(error){
             console.log(error)
@@ -212,8 +212,8 @@ export default class DataService {
     async getSymptomClusterJson(){
         try{
             const sDataResponse = await await this.api.get('/symptom_clusters');
-            console.log('symptom clusters');
-            console.log(sDataResponse);
+            // console.log('symptom clusters');
+            // console.log(sDataResponse);
             return sDataResponse;
         } catch(error){
             console.log(error)

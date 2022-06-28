@@ -60,7 +60,8 @@ function App() {
   //data results from testin the effects of other organs on clustering results
   const [additiveClusterResults,setAdditiveClusterResults] = useState(null);
   const [additiveClusterThreshold,setAdditiveClusterThreshold] = useState(5);
-  const [additiveCluster, setAdditiveCluster] = useState(-1);
+  //false = use highest dose cluster, ture = use all clusters
+  const [additiveCluster, setAdditiveCluster] = useState(false);
   //I dont think I use this
   const [clusterMetricData,setClusterMetricData] = useState(null);
   //which symptoms we're including in the plots
@@ -191,16 +192,22 @@ function App() {
     setClusterDataLoading(true);
     // console.log('clustering with organs', org)
     const response = await api.getDoseClusterJson(org,nClust,clustFeatures,clusterType,confounders,symptoms);
-    console.log('cluster data',response.data);
+    // console.log('cluster data',response.data);
     setClusterData(response.data);
     setClusterDataLoading(false);
     resetSelections();
   }
 
-  var fetchAdditiveEffects= async(org,nClust,clustFeatures,clusterType,symp,lrtConfounders,thresholds,clusters) => {
+  var fetchAdditiveEffects= async(org,nClust,clustFeatures,clusterType,symp,lrtConfounders,thresholds,useAllClusters) => {
     setAdditiveClusterResults(undefined);
-    console.log('aadditive clusters',clusters)
+    // console.log('aadditive clusters',clusters)
     if(clusterDataLoading){ return; }
+    var clusters;
+    if(useAllClusters){
+      clusters = [-1];
+    } else{
+      clusters = [nDoseClusters-1]
+    }
     const response = await api.getAdditiveOrganClusterEffects(
       org,
       nClust,
@@ -242,7 +249,7 @@ function App() {
         maxDepth,maxR,
         rCriteria,targetCluster,
         ).then(response=>{
-          console.log('rule data main',response);
+          // console.log('rule data main',response);
           setRuleData(response);
       }).catch(error=>{
         console.log('rule data error',error);
@@ -255,7 +262,7 @@ function App() {
 
     fetchDoseData(clusterOrgans,clusterFeatures);
     fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest);
-    fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,mainSymptom,lrtConfounders,[additiveClusterThreshold],[additiveCluster]);
+    fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,mainSymptom,lrtConfounders,[additiveClusterThreshold],additiveCluster);
   },[])
 
 
@@ -278,7 +285,7 @@ function App() {
 
   useEffect(function updateEffect(){
     if(clusterData !== undefined & !clusterDataLoading){
-      fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,mainSymptom,lrtConfounders,[additiveClusterThreshold],[additiveCluster]);
+      fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,mainSymptom,lrtConfounders,[additiveClusterThreshold],additiveCluster);
     }
   },[clusterDataLoading,clusterData,mainSymptom,clusterDataLoading,lrtConfounders,additiveClusterThreshold,additiveCluster])
 
@@ -351,6 +358,7 @@ function App() {
             additiveClusterThreshold={additiveClusterThreshold}
             setAdditiveCluster={setAdditiveCluster}
             setAdditiveClusterThreshold={setAdditiveClusterThreshold}
+            nDoseCluster={nDoseClusters}
         ></OverView>
     </Row>
     )

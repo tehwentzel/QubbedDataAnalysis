@@ -566,6 +566,52 @@ def multi_var_tests(df, testcols, ycol,xcols,
         results['odds_ratio_' + str(testcol)]= odds[testcol]
     return results
 
+def dvh_num(string,key='V'):
+    match = re.match(key+"(\d+).*",string)
+    if match is not None:
+        return int(match.groups()[0])
+    return 0
+
+def downstep_dvh_window(df,base,key='V',fixed_size=True,minVal = 5):
+    lower = max(base[0]-5,minVal)
+    
+    while lower > minVal and key+str(int(lower)) not in df.columns:
+        lower -= 5
+    lwindow = [lower] + [v for v in base if v != base[-1]]    
+    if not fixed_size:
+        lwindow.append(base[-1])
+    return sorted(set(lwindow))
+
+def upstep_dvh_window(df,base,key='V',fixed_size=True,maxVal=80):
+    upper = min(base[-1]+5,maxVal)
+    
+    while upper < maxVal and key+str(int(upper)) not in df.columns:
+        lower += 5
+    if fixed_size:
+        uwindow = base[1:] + [upper]    
+    else:
+        uwindow = base[:] + [upper]
+    return sorted(set(uwindow))
+        
+def get_dvh_windows(df, base_window, key='V',n_steps = 1, **kwargs):
+    base = sorted([dvh_num(x,key=key) for x in base_window if dvh_num(x) != 0 and x in df.columns])
+    windows = [base]
+    lbase = base[:]
+    ubase = base[:]
+    for i in range(n_steps):
+        if len(lbase) > 1:
+            lbase = downstep_dvh_window(df,lbase,**kwargs)
+            windows = [lbase] + windows
+        if len(ubase) > 1:
+            ubase = upstep_dvh_window(df,ubase,**kwargs)
+            windows = windows + [ubase]
+    windows = [[key+str(int(v)) for v in wndw] for wndw in windows]
+    return windows
+
+def get_all_dvh(df,key='V'):
+    vcols = [col for col in df.columns if col[0] == key and dvh_num(col,key=key) > 0]
+    return sorted(vcols, key=dvh_num)
+
 def select_single_organ_cluster_effects(df,
                                         symptom=None,
                                         base_organs=None,
@@ -576,6 +622,7 @@ def select_single_organ_cluster_effects(df,
                                         drop_base_cluster=True,
                                         features=None,
                                         clusters=None,
+                                        dvh_steps = 1,
                                         organ_list=None):
     if base_organs is None:
         base_organs = []
@@ -599,6 +646,12 @@ def select_single_organ_cluster_effects(df,
     df = add_late_symptoms(df,[symptom])
     df = add_confounder_dose_limits(df)
     
+    if features is None:
+        features = ['V40','V45','V50','V55']
+    if dvh_steps > 0:
+        fsets = get_dvh_windows(df,features,n_steps=dvh_steps)
+    else:
+        fsets = [features]
     olists = []
     for o in organ_list:
         if o in base_organs:
@@ -625,24 +678,44 @@ def select_single_organ_cluster_effects(df,
     if clustertype is not None:
         clusterer = keyword_clusterer(clustertype,n_clusters)
     
-    top_c = str(n_clusters-1)
-    results = []
+    dvh_options = get_all_dvh(df,key='V')
+    alt_features = []
+    fids = []
+    for col in dvh_options:
+        if col in features:
+            fsubset = [c for c in features if c != col]
+        else:
+            fsubset = features + [col]
+        alt_features.append(fsubset)
+        fids.append(dvh_num(col))
+    feature_results = []
+    organ_results = []
     for cluster in clusters:
-        for threshold in thresholds:
-            make_args = lambda ol: (df,ol,base_organs,symptom,covars,cluster,features,clusterer,n_clusters,clustertype,threshold,drop_base_cluster,)
-            if len(base_organs) > 0:
-                base_results = parallel_cluster_lrt(make_args(base_organs))
-            rlist = joblib.Parallel(n_jobs=-2)(joblib.delayed(parallel_cluster_lrt)(make_args(olist)) for olist in olists)
-            print(len(rlist),len(olists))
-            for rl_item in rlist:
+        for threshold in thresholds: 
+            
+            make_fargs = lambda f,i: (df,base_organs,base_organs,symptom,covars,cluster,f,i,clusterer,n_clusters,clustertype,threshold,drop_base_cluster,)
+            flist = joblib.Parallel(n_jobs=-2)(joblib.delayed(parallel_cluster_lrt)(make_fargs(f,i)) for i,f in zip(fids,alt_features))
+            base_fresults =parallel_cluster_lrt(make_fargs(features,0))
+            for item in flist:
                 for key in ['lrt_pval','aic_diff','bic_diff']:
-                    rl_item[key+'_base'] = base_results[key] 
-                results.append(rl_item)
-    results= sorted(results,key=lambda x: x['bic_diff'])
+                    item[key+'_base'] = base_fresults[key]
+                feature_results.append(item)
+                
+            for fi,featureset in enumerate(fsets):
+                make_args = lambda ol: (df,ol,base_organs,symptom,covars,cluster,featureset,(fi-dvh_steps),clusterer,n_clusters,clustertype,threshold,drop_base_cluster,)
+                if len(base_organs) > 0:
+                    base_results = parallel_cluster_lrt(make_args(base_organs))
+                rlist = joblib.Parallel(n_jobs=-2)(joblib.delayed(parallel_cluster_lrt)(make_args(olist)) for olist in olists)
+                for rl_item in rlist:
+                    for key in ['lrt_pval','aic_diff','bic_diff']:
+                        rl_item[key+'_base'] = base_results[key] 
+                    organ_results.append(rl_item)
+#     results= sorted(results,key=lambda x: x['bic_diff'])
+    results = {'organ': organ_results,'features': feature_results}
     return results
 
 def parallel_cluster_lrt(args):
-    [df,olist,base_organs,symptom,covars,cluster,features,clusterer,n_clusters,clustertype,threshold,drop_base_cluster] = args
+    [df,olist,base_organs,symptom,covars,cluster,features,featureId,clusterer,n_clusters,clustertype,threshold,drop_base_cluster] = args
     prefix = '_'.join(olist)+'_'
     df  = add_sd_dose_clusters(
         df,
@@ -682,6 +755,8 @@ def parallel_cluster_lrt(args):
         'base_organs':'-'.join(base_organs),
         'added_organs':added,
         'removed': removed,
+        'features':'-'.join(features) if features is not None else '',
+        'featurePos': featureId,#should be the number of "steps" the feature window has slid to the right (-1 = V(x-5) for Vx in origina feature set)
         'threshold':threshold if threshold is not None else 0,
 #         'clustertype':clustertype,
         'cluster': cluster if cluster is not None else -1,
@@ -690,6 +765,7 @@ def parallel_cluster_lrt(args):
         if 'ttest' not in k:
             entry[k] = v
     return entry
+
 
 def get_sample_cluster_metrics_input():
     with open(Const.data_dir+'cluster_post_test.json','r') as f:
@@ -905,6 +981,7 @@ def get_rule_stuff(df,post_results=None):
     organs = post_results.get('organs',Const.organ_list[:])
     symptoms = post_results.get('symptoms',['drymouth'])
     organ_features = post_results.get('clusterFeatures',['V35','V40','V45','V55'])
+    organ_features.extend(['mean_dose','max_dose'])
     s_dates = post_results.get('symptom_dates',[13,33])
     threshold = post_results.get('threshold',6)
     cluster = post_results.get('cluster',None)
