@@ -82,23 +82,24 @@ def format_symptoms(df,
                 symptoms=None,
                      ):
     if to_keep is None:
-        to_keep = ['id',
+        to_keep = [
+            'id',
             'is_male','age',
             'subsite',
-#                    'duration',
             't_stage','n_stage',
             'is_ajcc_8th_edition',
-            'hpv','rt','ic',
-#             'nd','rt_type',
+            'hpv','rt','ic','sxprimary',
             'concurrent','performance_score',
             'os','followup_days','chemotherapy',
-#             'typetreatment','treatment2',
-             'M6_mbs_digest',
-              'baseline_mbs_digest',
-#                    'M60_mbs_digest',
-                           ]
-#     for c in df.columns:
-#         print(c)
+            'M6_mbs_digest','baseline_mbs_digest',
+            'Local_control','Regional_control',
+            'Technique',
+            'status_at_enrollememt',
+            'ic_prior_to_enrollment','rt_prior_to_enrollment',
+            'concurrent_prior_to_enrollment','sx_prior_to_enrollment',
+            'baseline_height','baseline_weight',
+            'end_of_treatment_weight','wk6_weight',
+                  ]
     valid,invalid = valid_cols(df,to_keep)
     if len(invalid) > 0:
         print('missing columns',invalid)
@@ -107,12 +108,41 @@ def format_symptoms(df,
         symptoms = Const.symptoms
     dates = get_dates(df.columns)
     new_df['dates'] = [dates for i in range(new_df.shape[0])]
+    for col in new_df.columns:
+        if 'prior_to_enrollment' in col:
+            new_df[col] = new_df[col].apply(lambda x: x != 0)
     for s in symptoms:
         scols = [i for i in df.columns if get_symptom(i) == s]
         scols = sorted(scols,key = lambda x: symptom_weektime(x))
         values = df.loc[:,scols].values.tolist()
         new_df['symptoms_'+s] = values
+        
+    new_df = add_bmi_stuff(new_df)
     return new_df
+
+def add_bmi_stuff(df):
+    #add bmi info
+    to_impute = ['baseline_height','baseline_weight','end_of_treatment_weight','wk6_weight']
+    to_impute = [c for c in to_impute if c in df.columns]
+    for col in to_impute:
+        df[col] = df[col].apply(lambda x: pd.to_numeric(x,errors='coerce')).astype(float)
+    df[to_impute] = df[to_impute].fillna(df[to_impute].median())
+    #we have a people who weight 600+kg apparently so i'm asusming there's and extra 0
+    for col in [c for c in to_impute if 'weight' in c]:
+        df[col] = df[col].apply(lambda x: x/10 if x > 500 else x)
+    df['baseline_height'] = df['baseline_height'].apply(lambda x: x*10 if x < 50 else x)
+    
+    #I think one person has 80 cm instead of 180 cm idk
+    df.loc[df[df.id.astype(int) == 576].index,['baseline_height']] = 180
+    
+    format_height = lambda h: (h/100)**2 #cm to m2 for bmi calc
+    df['baseline_bmi'] = df['baseline_weight']/df['baseline_height'].apply(format_height)
+    df['wk6_bmi'] =df['wk6_weight']/df['baseline_height'].apply(format_height)
+    df['end_of_treatment_bmi'] = df['end_of_treatment_weight']/df['baseline_height'].apply(format_height)
+    df['bmi_change'] = df['end_of_treatment_bmi'] - df['baseline_bmi']
+    df['weight_loss_5kg'] =((df['end_of_treatment_weight'] - df['baseline_weight']) >= 5).astype(int)
+    df['longterm_bmi_change'] = df['wk6_bmi'] - df['baseline_bmi']
+    return df
 
 def get_mdasi_symptom_states(df,
                      symptom_prefix='symptoms',
@@ -168,10 +198,20 @@ def format_mdasi_columns(df):
     df.loc[df.n_stage == 'NOS','n_stage'] = np.nan
     return format_symptoms(df)
 
-def filter_bad_mdasi_rows(df,missing_ratio_cutoff=.7):
+def filter_bad_mdasi_rows(df,required=None,required_late=None,missing_ratio_cutoff=.7):
     #drop things with these missing
-    required = ['baseline_mdasi_drymouth']
+    df = df.copy()
+    if required is None:
+        required = ['baseline_mdasi_drymouth']
+    
     print('before drop count',df.shape[0])
+    if required_late is not None:
+        allnan = lambda x: np.all([np.isnan(i) for i in x])
+        for s in required_late:
+            col = s+'_late'
+            postcols = lambda x:  [x['wk6_post_mdasi_'+s],x['M6_mdasi_'+s]]
+            df = df[~df.apply(lambda x: allnan(postcols(x)),axis=1)]
+            
     df = df.dropna(subset=required)
     #drop values with too many missing symptoms
     scols = [c for c in df.columns if 'mdasi' in c]
@@ -191,7 +231,18 @@ def add_binary_clinical_stuff(df):
     df['n_severe'] = df.n2 + df.n3
     df['Tonsil'] = (df.subsite == 'Tonsil').astype(int)
     df['old'] = (df.age >= df.age.quantile([.5]).values[0]).astype(int)
+    df['age_65'] = (df.age > 65).astype(int)
     df['digest_increase'] = (df['M6_mbs_digest'] - df['baseline_mbs_digest'] > 0).astype(int)
+    
+    df['performance_1'] = (df.performance_score == 1).astype(int)
+    df['performance_2' ] = (df.performance_score == 2).astype(int)
+    df['performance_high'] = ((df.performance_score == 1) | (df.performance_score == 2)).astype(int)
+    
+    df['previously_treated'] = df['status_at_enrollememt'].apply(lambda x: str(x) == 'Previously_Treated')
+    df['IMRT'] = df['Technique'].apply(lambda x: x == 'IMRT')
+    df['IMPT'] = df['Technique'].apply(lambda x: x == 'IMPT')
+    df['VMAT'] = df["Technique"].apply(lambda x: x == 'VMAT')
+#     df = df.drop('status_at_enrollememt',axis=1)
     return df
 
 def add_lstm_stuff(dframe):
@@ -213,13 +264,13 @@ def read_table(file):
         dframe = pd.read_csv(file)
     return dframe
 
-def load_mdasi(file = None,use_lstm=False):
+def load_mdasi(file = None,use_lstm=False,required=None,required_late=None):
     if file is None:
         file = Const.mdasi_folder + 'MDASI_09092021.xlsx'
     dframe = read_table(file)
     if use_lstm:
         dframe = add_lstm_stuff(dframe)
-    dframe =filter_bad_mdasi_rows(dframe)
+    dframe =filter_bad_mdasi_rows(dframe,required=required,required_late=required_late)
     dframe = format_mdasi_columns(dframe)
     dframe = add_binary_clinical_stuff(dframe)
 #     dframe = get_mdasi_symptom_states(dframe)
@@ -271,8 +322,18 @@ def df_to_onehot(df, columns):
     val_df = pd.concat(arrays,axis=1)
     return val_df
 
-def get_symptom_denoiser_path(**kwargs):
-    return Const.pytorch_model_dir + 'symptom_autoencoder'
+def get_symptom_denoiser_path(model=None,x=None,lr=None,epochs=None,**kwargs):
+    name = 'symptom_autoencoder'
+    if model is not None:
+        name = name + '_m=' + str(model)
+    if x is not None:
+        name = name + '_n='+ str(x.shape[0])
+        name = name + '_f=' + str(x.shape[1])
+    if epochs is not None:
+        name = name + '_e=' + str(epochs)
+    if lr is not None:
+        name = name + '_lr=' + str(lr)
+    return Const.pytorch_model_dir + name
         
 def train_symptom_autoencoder(x_numpy, 
                               loss_idx=None,
@@ -284,8 +345,8 @@ def train_symptom_autoencoder(x_numpy,
                              ):
     autoencoder = AE.BasicDenoiser(x_numpy.shape[1],**kwargs)
     if model_path is None:
-        model_path = get_symptom_denoiser_path(model=autoencoder,
-                                               lr = lr,epochs = epochs)
+        model_path = get_symptom_denoiser_path(x=x_numpy)
+    print('model path',model_path)
     x_torch = torch.tensor(x_numpy).float()
     optimizer = torch.optim.Adam(autoencoder.parameters(), lr=lr)
     early_stopping = EarlyStopping(patience = patience, path=model_path)
@@ -318,10 +379,10 @@ def impute_symptom_values(df,
                   ):
     if additional_vars is None:
         additional_vars = ['ic','rt','concurrent','n_stage','t_stage']
-    if model_path is None:
-        model_path = get_symptom_denoiser_path()
     flat_df = flat_mdasi_df(df,additional_vars)
     x = flat_df.values
+    if model_path is None:
+        model_path = get_symptom_denoiser_path(x=x)
     scol_pos = [i for i,c in enumerate(flat_df.columns) if 'symptom' in c]
     loss_idx = None
     if limit_loss:
@@ -440,7 +501,7 @@ def fill_missing_symptoms(mdasi):
         mdasi[col] = mdasi[col].apply(lambda x: inpute_previous(x,col))
     return mdasi
 
-def impute_and_group(df,skip_inpute=False,fill_na=True,use_domains=True):
+def impute_and_group(df,skip_inpute=False,fill_na=True,use_domains=False):
     if not skip_inpute:
         df = impute_symptom_df(df)
     elif fill_na:

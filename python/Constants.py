@@ -189,7 +189,18 @@ class Const():
             'Hard_Palate',
             'Soft_Palate',
             'Tongue',
-        ]
+        ],
+        'drymouth': [
+            'Tongue',
+            'Mylogeniohyoid_M',
+            'Genioglossus_M',
+            'Rt_Parotid_Gland','Lt_Parotid_Gland',
+            'Rt_Submandibular_Gland','Lt_Submandibular_Gland',
+            'Soft_Palate',
+            'Extended_Oral_Cavity',
+            'Supraglottic_Larynx',
+            'Larynx',
+        ],
     }
    
     symptoms = ["pain", "fatigue", "nausea", "sleep", 

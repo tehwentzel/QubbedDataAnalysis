@@ -49,48 +49,16 @@ def merge_dose_symptom_dfs(imputed_symptom_df,rds,dvh_cols=None,roll_up=True):
     print('dose ids:',n_dose,'syptom ids:',n_imputed,'merged ids:',n_merged)
     return merged
 
-def get_merged_symp_dose_df(rds=None,use_lstm=False,**kwargs):
+def get_merged_symp_dose_df(rds=None,use_lstm=False,required=None,required_late=None,**kwargs):
     if rds is None:
         rds = RadDataset()
 
-    df = load_mdasi(use_lstm=use_lstm)
+    df = load_mdasi(use_lstm=use_lstm,required=required,required_late=required_late)
+#     imputed_df = df.fillna(0)
     imputed_df = impute_and_group(df,skip_inpute=use_lstm,use_domains=False)
     merged = merge_dose_symptom_dfs(imputed_df,rds,**kwargs)
     return merged
 
-def add_sd_dose_clusters(sddf, 
-                         clusterer = None,
-                         features=None,
-                         reducer=None,
-                         organ_subset=None,
-                         normalize = True,
-                         prefix='',
-                         n_clusters = 4,
-                        ):
-    if clusterer is None:
-        clusterer = BayesianGaussianMixture(n_init=5,
-                                            n_components=n_clusters, 
-                                            covariance_type="full",
-                                            random_state=100)
-    if features is None:
-        features=['V35','V40','V45','V50','V55','V60','V65']
-    if reducer is None:
-        reducer= None#PCA(len(organ_list),whiten=True)
-    if organ_subset is None:
-        organ_subset = Const.organ_list[:]
-    organ_positions = [Const.organ_list.index(o) for o in organ_subset]
-    vals = np.stack(sddf[features].apply(lambda x: np.stack([np.array([ii[i] for i in organ_positions]) for ii in x]).ravel(),axis=1).values)
-    if normalize:
-        vals = (vals - vals.mean(axis=0))/(vals.std(axis=0) + .01)
-    if reducer is not None:
-        vals = reducer.fit_transform(vals)
-    df = pd.DataFrame(vals,index = sddf.index)
-    clusters = clusterer.fit_predict(vals)
-    new_df = sddf.copy()
-    cname= prefix+'dose_clusters'
-    new_df[cname] = clusters
-    new_df = reorder_clusters(new_df,cname,by='mean_dose')
-    return new_df
 
 def df_to_symptom_array(df,use_groups = True, use_domains = False, simplify = False):
     df = df.copy()
@@ -109,6 +77,7 @@ def add_sd_dose_clusters(sddf,
                          organ_subset=None,
                          normalize = True,
                          prefix='',
+                         return_score=False,
                          n_clusters = 4,
                         ):
     if clusterer is None:
@@ -138,6 +107,9 @@ def add_sd_dose_clusters(sddf,
                               by='mean_dose',
                               organ_list=organ_subset#order by mean dose to clustered organs
                              )
+    if return_score:
+        score = clusterer.score_samples(vals).mean()
+        return new_df, score
     return new_df
 
 def reorder_clusters(df,cname,by='moderate_6wk_symptoms',organ_list=None):
