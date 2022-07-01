@@ -242,6 +242,8 @@ export default function OverView(props){
         // if(props.ruleData != undefined & props.doseData != undefined){
         return (
             <RuleView
+                api={props.api}
+                clusterDataLoading={props.clusterDataLoading}
                 doseData={props.doseData}
                 ruleData={props.ruleData}
                 svgPaths={props.svgPaths}
@@ -252,20 +254,21 @@ export default function OverView(props){
                 setRuleThreshold={props.setRuleThreshold}
                 setRuleCluster={props.setRuleCluster}
                 activeCluster={props.activeCluster}
-                maxRules={props.maxRules}
-                setMaxRules={props.setMaxRules}
-                ruleMaxDepth={props.ruleMaxDepth}
-                setRuleMaxDepth={props.setRuleMaxDepth}
+                // maxRules={props.maxRules}
+                // setMaxRules={props.setMaxRules}
+                // ruleMaxDepth={props.ruleMaxDepth}
+                // setRuleMaxDepth={props.setRuleMaxDepth}
+                clusterOrgans={props.clusterOrgans}
                 selectedPatientId={props.selectedPatientId}
                 setSelectedPatientId={props.setSelectedPatientId}
-                ruleCriteria={props.ruleCriteria}
-                setRuleCriteria={props.setRuleCriteria}
-                ruleTargetCluster={props.ruleTargetCluster}
-                setRuleTargetCluster={props.setRuleTargetCluster}
+                // ruleCriteria={props.ruleCriteria}
+                // setRuleCriteria={props.setRuleCriteria}
+                // ruleTargetCluster={props.ruleTargetCluster}
+                // setRuleTargetCluster={props.setRuleTargetCluster}
                 selectedPatientId={props.selectedPatientId}
                 setSelectedPatientId={props.setSelectedPatientId}
-                ruleUseAllOrgans={props.ruleUseAllOrgans}
-                setRuleUseAllOrgans={props.setRuleUseAllOrgans}
+                // ruleUseAllOrgans={props.ruleUseAllOrgans}
+                // setRuleUseAllOrgans={props.setRuleUseAllOrgans}
             ></RuleView>
         )
         // } else{

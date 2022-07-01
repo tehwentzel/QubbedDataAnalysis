@@ -622,7 +622,7 @@ def select_single_organ_cluster_effects(df,
                                         drop_base_cluster=True,
                                         features=None,
                                         clusters=None,
-                                        dvh_steps = 1,
+                                        dvh_steps = 0,
                                         organ_list=None):
     if base_organs is None:
         base_organs = []
@@ -634,7 +634,7 @@ def select_single_organ_cluster_effects(df,
         #imma just skip stuff that's like probably not relevant for this usage
         exclude = set(['Brainstem',"Spinal_Cord",
                    'Lt_Brachial_Plexus','Rt_Brachial_Plexus',
-                   'Lower_Lip',"Upper_Lip",
+                #    'Lower_Lip',"Upper_Lip",
                    'Hyoid_bone','Mandible',
                    'Cricoid_cartilage',
                     'Thyroid_cartilage',
@@ -987,11 +987,11 @@ def get_rule_stuff(df,post_results=None):
     cluster = post_results.get('cluster',None)
     maxdepth = post_results.get('max_depth',3)
     min_odds = post_results.get('min_odds',0)
-    min_info = post_results.get('min_info',.02)
+    min_info = post_results.get('min_info',.1)
     criteria = post_results.get('criteria','info')
     max_rules = post_results.get('max_rules',15)
     max_frontier = post_results.get('max_frontier',20)
-    granularity = post_results.get('granularity',3)
+    granularity = post_results.get('granularity',1)
     predict_cluster = post_results.get('predictCluster',-1)
     use_limits = post_results.get('useLimits',True)
     

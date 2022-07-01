@@ -105,21 +105,6 @@ function App() {
   ]
   const [mainSymptom,setMainSymptom] = useState('drymouth');
 
-  //data for query looking at boolean splits in the 'rule' view
-  const [ruleData,setRuleData] = useState();
-  //threshold for symptoms to use as the target class
-  const [ruleThreshold,setRuleThreshold] = useState(5);
-  //the cluster we should use for the rule mining when predicing symptoms.  default undefined means using the whole cohort
-  const [ruleCluster,setRuleCluster] = useState();
-  //the max # of splits to allow
-  const [ruleMaxDepth,setRuleMaxDepth] = useState(2);
-  //used to filter out the best rules at each depth
-  const [maxRules,setMaxRules] = useState(5);
-  //what to use to determine optimal splits. currently 'info' or 'odds ratio'
-  const [ruleCriteria,setRuleCriteria] = useState('info');
-  //if > 0 and not undefined, we predict membership in a cluster instead of outcomes
-  const [ruleTargetCluster,setRuleTargetCluster] = useState(-1)
-  const [ruleUseAllOrgans,setRuleUseAllOrgans] = useState(false);
 
   const [metricsModelType,setMetricsModelType] = useState('regression');
   //hnc diagram svg patths
@@ -176,12 +161,7 @@ function App() {
       })
   },[])
 
-  useEffect(function updateRuleTargetCluster(){
-    if(ruleTargetCluster >= 0 & ruleTargetCluster !== activeCluster){
-      setRuleTargetCluster(activeCluster);
-    }
-  },[activeCluster])
-
+  
   var fetchDoseData = async(orgs,cFeatures) => {
     const response = await api.getDoseJson(orgs,cFeatures);
     setDoseData(response.data);
@@ -236,26 +216,7 @@ function App() {
     }  
   }
 
-  var fetchClusterRules = async(cData,organs,
-    symptoms,clusterFeatures,
-    threshold,cluster,
-    maxDepth,maxR,rCriteria,targetCluster
-    )=>{
-    if(cData !== undefined & !clusterDataLoading){
-      setRuleData(undefined);
-      api.getClusterRules(cData,organs,
-        symptoms,clusterFeatures,
-        threshold,cluster,
-        maxDepth,maxR,
-        rCriteria,targetCluster,
-        ).then(response=>{
-          // console.log('rule data main',response);
-          setRuleData(response);
-      }).catch(error=>{
-        console.log('rule data error',error);
-      })
-    }
-  }
+  
 
 
   useEffect(() => {
@@ -289,31 +250,14 @@ function App() {
     }
   },[clusterDataLoading,clusterData,mainSymptom,clusterDataLoading,lrtConfounders,additiveClusterThreshold,additiveCluster])
 
-  useEffect(function updateRuleCluster(){
-    if(ruleCluster !== null & ruleCluster !== undefined & ruleCluster !== activeCluster){
-      setRuleCluster(activeCluster);
-    }
-  },[activeCluster]);
-
+  
   useEffect(()=>{
     if(!clusterDataLoading & clusterData !== undefined & clusterData !== null){
       fetchClusterMetrics(clusterData, lrtConfounders,mainSymptom,metricsModelType);
     }
   },[clusterDataLoading,clusterData,mainSymptom,lrtConfounders,metricsModelType]);
   
-  useEffect(function updateRules(){
-    if(clusterData !== undefined & clusterData !== null & !clusterDataLoading){
-      let rOrgans = [...clusterOrgans];
-      if(ruleUseAllOrgans){
-        rOrgans = [...constants.ORGANS_TO_SHOW];
-      }
-      fetchClusterRules(clusterData,rOrgans,
-        [mainSymptom],clusterFeatures,ruleThreshold,
-        ruleCluster,ruleMaxDepth,maxRules,ruleCriteria,ruleTargetCluster);
-    }
-  },[clusterData,mainSymptom,ruleThreshold,ruleCluster,
-    clusterDataLoading,ruleMaxDepth,maxRules,
-    ruleCriteria,ruleTargetCluster,ruleUseAllOrgans])
+  
   
   
 
@@ -321,8 +265,10 @@ function App() {
     return (
       <Row style={{'height': '50vh','overflowY':'hidden'}} className={'noGutter'} lg={12}>
         <OverView
+            api={api}
             doseData={doseData}
             clusterData={clusterData}
+            clusterDataLoading={clusterDataLoading}
             selectedPatientId={selectedPatientId}
             setSelectedPatientId={setSelectedPatientId}
             plotVar={plotVar}
@@ -339,21 +285,21 @@ function App() {
             categoricalColors={categoricalColors}
             clusterMetricData={clusterMetricData}
             setClusterMetricData={setClusterMetricData}
-            ruleData={ruleData}
-            ruleThreshold={ruleThreshold}
-            ruleCluster={ruleCluster}
-            setRuleThreshold={setRuleThreshold}
-            setRuleCluster={setRuleCluster}
-            maxRules={maxRules}
-            setMaxRules={setMaxRules}
-            ruleMaxDepth={ruleMaxDepth}
-            setRuleMaxDepth={setRuleMaxDepth}
-            ruleCriteria={ruleCriteria}
-            setRuleCriteria={setRuleCriteria}
-            ruleTargetCluster={ruleTargetCluster}
-            setRuleTargetCluster={setRuleTargetCluster}
-            ruleUseAllOrgans={ruleUseAllOrgans}
-            setRuleUseAllOrgans={setRuleUseAllOrgans}
+            // ruleData={ruleData}
+            // ruleThreshold={ruleThreshold}
+            // ruleCluster={ruleCluster}
+            // setRuleThreshold={setRuleThreshold}
+            // setRuleCluster={setRuleCluster}
+            // maxRules={maxRules}
+            // setMaxRules={setMaxRules}
+            // ruleMaxDepth={ruleMaxDepth}
+            // setRuleMaxDepth={setRuleMaxDepth}
+            // ruleCriteria={ruleCriteria}
+            // setRuleCriteria={setRuleCriteria}
+            // ruleTargetCluster={ruleTargetCluster}
+            // setRuleTargetCluster={setRuleTargetCluster}
+            // ruleUseAllOrgans={ruleUseAllOrgans}
+            // setRuleUseAllOrgans={setRuleUseAllOrgans}
             additiveCluster={additiveCluster}
             additiveClusterThreshold={additiveClusterThreshold}
             setAdditiveCluster={setAdditiveCluster}

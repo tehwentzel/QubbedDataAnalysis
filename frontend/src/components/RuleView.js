@@ -18,6 +18,22 @@ import RuleViewD3 from './RuleViewD3.js';
 export default function RuleView(props){
     const ref = useRef(null)
 
+    //data for query looking at boolean splits in the 'rule' view
+    const [ruleData,setRuleData] = useState(undefined);
+    //threshold for symptoms to use as the target class
+    const [ruleThreshold,setRuleThreshold] = useState(5);
+    //the cluster we should use for the rule mining when predicing symptoms.  default undefined means using the whole cohort
+    const [ruleCluster,setRuleCluster] = useState();
+    //the max # of splits to allow
+    const [ruleMaxDepth,setRuleMaxDepth] = useState(2);
+    //used to filter out the best rules at each depth
+    const [maxRules,setMaxRules] = useState(5);
+    //what to use to determine optimal splits. currently 'info' or 'odds ratio'
+    const [ruleCriteria,setRuleCriteria] = useState('info');
+    //if > 0 and not undefined, we predict membership in a cluster instead of outcomes
+    const [ruleTargetCluster,setRuleTargetCluster] = useState(-1)
+    const [ruleUseAllOrgans,setRuleUseAllOrgans] = useState(false);
+
     const [vizComponents,setVizComponents] = useState(
         <Spinner 
             as="span" 
@@ -26,7 +42,64 @@ export default function RuleView(props){
             className={'spinner'}/>
     )
 
-    const filterCluster = parseInt(props.ruleCluster) === parseInt(props.activeCluster)
+    var fetchClusterRules = async(cData,organs,
+        symptoms,clusterFeatures,
+        threshold,cluster,
+        maxDepth,maxR,rCriteria,targetCluster
+        )=>{
+        if(cData !== undefined & !props.clusterDataLoading){
+            setRuleData(undefined);
+            props.api.getClusterRules(cData,organs,
+                symptoms,clusterFeatures,
+                threshold,cluster,
+                maxDepth,maxR,
+                rCriteria,targetCluster,
+            ).then(response=>{
+                // console.log('rule data main',response);
+                setRuleData(response);
+            }).catch(error=>{
+            console.log('rule data error',error);
+            })
+        }
+    }
+
+    useEffect(function updateRuleTargetCluster(){
+        if(ruleTargetCluster >= 0 & ruleTargetCluster !== props.activeCluster){
+          setRuleTargetCluster(props.activeCluster);
+        }
+      },[props.activeCluster])
+    
+    useEffect(function updateRuleCluster(){
+        if(ruleCluster !== null & ruleCluster !== undefined & ruleCluster !== props.activeCluster){
+            setRuleCluster(props.activeCluster);
+        }
+    },[props.activeCluster]);
+    
+    
+    useEffect(function updateRules(){
+        if(props.clusterData !== undefined & props.clusterData !== null & !props.clusterDataLoading){
+            let rOrgans = [...props.clusterOrgans];
+            if(ruleUseAllOrgans){
+                rOrgans = [...constants.ORGANS_TO_SHOW];
+            }
+            fetchClusterRules(
+                props.clusterData,rOrgans,
+                [props.mainSymptom],props.clusterFeatures,ruleThreshold,
+                ruleCluster,ruleMaxDepth,maxRules,ruleCriteria,ruleTargetCluster
+            );
+        
+        }
+    },[
+        props.clusterData,props.mainSymptom,
+        ruleThreshold,ruleCluster,
+        props.clusterDataLoading,
+        ruleMaxDepth,maxRules,
+        ruleCriteria,ruleTargetCluster,
+        ruleUseAllOrgans
+    ])
+
+    const filterCluster = parseInt(ruleCluster) === parseInt(props.activeCluster)
+    const parseString = v => v+'';
 
     function makeRow(rule,key){
         const fix = val => {
@@ -36,63 +109,73 @@ export default function RuleView(props){
                 return val.toFixed(3)
             }
         }
+        
         let title = 'OR: ' + fix(rule.odds_ratio) 
             + ' |Info Gain: ' + fix(rule.info)   
-            + ' |ROC:' + fix(rule.roc_auc)
-            + ' |F1:' + fix(rule.f1) 
-            + ' |Prsn:' + fix(rule.precision) 
-            + ' |Rcl:' + fix(rule.recall);
-        if (props.ruleTargetCluster >= 0){
-            title += ' |Outcome ROC:' + fix(rule.roc_auc_symptom) 
-            + ' |Outcome F1:' + fix(rule.f1_symptom);
+            // + ' |ROC:' + fix(rule.roc_auc)
+            // + ' |F1:' + fix(rule.f1) 
+            // + ' |Prsn:' + fix(rule.precision) 
+            // + ' |Rcl:' + fix(rule.recall);
+        // if (ruleTargetCluster >= 0){
+        //     title += ' |Outcome ROC:' + fix(rule.roc_auc_symptom) 
+        //     + ' |Outcome F1:' + fix(rule.f1_symptom);
+        // }
+
+        title += '' 
+        for(let i in rule.features){
+            title += ' | '+ rule.features[i] + '>' + rule.thresholds[i];
         }
 
+        const keyName = key + props.mainSymptom
+            + parseString(ruleCluster)+parseString(ruleThreshold)
+            +parseString(ruleTargetCluster)+parseString(ruleUseAllOrgans)
+            +parseString(ruleMaxDepth)
         return (
-        <Row 
-            key={key+props.mainSymptom+props.ruleCluster+props.ruleThreshold} 
-            style={{'display':'inline-block','width':'50%','height': '20em','marginBottom':'1em'}}
-        >
-            <span  style={{'fontSize':'.7em'}}>
-            {title}
-            </span>
-            <Row  
-                className={'noGutter fillWidth'} 
-                style={{'height': '18em'}}
+            <Row 
+                key={keyName} 
+                style={{'display':'inline-block','width':'50%','height': '20em','marginBottom':'1em'}}
             >
-                <RuleViewD3
-                    rule={rule}
-                    doseData={props.doseData}
-                    ruleData={props.ruleData}
-                    svgPaths={props.svgPaths}
-                    mainSymptom={props.mainSymptom}
-                    clusterData={props.clusterData}
-                    ruleThreshold={props.ruleThreshold}
-                    ruleCluster={props.ruleCluster}
-                    selectedPatientId={props.selectedPatientId}
-                    setSelectedPatientId={props.setSelectedPatientId}
-                    ruleTargetCluster={props.ruleTargetCluster}
-                ></RuleViewD3>
+                <span  style={{'fontSize':'.7em'}}>
+                {title}
+                </span>
+                <Row  
+                    className={'noGutter fillWidth'} 
+                    style={{'height': '18em'}}
+                >
+                    <RuleViewD3
+                        rule={rule}
+                        doseData={props.doseData}
+                        ruleData={ruleData}
+                        svgPaths={props.svgPaths}
+                        mainSymptom={props.mainSymptom}
+                        clusterData={props.clusterData}
+                        ruleThreshold={ruleThreshold}
+                        ruleCluster={ruleCluster}
+                        selectedPatientId={props.selectedPatientId}
+                        setSelectedPatientId={props.setSelectedPatientId}
+                        ruleTargetCluster={ruleTargetCluster}
+                    ></RuleViewD3>
+                </Row>
             </Row>
-        </Row>
         )
     }
 
     function toggleFilter(arg){
         if(!arg){
-            props.setRuleCluster(undefined);
+            setRuleCluster(undefined);
         } else{
-            props.setRuleCluster(parseInt(props.activeCluster));
+            setRuleCluster(parseInt(props.activeCluster));
         }
-        props.setRuleTargetCluster(-1);
+        setRuleTargetCluster(-1);
     }
 
     function makeFilterToggle(){
         function onSetTargetCluster(){
-            if(props.ruleTargetCluster !== props.activeCluster){
-                props.setRuleTargetCluster(props.activeCluster);
+            if(ruleTargetCluster !== props.activeCluster){
+                setRuleTargetCluster(props.activeCluster);
             }
         }
-        const predictClusterActive = (props.ruleTargetCluster === props.activeCluster);
+        const predictClusterActive = (ruleTargetCluster === props.activeCluster);
         return (
             <div className={'center-block'}>
             <Form.Label>{'Prediction'}</Form.Label>
@@ -119,11 +202,11 @@ export default function RuleView(props){
 
     function makeCriteriaToggle(){
         var makeButton = (name)=>{
-            let active = (props.ruleCriteria === name);
+            let active = (ruleCriteria === name);
             return (
                 <Button
                     variant={active? 'dark':'outline-secondary'}
-                    onClick={()=>{props.setRuleCriteria(name)}}
+                    onClick={()=>{setRuleCriteria(name)}}
                     disabled={active}
                 >{name}</Button>
             )
@@ -142,7 +225,7 @@ export default function RuleView(props){
 
     function makeOrganSetToggle(){
         var makeButton = (boolState)=>{
-            let active = (props.ruleUseAllOrgans === boolState);
+            let active = (ruleUseAllOrgans === boolState);
             let name = 'All';
             if(!boolState){
                 name = 'Cluster'
@@ -150,7 +233,7 @@ export default function RuleView(props){
             return (
                 <Button
                     variant={active? 'dark':'outline-secondary'}
-                    onClick={()=>{props.setRuleUseAllOrgans(boolState)}}
+                    onClick={()=>{setRuleUseAllOrgans(boolState)}}
                     disabled={active}
                 >{name}</Button>
             )
@@ -169,8 +252,8 @@ export default function RuleView(props){
 
     function handleChangeThreshold(t){
         t=parseInt(t);
-        if(t !== props.ruleThreshold){
-            props.setRuleThreshold(t);
+        if(t !== ruleThreshold){
+            setRuleThreshold(t);
         }
     }
 
@@ -188,15 +271,15 @@ export default function RuleView(props){
         return (
             <DropdownButton
                 className={'controlDropdownButton'}
-                title={'Threshold ' + props.ruleThreshold}
+                title={'Threshold ' + ruleThreshold}
             >{dItems}</DropdownButton>
         )
     }
 
     function makeMaxSplitsDropDown(){
         var handleChangeSplit = (s)=>{
-            if(props.ruleMaxDepth !== s){
-                props.setRuleMaxDepth(s);
+            if(ruleMaxDepth !== s){
+                setRuleMaxDepth(s);
             }
         }
         const dItems = [1,2,3,4,5].map((t,i) => {
@@ -212,15 +295,15 @@ export default function RuleView(props){
         return (
             <DropdownButton
                 className={'controlDropdownButton'}
-                title={'Max Splits ' + props.ruleMaxDepth}
+                title={'Max Splits ' + ruleMaxDepth}
             >{dItems}</DropdownButton>
         )
     }
 
     function makeMaxRulesDropDown(){
         var handleChangeMaxRules = (s)=>{
-            if(props.maxRules !== s){
-                props.setMaxRules(s);
+            if(maxRules !== s){
+                setMaxRules(s);
             }
         }
         const dItems = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20].map((t,i) => {
@@ -238,7 +321,7 @@ export default function RuleView(props){
             <DropdownButton
                 drop={'up'}
                 className={'controlDropdownButton'}
-                title={'Max Rules ' + props.maxRules}
+                title={'Max Rules ' + maxRules}
             >{dItems}</DropdownButton>
         )
     }
@@ -247,8 +330,8 @@ export default function RuleView(props){
         let onKey = (e) => {
             if(e.code === 'Enter'){
                 let val = e.target.value;
-                if(Number.isInteger(val) & parseInt(val) !== props.ruleThreshold){
-                    props.setRuleThreshold(parseInt(val))
+                if(Number.isInteger(val) & parseInt(val) !== ruleThreshold){
+                    setRuleThreshold(parseInt(val))
                 }
             }
         }
@@ -257,14 +340,14 @@ export default function RuleView(props){
                 <Form.Label>{'Symptom Threshold'}</Form.Label>
                 <InputGroup>
                     <Button
-                        onClick={()=>{props.setRuleThreshold(props.ruleThreshold-1)}}
+                        onClick={()=>{setRuleThreshold(ruleThreshold-1)}}
                     >{'-'}</Button>
                     <FormControl
-                        defaultValue={props.ruleThreshold}
+                        defaultValue={ruleThreshold}
                         onKeyDown={onKey}
                     />
                     <Button
-                        onClick={()=>{props.setRuleThreshold(props.ruleThreshold+1)}}
+                        onClick={()=>{setRuleThreshold(ruleThreshold+1)}}
                     >{'+'}</Button>
                 </InputGroup>
             </>
@@ -272,9 +355,9 @@ export default function RuleView(props){
     }
 
     useEffect(function plotStuff(){
-        if(props.ruleData !== undefined & props.doseData !== undefined){
+        if(ruleData !== undefined & props.doseData !== undefined){
 
-            let entries = props.ruleData.map((r,i) => makeRow(r,i+'rule'));
+            let entries = ruleData.map((r,i) => makeRow(r,i+'rule'));
             setVizComponents(entries)
         } else{
             setVizComponents(
@@ -285,7 +368,7 @@ export default function RuleView(props){
                 className={'spinner'}/>
             )
         }
-    },[props.ruleData,props.doseData,props.selectedPatientId])
+    },[ruleData,props.doseData,props.selectedPatientId])
 
     return (
         <div ref={ref} className={'noGutter fillSpace'}>
