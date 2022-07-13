@@ -33,6 +33,7 @@ export default function ClusterControlPanel(props){
     const [featureButtons,setFeatureButtons] = useState(<></>);
     const [confounderButtons, setConfounderButtons] = useState(<></>)
     const [symptomsButtons,setSymptomButtons] = useState(<></>);
+    const [mainSymptomButtonOptions,setMainSymptomButtonOptions] = useState(<></>);
     const [nClustButtonOptions, setNClustButtonOptions] = useState(<Dropdown.Item value={0}>{0}</Dropdown.Item>);
     const [tempClusterFeatures,setTempClusterFeatures] = useState();
     const [tempNClusters, setTempNClusters] = useState(1);
@@ -192,6 +193,23 @@ export default function ClusterControlPanel(props){
         setNClustButtonOptions(nclustOptions)
     },[tempNClusters])
 
+    useEffect(()=>{
+        if(props.symptomsOfInterest == undefined){ return; }
+        let sOpts = props.symptomsOfInterest.map((s,i) => {
+            return (<Dropdown.Item
+                    key={i}
+                    value={s}
+                    eventKey={s}
+                    onClick={ 
+                        (e)=>{
+                            if(s!==props.mainSymptom){ props.setMainSymptom(s); } 
+                        } 
+                    }
+                >{s}</Dropdown.Item>)
+        });
+        setMainSymptomButtonOptions(sOpts);
+    },[props.mainSymptom,props.symptomsOfInterest])
+
     useEffect(function plotVarDropDown(){
         let pVarOptions = plotVarOptions.map((d,i)=>{
             return (
@@ -237,7 +255,7 @@ export default function ClusterControlPanel(props){
                 {featureButtons}
                 </Col>
                 <Col md={12}>
-                {'LRT Test Confounders: '}
+                {'Confounders: '}
                     {confounderButtons}
                 </Col>
                 <Col md={12}>
@@ -246,8 +264,8 @@ export default function ClusterControlPanel(props){
                 </Col>
             </Row>
             <Row className={'noGutter controlPanelTitle'} md={12}>
-                <Col md={3}>
-                    {'# Clusters:'}
+                <Col className={'noGutter'} md={3}>
+                    {'# Clust:'}
                     <DropdownButton
                         className={'controlDropdownButton'}
                         value={(tempNClusters!==undefined)? tempNClusters+'':props.nDoseClusters+""}
@@ -256,7 +274,7 @@ export default function ClusterControlPanel(props){
                         {nClustButtonOptions}
                     </DropdownButton>
                 </Col>
-                <Col md={3}>
+                <Col className={'noGutter'} md={3}>
                     {'Method:'}
                     <DropdownButton
                         className={'controlDropdownButton'}
@@ -266,20 +284,28 @@ export default function ClusterControlPanel(props){
                         {clusterTypeButtonOptions}
                     </DropdownButton>
                 </Col>
-                <Col md={3}>
+                <Col className={'noGutter'}  md={3}>
                     {'PlotVar:'}
                     {plotVarButton}
                 </Col>
-                <Col md={3}>
+                <Col className={'noGutter'} md={3}>
+                    {'Symp:'}
+                    <DropdownButton
+                        className={'controlDropdownButton'}
+                        value = {props.mainSymptom}
+                        title = {props.mainSymptom}
+                    >{mainSymptomButtonOptions}</DropdownButton>
+                </Col>
+                {/* <Col className={'noGutter'} md={2}>
                     <Button
                         value={props.showContralateral}
                         variant={'outline-secondary'}
                         onClick={onToggleShowContra}
                         disabled={false}
-                    >{props.showContralateral? 'Showing Contralateral': 'Hidding Contralateral'}</Button>
-                </Col>
+                    >{props.showContralateral? 'Showing Contra': 'Hidding Contra'}</Button>
+                </Col> */}
             </Row>
-            <Row style={{'marginTop': '2em'}} className={'controlPanelTitle'} md={12}>
+            <Row style={{'marginTop': '1em'}} className={'controlPanelTitle'} md={12}>
                 <Button
                     onClick={handleUpdateClusters}
                     disabled={disabled}

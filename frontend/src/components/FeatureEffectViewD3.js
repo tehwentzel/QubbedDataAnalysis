@@ -64,6 +64,13 @@ export default function FeatureEffectViewD3(props){
             ]
             for(let d of data){
                 let val = getValue(d);
+                let name = 'V' + d.featurePos;
+                //feature pos is usually the Vx value with 99 and 100 for mean and max dose as special cases I added in later and couldn't think of a better scheme
+                if(parseInt(d.featurePos) == 99){
+                    name = 'mean';
+                } else if(parseInt(d.featurePos) == 100){
+                    name = 'max';
+                }
                 let entry = {
                     'x': xPos,
                     'y': yMargin,
@@ -71,7 +78,7 @@ export default function FeatureEffectViewD3(props){
                     'width': maxWidth-barMargin,
                     'value': val,
                     'color': getColor(val),
-                    'name': 'V' + d.featurePos,
+                    'name': name,
                 }
                 for(let key of keys){
                     if(d[key] !== undefined){

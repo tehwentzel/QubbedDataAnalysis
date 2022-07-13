@@ -14,16 +14,27 @@ export default function RuleViewD3(props){
     const yMargin = 10;
     
     const xLabelSize = 9;
-    const R = (props.rule === undefined)? 3: 5/(1+props.rule.features.length**.5);
+    const R = (props.rule === undefined)? 3.5: 6/(1+props.rule.features.length**.5);
     const yPadding = 20*R;
     const splitAxes = false;
     const oThreshold = props.ruleThreshold;
     const isActive = (d) => parseInt(d.id) == parseInt(props.selectedPatientId);
 
+    const targetColor = '#b2182b';
+    const nonTargetColor = '#2166ac'
     function getSplitParts(fname){
         if(fname.includes('_limit')){
             return [fname, ''] 
-        } else{
+        } else if(fname.includes('mean_dose_')){
+            let feature = 'mean_dose';
+            let organ = fname.replace('mean_dose_','');
+            return [feature,organ];
+        } else if(fname.includes('max_dose')){
+            let feature = 'max_dose';
+            let organ = fname.replace('max_dose_','');
+            return [feature,organ];
+        }
+        else{
             let [feature, ...organ] = fname.split('_');
             organ = organ.join('_')
             return [feature,organ];
@@ -161,6 +172,7 @@ export default function RuleViewD3(props){
                     let dotEntry = {
                         'x': x,
                         'y': y,
+                        'aboveThreshold': (sVal > oThreshold),
                         'baseX': x,
                         'baseY': y,
                         'axisX': split.x,
@@ -193,6 +205,7 @@ export default function RuleViewD3(props){
                     'feature': oThreshold,
                     'id': p.id,
                     'targetClass': inTargetClass(p),
+                    'aboveThreshold': (sVal > oThreshold),
                     'outcome': sVal,
                 }
                 tempDots.push(finalDot);
@@ -225,7 +238,7 @@ export default function RuleViewD3(props){
                 let organ = d.organ + '';
                 organ = organ.replace('t_','').replace('_','');
                 organ = organ.substring(0,4);
-                let string = organ + '-' + d.feature
+                let string = organ + '-' + d.feature.replace('_dose','')
                 string += ' >' + d.threshold;
                 return string;
             }
@@ -267,10 +280,10 @@ export default function RuleViewD3(props){
                 .append('circle').attr('class','patientCircle')
                 .attr('cx', d=>d.x)
                 .attr('cy',d=>d.y)
-                .attr('fill',d=>d.targetClass? 'red':'blue')
-                .attr('stroke','black')
-                .attr('stroke-width',.01)
-                .attr('opacity', .7)
+                .attr('fill',d=>d.targetClass? targetColor:nonTargetColor)
+                .attr('stroke', d => d.aboveThreshold? 'black':'white')
+                .attr('stroke-width', d => d.aboveThreshold? .7*R:0.1*R)
+                .attr('opacity', .9)
                 .attr('r',R);
 
             function boundX(d){
@@ -322,7 +335,7 @@ export default function RuleViewD3(props){
                 .append('path').attr('class','patientLine')
                 .attr('d',d=>d.path)
                 .attr('stroke',d=>(d.targetClass)? 'red':'grey')
-                .attr('stroke-width',d=>(d.targetClass)? 2:1)
+                .attr('stroke-width',d=>(d.targetClass)? 1.5:1)
                 .attr('fill','none')
                 .attr('stroke-opacity', .2);
             svg.selectAll('.patientCircle').raise();
@@ -330,21 +343,21 @@ export default function RuleViewD3(props){
         }
     },[svg,pathData])
 
-    useEffect(function brush(){
-        if(!dotsDrawn | svg === undefined){return}
-        let dots = svg.selectAll('circle')
-        dots.attr('stroke-width',d=>isActive(d)? R:.01)
-            .attr('opacity', (d) => isActive(d)? 1: .7)
-            .attr('stroke',d=>isActive(d)? 'black':'grey')
-            .on('dblclick',function(e){
-                let d = d3.select(this).datum();
-                if(d === undefined){ return; }
-                let pid = parseInt(d.id);
-                if(pid !== props.selectedPatientId){
-                    props.setSelectedPatientId(pid);
-                }
-            })
-    },[svg,props.selectedPatientId,dotsDrawn])
+    // useEffect(function brush(){
+    //     if(!dotsDrawn | svg === undefined){return}
+    //     let dots = svg.selectAll('circle')
+    //     dots.attr('stroke-width',d=>isActive(d)? R:.01)
+    //         .attr('opacity', (d) => isActive(d)? 1: .7)
+    //         .attr('stroke',d=>isActive(d)? 'black':'grey')
+    //         .on('dblclick',function(e){
+    //             let d = d3.select(this).datum();
+    //             if(d === undefined){ return; }
+    //             let pid = parseInt(d.id);
+    //             if(pid !== props.selectedPatientId){
+    //                 props.setSelectedPatientId(pid);
+    //             }
+    //         })
+    // },[svg,props.selectedPatientId,dotsDrawn])
 
     return (
         <div

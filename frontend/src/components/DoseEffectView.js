@@ -116,6 +116,27 @@ export default function DoseEffectView(props){
         )
     }
 
+    function makeToggleCluster(){
+        var useAll = props.additiveCluster;
+        return (
+            <span>
+                <Button
+                    title={'all'}
+                    variant = {useAll? 'dark':'outline-secondary'}
+                    disabled={useAll}
+                    style={{'width':'50%','height':'2em'}}
+                    onClick={()=>props.setAdditiveCluster(true)}
+                >{'All'}</Button>
+                <Button
+                    variant = {useAll? 'outline-secondary':'dark'}
+                    disabled={!useAll}
+                    style={{'width':'50%','height':'2em'}}
+                    onClick={()=>props.setAdditiveCluster(false)}
+                >{"Clust " + (props.nDoseClusters-1)}</Button>
+            </span>
+        )
+    }
+
     function makeTitle(text){
         return (
             <Row md={12} className={'noGutter'} style={{'height': '1.5em'}}>
@@ -174,7 +195,8 @@ export default function DoseEffectView(props){
                 <Col md={2} className={'noGutter'}>
                     {makeThresholdDropdown()}
                     {makeMetricDropdown()}
-                    {makeWindowToggle(props.additiveClusterResults.organ)}
+                    {makeToggleCluster()}
+                    {/* {makeWindowToggle(props.additiveClusterResults.organ)} */}
                 </Col>
             </Row>
         </div>

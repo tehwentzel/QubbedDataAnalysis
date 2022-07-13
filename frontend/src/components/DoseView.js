@@ -70,69 +70,85 @@ export default function DoseView(props){
             }
             let newComponents = props.clusterData.map((d,i) => 
             {
-                let topmargin = (i == 0)? '1em': '2em';
+                // let topmargin = '3em';// (i == 0)? '1em': '2em';
                 let clusterText = 'Cluster: ' + i + ' (n=' + d.cluster_size + ')';
                 let onTitleClick = (e) => props.setActiveCluster(parseInt(d.clusterId));
                 let clickableTitle = (parseInt(props.activeCluster) !== parseInt(d.clusterId));
                 let variant = clickableTitle? 'outline-secondary': 'dark';
                 let dotColor = props.categoricalColors(parseInt(d.clusterId));
                 return (
-                    <Row style={{'marginTop': topmargin}} fluid={'true'} className={' inline'} flex={'true'} key={i}>
-                        <Col className={'noGutter inline clusterPlotCol'} md={6} 
-                        style={{'width': '49%!important'}}
-                        key={i+'doses'+props.plotVar+props.showContralateral}>
-                        <span  className={'controlPanelTitle'}>
-                            <Button
-                                title={clusterText}
-                                value={d}
-                                onClick={onTitleClick}
-                                variant={variant}
-                                disabled={!clickableTitle}
+                    // <Container md={12}  
+                    //     fluid={'true'} 
+                    //     flex={'true'}
+                    //     className={'noGutter'} 
+                    //     style={{'marginTop': topmargin,'display':'inline-block'}}  
+                    //     key={i}
+                    // >
+                        <Row 
+                            className={'clusterPlotCol'} 
+                            md={6} 
+                            key={i+'doses'+props.plotVar+props.showContralateral}
+                        >
+                            <Col md={12}
+                                style={{'height': '2em!important'}}
+                                className={'controlPanelTitle'}
                             >
-                                {clusterText}
-                                <span r={10} style={{'borderRadius':'70%','color':dotColor}}>{'⬤'}</span>
-                            </Button>
-                        </span>
-                            <Dose2dCenterViewD3
-                                data={d}
-                                clusterOrgans={props.clusterOrgans}
-                                plotVar={props.plotVar}
-                                svgPaths={props.svgPaths}
-                                orient={'both'}
-                                addOrganToCue={props.addOrganToCue}
-                                clusterOrganCue={props.clusterOrganCue}
-                                showContralateral={props.showContralateral}
-                            ></Dose2dCenterViewD3>
-                        </Col >
-                        <Col  className={'noGutter inline clusterPlotCol'} md={3} 
-                        style={{'width': '24%!important'}}
-                        key={i+'symptoms'}>
-                            <span  className={'controlPanelTitle'}>
-                                {'Symptoms at'}
-                                {makeToggleButton(13)}
-                                {makeToggleButton(33)}
-                            </span>
-                            <ClusterSymptomsD3
-                                data={d}
-                                plotSymptoms={props.symptomsOfInterest}
-                                mainSymptom={props.mainSymptom}
-                                setMainSymptom={props.setMainSymptom}
-                                minWeeks={symptomPlotDate}
-                            ></ClusterSymptomsD3>
-                        </Col>
-                        <Col className={'inline noGutter clusterPlotCol'} md={3} 
-                        style={{'width': '24%!important'}}
-                        key={i+'clinical'}>
-                            <span  className={'controlPanelTitle noGutter'}>
-                                {'Clinical Feature Dist.'}
-                            </span>
-                            <ClusterClinicalD3
-                                data={d}
-                                plotValues={allClinicalVars}
+                                <Button
+                                    title={clusterText}
+                                    value={d}
+                                    onClick={onTitleClick}
+                                    variant={variant}
+                                    disabled={!clickableTitle}
+                                >
+                                    {clusterText}
+                                    <span r={10} style={{'borderRadius':'70%','color':dotColor}}>{'⬤'}</span>
+                                </Button>
+                            </Col>
+                            <Col md={12}
+                                className={'clusterDoseContainer'}
                             >
-                            </ClusterClinicalD3>
-                        </Col>
-                    </Row>
+                                <Dose2dCenterViewD3
+                                    data={d}
+                                    clusterOrgans={props.clusterOrgans}
+                                    plotVar={props.plotVar}
+                                    svgPaths={props.svgPaths}
+                                    orient={'both'}
+                                    addOrganToCue={props.addOrganToCue}
+                                    clusterOrganCue={props.clusterOrganCue}
+                                    showContralateral={props.showContralateral}
+                                ></Dose2dCenterViewD3>
+                            </Col>
+                            
+                        </Row>
+                        // <Col  className={'noGutter inline clusterPlotCol'} md={3} 
+                        // style={{'width': '24%!important'}}
+                        // key={i+'symptoms'}>
+                        //     <span  className={'controlPanelTitle'}>
+                        //         {'Symptoms at'}
+                        //         {makeToggleButton(13)}
+                        //         {makeToggleButton(33)}
+                        //     </span>
+                        //     <ClusterSymptomsD3
+                        //         data={d}
+                        //         plotSymptoms={props.symptomsOfInterest}
+                        //         mainSymptom={props.mainSymptom}
+                        //         setMainSymptom={props.setMainSymptom}
+                        //         minWeeks={symptomPlotDate}
+                        //     ></ClusterSymptomsD3>
+                        // </Col>
+                        // <Col className={'inline noGutter clusterPlotCol'} md={3} 
+                        // style={{'width': '24%!important'}}
+                        // key={i+'clinical'}>
+                        //     <span  className={'controlPanelTitle noGutter'}>
+                        //         {'Clinical Feature Dist.'}
+                        //     </span>
+                        //     <ClusterClinicalD3
+                        //         data={d}
+                        //         plotValues={allClinicalVars}
+                        //     >
+                        //     </ClusterClinicalD3>
+                        // </Col> 
+                    // </Container>
                 )
             })
             setClusterVizComponents(newComponents)
@@ -140,34 +156,13 @@ export default function DoseView(props){
             let newComponents = []
             for(let i = 0; i < props.nDoseClusters; i++){
                 newComponents.push(
-                    <Container  fluid={'true'} md={5} className={'noGutter inline'} flex={'true'} key={i}>
-                    <Container className={'clusterPlotCol inline'} md={6} 
-                    key={i+'doses'+props.plotVar}>
+                    <Container  fluid={'true'} md={12} className={'noGutter inline fillSpace'} flex={'true'} key={i}>
                         <Spinner 
                             as="span" 
                             animation = "border"
                             role='status'
                             className={'spinner'}
                         />
-                    </Container>
-                    <Container className={'clusterPlotCol inline'} md={3} 
-                    key={i+'symptoms'}>
-                        <Spinner 
-                            as="span" 
-                            animation = "border"
-                            role='status'
-                            className={'spinner'}
-                        />
-                    </Container>
-                    <Container className={'clusterPlotCol inline'} md={3} 
-                    key={i+'clinical'}>
-                        <Spinner 
-                            as="span" 
-                            animation = "border"
-                            role='status'
-                            className={'spinner'}
-                        />
-                    </Container>
                     </Container >
                 )
             }
@@ -180,8 +175,10 @@ export default function DoseView(props){
         props.symptomsOfInterest,props.showContralateral])
 
     return ( 
-        <div ref={ref} id={'doseClusterContainer'}>
-            {clusterVizComponents}
+        <div ref={ref} className={'noGutter'} >
+            <Container id={'doseClusterContainer'} >
+                {clusterVizComponents}
+            </Container>
         </div> 
         )
 }

@@ -385,7 +385,7 @@ def get_cluster_json(df,
     else:
         print('skipping stuff')
     clust_dfs = []
-    dose_cols = get_df_dose_cols(df,key='V') + ['mean_dose','volume']
+    dose_cols = get_df_dose_cols(df,key='V') + ['max_dose','mean_dose','volume']
     s_cols = get_df_symptom_cols(df)
     if quantiles is None:
         quantiles = np.linspace(.1,.9,6) 
@@ -489,7 +489,7 @@ def sddf_to_json(df,
             df['symptom_'+name+'_pca'] = [x.tolist() for x in symptom_x_pca]
         df = df.copy() #fragmentation issues
     is_dose_dvh = lambda x: re.match('D[0-9][0-9]?',x) is not None
-    vol_dvh_too_high = lambda x: re.match('V[0-18-9][0-9]?',x) is not None
+    vol_dvh_too_high = lambda x: re.match('V[08-9][0-9]?',x) is not None
     for c in df.columns:
         if is_dose_dvh(c) or vol_dvh_too_high(c):
             to_drop.append(c)
@@ -567,6 +567,10 @@ def multi_var_tests(df, testcols, ycol,xcols,
     return results
 
 def dvh_num(string,key='V'):
+    if string == 'mean_dose':
+        return 99
+    if string == 'max_dose':
+        return 100
     match = re.match(key+"(\d+).*",string)
     if match is not None:
         return int(match.groups()[0])
@@ -630,6 +634,7 @@ def select_single_organ_cluster_effects(df,
         thresholds = [5]
     if clusters is None:
         clusters = [None,n_clusters-1]
+    print('clusters',clusters)
     if organ_list is None:
         #imma just skip stuff that's like probably not relevant for this usage
         exclude = set(['Brainstem',"Spinal_Cord",
@@ -678,7 +683,7 @@ def select_single_organ_cluster_effects(df,
     if clustertype is not None:
         clusterer = keyword_clusterer(clustertype,n_clusters)
     
-    dvh_options = get_all_dvh(df,key='V')
+    dvh_options = get_all_dvh(df,key='V') + ['max_dose','mean_dose']
     alt_features = []
     fids = []
     for col in dvh_options:
@@ -980,14 +985,15 @@ def get_rule_stuff(df,post_results=None):
     
     organs = post_results.get('organs',Const.organ_list[:])
     symptoms = post_results.get('symptoms',['drymouth'])
-    organ_features = post_results.get('clusterFeatures',['V35','V40','V45','V55'])
+    # organ_features = post_results.get('clusterFeatures',['V35','V40','V45','V55'])
+    organ_features = ['V5','V10','V15','V20','V25','V30','V35','V40','V45','V50','V55','V60','V65','V70','V75','V80']
     organ_features.extend(['mean_dose','max_dose'])
     s_dates = post_results.get('symptom_dates',[13,33])
     threshold = post_results.get('threshold',6)
     cluster = post_results.get('cluster',None)
     maxdepth = post_results.get('max_depth',3)
     min_odds = post_results.get('min_odds',0)
-    min_info = post_results.get('min_info',.1)
+    min_info = post_results.get('min_info',.08)
     criteria = post_results.get('criteria','info')
     max_rules = post_results.get('max_rules',15)
     max_frontier = post_results.get('max_frontier',20)

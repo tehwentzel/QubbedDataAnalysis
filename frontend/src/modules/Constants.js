@@ -103,4 +103,4 @@ export const ORGAN_RENDER_ORDER = {
     "Suppraglottic_Larynx": -9
 }
 
-export const DVH_KEYS = ['mean_dose','V5','V10','V15','V20','V25','V30','V35','V40','V45','V50','V55','V60','V65','V70','V75','V80']
+export const DVH_KEYS = ['mean_dose','max_dose','V5','V10','V15','V20','V25','V30','V35','V40','V45','V50','V55','V60','V65','V70','V75','V80']

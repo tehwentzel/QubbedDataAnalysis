@@ -53,18 +53,42 @@ svg > path, svg > circle{
 
 .clusterPlotCol{
   height: calc(25vh - 1em)!important;
-  margin: .1em!important;
+  /* height: 20em!important; */
+  margin: 0em!important;
+  padding: 0em!important;
+  padding-left: .1em!important;
+  padding-right: .1em!important;
+  width: calc(50% - 1em)!important;
+  display: inline-flex!important;
+  justify-content: left!important;
 }
 
-
+.clusterDoseContainer{
+  height: calc(25vh - 3em)!important;
+}
 
 #clusterControlPanelContainer{
-  height: 200px;
+  height: 150px;
   overflow-y: show;
 }
 
-#clusterContainer{
-  height: calc(98vh - 200px);
+#doseClusterContainer{
+  display: block;
+  margin: 0px;
+  padding: 0px;
+  justify-content:space-between;
+  margin-top: 1em!important;
+}
+
+.clusterContainer{
+  height: calc(60vh - 150px)!important;
+  justify-content: start;
+}
+
+.clusterSymptomContainer{
+  height: calc(40vh - 2em)!important;
+  margin: 0px;
+  margin-top: .1em!important;
 }
 
 .organPath{
@@ -88,7 +112,12 @@ svg > path, svg > circle{
 }
 .inline{
   display: inline-block;
-  justify-content: flex-start;
+  justify-content: start;
+}
+
+.inlineFlex{
+  display: inline-flex;
+  justify-content: start;
 }
 
 .scroll{

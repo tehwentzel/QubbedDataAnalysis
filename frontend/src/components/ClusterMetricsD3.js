@@ -77,17 +77,29 @@ export default function ClusterMetricsD3(props){
             svg.selectAll('rect').remove()
             var makeYScale = (accessor) => {
                 let [minVal,maxVal] = d3.extent(data, d=>accessor(d));
-                minVal = Math.min(0,minVal);
+                if(maxVal > 0){
+                    minVal = Math.min(0,minVal);
+                }
                 let topRatio = Math.abs(maxVal)/(Math.abs(maxVal)+Math.abs(minVal));
+                if(maxVal <= 0){
+                    topRatio = 0;
+                }
                 let h = (height-yMarginBottom-yMarginTop);
-                let yCenter = Math.max(yMarginTop + 3, h*topRatio);
+
+                let yCenter = Math.max(yMarginTop + 3, h*topRatio -yMarginBottom);
                 let scale = d3.scaleLinear()
-                    .domain([0,maxVal])
+                    .domain([minVal,maxVal])
                     .range([0,yCenter-yMarginTop]);
+                if(maxVal <= 0){
+                    scale = d3.scaleLinear()
+                        .domain([0,Math.abs(minVal)])
+                        .range([0,h])
+                }
                 var yScale =  d=> {
                     let val = accessor(d);
                     return scale(Math.abs(val));
-                }
+                }    
+
                 return [yScale, yCenter]
             }
 
@@ -111,7 +123,6 @@ export default function ClusterMetricsD3(props){
 
             var xAxisPoints = [];
             var xAxisData = [];
-            var annoationData = [];
             const lineFunc = d3.line()
     
             var makeRect = (accessor,xKey,sigKey,sigThreshold) => {

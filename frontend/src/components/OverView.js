@@ -21,7 +21,7 @@ import ClusterCVMetrics from './ClusterCVMetrics.js'
 export default function OverView(props){
     const ref = useRef(null)
 
-    const [viewToggle,setViewToggle] = useState('symptom')
+    const [viewToggle,setViewToggle] = useState(props.defaultState)
 
     const [xVar,setXVar] = useState('cluster_organ_pca1');
     const [yVar, setYVar] = useState('cluster_organ_pca2');
@@ -41,7 +41,7 @@ export default function OverView(props){
     //     'tstage','nstage',
     // ].concat(symptoms)
     
-    function makeDropdown(title,active,onclickFunc,key,options,dropDir){
+    function makeDropdown(title,active,onclickFunc,key,options,dropDir,showState=true){
         if(options === undefined){
             options = varOptions;
         }
@@ -60,7 +60,7 @@ export default function OverView(props){
              className={'controlDropdownButton'}
              style={{'width':'auto'}}
              drop={dropDir}
-             title={title + ': ' + active}
+             title={showState? title + ': ' + active: title}
              value={active}
              key={key}
              variant={'primary'}
@@ -121,6 +121,7 @@ export default function OverView(props){
     }
 
     function makeSymptomPlot(){
+        //I'm maybe not doing this an putting it in the left hand side as a pernament view
         if(props.clusterData != undefined & props.doseData != undefined){
             return (
                 <Container className={'noGutter fillSpace'}>
@@ -133,10 +134,7 @@ export default function OverView(props){
                         clusterOrgans={props.clusterOrgans}
                         activeCluster={props.activeCluster}
                         setActiveCluster={props.setActiveCluster}
-                        xVar={xVar}
-                        yVar={yVar}
                         mainSymptom={props.mainSymptom}
-                        sizeVar={sizeVar}
                         categoricalColors={props.categoricalColors}
                     ></SymptomPlotD3>
                 </Container>
@@ -167,7 +165,7 @@ export default function OverView(props){
                         additiveClusterThreshold={props.additiveClusterThreshold}
                         setAdditiveCluster={props.setAdditiveCluster}
                         setAdditiveClusterThreshold={props.setAdditiveClusterThreshold}
-                        nDoseCluster={props.nDoseClusters}
+                        nDoseClusters={props.nDoseClusters}
                         clusterFeatures={props.clusterFeatures}
                     ></DoseEffectView>
             )
@@ -183,7 +181,7 @@ export default function OverView(props){
     }
 
     function makeCVMetricsPlot(){
-        if(props.clusterData != undefined & props.clusterMetricData != undefined){
+        if(props.clusterData != undefined){
             return (
                 <Container className={'noGutter fillSpace'}>
                     <ClusterCVMetrics
@@ -194,6 +192,9 @@ export default function OverView(props){
                         mainSymptom={props.mainSymptom}
                         categoricalColors={props.categoricalColors}
                         clusterMetricData={props.clusterMetricData}
+                        clusterDataLoading={props.clusterDataLoading}
+                        lrtConfounders={props.lrtConfounders}
+                        api={props.api}
                     ></ClusterCVMetrics>
                 </Container>
             )
@@ -245,30 +246,13 @@ export default function OverView(props){
                 api={props.api}
                 clusterDataLoading={props.clusterDataLoading}
                 doseData={props.doseData}
-                ruleData={props.ruleData}
                 svgPaths={props.svgPaths}
                 mainSymptom={props.mainSymptom}
                 clusterData={props.clusterData}
-                ruleThreshold={props.ruleThreshold}
-                ruleCluster={props.ruleCluster}
-                setRuleThreshold={props.setRuleThreshold}
-                setRuleCluster={props.setRuleCluster}
                 activeCluster={props.activeCluster}
-                // maxRules={props.maxRules}
-                // setMaxRules={props.setMaxRules}
-                // ruleMaxDepth={props.ruleMaxDepth}
-                // setRuleMaxDepth={props.setRuleMaxDepth}
                 clusterOrgans={props.clusterOrgans}
                 selectedPatientId={props.selectedPatientId}
                 setSelectedPatientId={props.setSelectedPatientId}
-                // ruleCriteria={props.ruleCriteria}
-                // setRuleCriteria={props.setRuleCriteria}
-                // ruleTargetCluster={props.ruleTargetCluster}
-                // setRuleTargetCluster={props.setRuleTargetCluster}
-                selectedPatientId={props.selectedPatientId}
-                setSelectedPatientId={props.setSelectedPatientId}
-                // ruleUseAllOrgans={props.ruleUseAllOrgans}
-                // setRuleUseAllOrgans={props.setRuleUseAllOrgans}
             ></RuleView>
         )
         // } else{
@@ -282,7 +266,7 @@ export default function OverView(props){
     }
 
     function switchView(view){
-        if(view == 'scatterplot'){
+        if(view == 'scatterplot' | view === undefined | view === null){
             let buttonHeight = 30;
             return (
                 <Row key={view} md={12} className={'noGutter fillSpace'} >
@@ -358,19 +342,19 @@ export default function OverView(props){
         let onclick = (e) => setViewToggle(value);
         return (
             <Button
-                title={value}
+                title={value+''}
                 value={value}
                 style={{'width':'auto'}}
                 variant={variant}
                 disabled={active}
                 onClick={onclick}
-            >{value}</Button>
+            >{value+''}</Button>
         )
     }
 
     function makeSymptomDropdown(view){
         //there was an if statement before idk
-        return makeDropdown(props.mainSymptom,true,props.setMainSymptom,10,props.symptomsOfInterest)
+        return makeDropdown(props.mainSymptom,true,props.setMainSymptom,10,props.symptomsOfInterest,'down',false)
     }
 
     return ( 
@@ -379,7 +363,7 @@ export default function OverView(props){
                 <Col md={8} className={'noGutter'}>
                     {makeToggleButton('scatterplot')}
                     {makeToggleButton('effect')}
-                    {makeToggleButton('symptom')}
+                    {/* {makeToggleButton('symptom')} */}
                     {makeToggleButton('patients')}
                     {makeToggleButton('metric')}
                     {makeToggleButton('cv_metrics')}

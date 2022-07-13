@@ -114,17 +114,17 @@ export default function RuleView(props){
             + ' |Info Gain: ' + fix(rule.info)   
             // + ' |ROC:' + fix(rule.roc_auc)
             // + ' |F1:' + fix(rule.f1) 
-            // + ' |Prsn:' + fix(rule.precision) 
-            // + ' |Rcl:' + fix(rule.recall);
+            + ' |Prsn:' + fix(rule.precision) 
+            + ' |Rcl:' + fix(rule.recall);
         // if (ruleTargetCluster >= 0){
-        //     title += ' |Outcome ROC:' + fix(rule.roc_auc_symptom) 
-        //     + ' |Outcome F1:' + fix(rule.f1_symptom);
+            title += ' |Outcome ROC:' + fix(rule.roc_auc_symptom) 
+            + ' |Outcome F1:' + fix(rule.f1_symptom);
         // }
 
-        title += '' 
-        for(let i in rule.features){
-            title += ' | '+ rule.features[i] + '>' + rule.thresholds[i];
-        }
+        // title += '' 
+        // for(let i in rule.features){
+        //     title += ' | '+ rule.features[i] + '>' + rule.thresholds[i];
+        // }
 
         const keyName = key + props.mainSymptom
             + parseString(ruleCluster)+parseString(ruleThreshold)

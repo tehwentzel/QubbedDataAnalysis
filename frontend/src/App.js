@@ -3,18 +3,16 @@ import './App.css';
 import React, {useEffect, useState} from 'react';
 import DataService from './modules/DataService';
 import DoseView from './components/DoseView.js';
-import NavBar from './components/NavBar';
 import ClusterControlPanel from './components/ClusterControlPanel.js';
-import PatientDoseView from './components/PatientDoseView.js';
 import OverView from './components/OverView.js';
+import SymptomPlotD3 from './components/SymptomPlotD3.js';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
 import * as constants from './modules/Constants.js';
-import * as d3 from 'd3';
-import { active } from 'd3';
+import { Spinner } from 'react-bootstrap';
 
 function App() {
   var api = new DataService();
@@ -25,7 +23,7 @@ function App() {
   const [clusterData,setClusterData] = useState(null);
   //organs used to cluster the patients
   const [clusterOrgans,setClusterOrgans] = useState([
-    'Tongue',
+    'Soft_Palate',
     'Rt_Parotid_Gland','Lt_Parotid_Gland',
     'Rt_Submandibular_Gland','Lt_Submandibular_Gland',
   ])
@@ -36,13 +34,14 @@ function App() {
   //# of clusters used
   const [nDoseClusters,setNDoseClusters] = useState(3);
   //which dose features we use for each organ
-  const [clusterFeatures,setClusterFeatures] = useState(['V35','V40','V45','V50','V55','V60']);
+  const [clusterFeatures,setClusterFeatures] = useState(['V25','V30','V35','V40','V45','V50','V55','V60']);
   //used to determine the confounders used in the models for determining p-values
   const [lrtConfounders,setLrtConfounders] = useState([
     't_severe',
     'n_severe',
     'hpv',
     'BOT','Tonsil',
+    'age_65',
     'Parotid_Gland_limit',
     'performance_1','performance_2',
   ]);
@@ -62,8 +61,7 @@ function App() {
   const [additiveClusterThreshold,setAdditiveClusterThreshold] = useState(5);
   //false = use highest dose cluster, ture = use all clusters
   const [additiveCluster, setAdditiveCluster] = useState(false);
-  //I dont think I use this
-  const [clusterMetricData,setClusterMetricData] = useState(null);
+  
   //which symptoms we're including in the plots
   const [symptomsOfInterest,setSymptomsOfInterest] = useState([
     'drymouth',
@@ -106,7 +104,7 @@ function App() {
   const [mainSymptom,setMainSymptom] = useState('drymouth');
 
 
-  const [metricsModelType,setMetricsModelType] = useState('regression');
+  
   //hnc diagram svg patths
   const [svgPaths,setSvgPaths] = useState();
 
@@ -196,27 +194,13 @@ function App() {
       symp,
       lrtConfounders,
       thresholds,
+      // [nDoseClusters-1],
       clusters,
     );
     // console.log('fetched addtive',response.data);
     setAdditiveClusterResults(response.data);
   }
 
-  var fetchClusterMetrics = async(cData,lrtConfounders,symptom,mType)=>{
-    if(cData !== undefined & !clusterDataLoading){
-      // const response = await api.getClusterMetrics(cData,organs,lrtConfounders,symptoms);
-      // setClusterMetricData(response);
-      // console.log('cluster metric data', response)
-      api.getClusterMetrics(cData,lrtConfounders,symptom,mType).then(response =>{
-        // console.log('cluster metric data',response)
-        setClusterMetricData(response);
-      }).catch(error=>{
-        console.log('cluster metric data error',error);
-      })
-    }  
-  }
-
-  
 
 
   useEffect(() => {
@@ -240,9 +224,9 @@ function App() {
     }
   },[clusterOrgans,clusterFeatures])
 
-  useEffect(function clearCue(){
-    setClusterOrganCue(new Array());
-  },[clusterOrgans])
+  // useEffect(function clearCue(){
+  //   setClusterOrganCue(new Array());
+  // },[clusterOrgans])
 
   useEffect(function updateEffect(){
     if(clusterData !== undefined & !clusterDataLoading){
@@ -250,23 +234,13 @@ function App() {
     }
   },[clusterDataLoading,clusterData,mainSymptom,clusterDataLoading,lrtConfounders,additiveClusterThreshold,additiveCluster])
 
-  
-  useEffect(()=>{
-    if(!clusterDataLoading & clusterData !== undefined & clusterData !== null){
-      fetchClusterMetrics(clusterData, lrtConfounders,mainSymptom,metricsModelType);
-    }
-  },[clusterDataLoading,clusterData,mainSymptom,lrtConfounders,metricsModelType]);
-  
-  
-  
-  
-
-  function makeOverview(){
+  function makeOverview(state){
     return (
       <Row style={{'height': '50vh','overflowY':'hidden'}} className={'noGutter'} lg={12}>
         <OverView
             api={api}
             doseData={doseData}
+            defaultState={state}
             clusterData={clusterData}
             clusterDataLoading={clusterDataLoading}
             selectedPatientId={selectedPatientId}
@@ -283,23 +257,8 @@ function App() {
             allSymptoms={allSymptoms}
             additiveClusterResults={additiveClusterResults}
             categoricalColors={categoricalColors}
-            clusterMetricData={clusterMetricData}
-            setClusterMetricData={setClusterMetricData}
-            // ruleData={ruleData}
-            // ruleThreshold={ruleThreshold}
-            // ruleCluster={ruleCluster}
-            // setRuleThreshold={setRuleThreshold}
-            // setRuleCluster={setRuleCluster}
-            // maxRules={maxRules}
-            // setMaxRules={setMaxRules}
-            // ruleMaxDepth={ruleMaxDepth}
-            // setRuleMaxDepth={setRuleMaxDepth}
-            // ruleCriteria={ruleCriteria}
-            // setRuleCriteria={setRuleCriteria}
-            // ruleTargetCluster={ruleTargetCluster}
-            // setRuleTargetCluster={setRuleTargetCluster}
-            // ruleUseAllOrgans={ruleUseAllOrgans}
-            // setRuleUseAllOrgans={setRuleUseAllOrgans}
+            lrtConfounders={lrtConfounders}
+            nDoseClusters={nDoseClusters}
             additiveCluster={additiveCluster}
             additiveClusterThreshold={additiveClusterThreshold}
             setAdditiveCluster={setAdditiveCluster}
@@ -308,6 +267,39 @@ function App() {
         ></OverView>
     </Row>
     )
+  }
+
+  function makeSymptomPlot(){
+    if(clusterData !== undefined & doseData != undefined & !clusterDataLoading){
+      return (
+        <Container className={'noGutter fillSpace'}>
+            <span className={'centerText controlPanelTitle'}>
+              {'Symptom Trajectory'}
+            </span>
+            <SymptomPlotD3
+                doseData={doseData}
+                clusterData={clusterData}
+                selectedPatientId={selectedPatientId}
+                setSelectedPatientId={setSelectedPatientId}
+                plotVar={plotVar}
+                clusterOrgans={clusterOrgans}
+                activeCluster={activeCluster}
+                setActiveCluster={setActiveCluster}
+                mainSymptom={mainSymptom}
+                categoricalColors={categoricalColors}
+            ></SymptomPlotD3>
+        </Container>
+      )
+    } else{
+      return (
+        <Container className={'noGutter fillSpace'}>
+          <span className={'centerText controlPanelTitle'}>
+                {'Symptom Trajectory'}
+            </span>
+          <Spinner as={'span'}></Spinner>
+        </Container>
+      )
+    }
   }
   return (
     <div className="App">
@@ -326,6 +318,8 @@ function App() {
                   plotVar={plotVar}
                   setPlotVar={setPlotVar}
                   clusterType={clusterType}
+                  mainSymptom={mainSymptom}
+                  setMainSymptom={setMainSymptom}
                   setClusterType={setClusterType}
                   symptomsOfInterest={symptomsOfInterest}
                   setSymptomsOfInterest={setSymptomsOfInterest}
@@ -336,7 +330,7 @@ function App() {
                   allSymptoms={allSymptoms}
                 ></ClusterControlPanel>
               </Row>
-              <Row id={'clusterContainer'} className={'vizComponent noGutter scroll'} lg={12}>
+              <Row className={'clusterContainer vizComponent noGutter scroll'} lg={12}>
                 <DoseView
                   doseData={doseData}
                   clusterData={clusterData}
@@ -354,11 +348,14 @@ function App() {
                   mainSymptom={mainSymptom}
                   setMainSymptom={setMainSymptom}
                 ></DoseView>
+              </Row>
+              <Row  className={'clusterSymptomContainer fillWidth'} lg={12}>
+                {makeSymptomPlot()}
               </Row>    
           </Col>  
           <Col style={{'height': '100vh','overflowY':'hidden'}} className={'noGutter'} lg={6}>
-            {makeOverview()}
-            {makeOverview()}
+            {makeOverview('scatterplot')}
+            {makeOverview('effect')}
         </Col>
       </Row>
     </div>
