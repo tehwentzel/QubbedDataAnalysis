@@ -20,8 +20,13 @@ export default function RuleViewD3(props){
     const oThreshold = props.ruleThreshold;
     const isActive = (d) => parseInt(d.id) == parseInt(props.selectedPatientId);
 
-    const targetColor = '#b2182b';
-    const nonTargetColor = '#2166ac'
+    //if ther rules are predicting a cluster, use cluster color + grey
+    //otherwise use red + blueish (adjusted to make seeing the outlines easier)
+    const targetIsCluster = (props.ruleTargetCluster !== undefined & props.ruleTargetCluster >= 0);
+    const targetColor = targetIsCluster? props.categoricalColors(props.ruleTargetCluster):'red';
+    const nonTargetColor = targetIsCluster? '#D8D8D8':'#2166ac';
+    
+    
     function getSplitParts(fname){
         if(fname.includes('_limit')){
             return [fname, ''] 
@@ -303,10 +308,10 @@ export default function RuleViewD3(props){
                     .attr('cy',d=>boundY(d));
             }
             var simulation = forceSimulation(pointData)
-                .force('collide',forceCollide().radius(.1+R).strength(1))
+                .force('collide',forceCollide().radius(.1+R).strength(1.2))
                 .force('x',forceX(d=>d.baseX).strength(.05))
                 .force('y',forceY(d=>d.baseY).strength(.05))
-                .alphaMin(.1)
+                .alphaMin(.05)
                 .on('tick',ticked)
                 .on('end',()=>{
                     dots.on('mouseover',function(e){
@@ -334,8 +339,8 @@ export default function RuleViewD3(props){
                 .data(pathData).enter()
                 .append('path').attr('class','patientLine')
                 .attr('d',d=>d.path)
-                .attr('stroke',d=>(d.targetClass)? 'red':'grey')
-                .attr('stroke-width',d=>(d.targetClass)? 1.5:1)
+                .attr('stroke',d=>(d.targetClass)? targetColor:nonTargetColor)
+                .attr('stroke-width',1)
                 .attr('fill','none')
                 .attr('stroke-opacity', .2);
             svg.selectAll('.patientCircle').raise();

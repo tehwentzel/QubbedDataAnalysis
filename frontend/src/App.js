@@ -2,6 +2,7 @@ import './App.css';
 
 import React, {useEffect, useState} from 'react';
 import DataService from './modules/DataService';
+import Utils from './modules/Utils';
 import DoseView from './components/DoseView.js';
 import ClusterControlPanel from './components/ClusterControlPanel.js';
 import OverView from './components/OverView.js';
@@ -47,6 +48,9 @@ function App() {
   ]);
   //which variable is being ploted when showing patient dose distirbutions
   const [plotVar,setPlotVar] = useState('V55');
+
+  //in progress, should toggle if the dose cluster show labels for organs?
+  const [showOrganLabels,setShowOrganLabels] = useState(true);
   //which cluster is the focus on in the detail views
   const [activeCluster,setActiveCluster] = useState(0);
   // const [updateCued,setUpdateCued] = useState(false)
@@ -112,7 +116,7 @@ function App() {
   //this use to be d3.scaleOrdinal but it wasn't wokring for some reason
   //returns color based on index bascially
   const categoricalColors = (i) => {
-    let colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628',,'#f781bf','999999'];
+    let colors = ['#4daf4a','#377eb8','magenta','#bebada','#ffffb3','#984ea3','#fb8072','#ffff33','#a65628',,'#f781bf','999999','#e41a1c',];
     let ii = Math.round(i);
     if(ii < 0 | ii > colors.length - 1){
       return 'black';
@@ -137,8 +141,11 @@ function App() {
   }
 
   function addOrganToCue(org){
-    if(clusterData !== undefined){
+    //There is a copy of this in DoseEffectView that needs seperate updating
+    //transfering it down doest update it properly for some reason I checked
+    if(clusterData !== undefined & org !== undefined & constants.ORGANS_TO_SHOW.indexOf(org) >= 0){
       let newCue = [];
+
       for(let o of clusterOrganCue){ newCue.push(o); }
 
       if(clusterOrganCue.length < 1 | clusterOrganCue.indexOf(org) < 0){
@@ -242,11 +249,14 @@ function App() {
             doseData={doseData}
             defaultState={state}
             clusterData={clusterData}
+            
             clusterDataLoading={clusterDataLoading}
             selectedPatientId={selectedPatientId}
             setSelectedPatientId={setSelectedPatientId}
             plotVar={plotVar}
             clusterOrgans={clusterOrgans}
+            clusterOrganCue={clusterOrganCue}
+            setClusterOrganCue={setClusterOrganCue}
             activeCluster={activeCluster}
             svgPaths={svgPaths}
             mainSymptom={mainSymptom}
@@ -264,6 +274,8 @@ function App() {
             setAdditiveCluster={setAdditiveCluster}
             setAdditiveClusterThreshold={setAdditiveClusterThreshold}
             nDoseCluster={nDoseClusters}
+            showOrganLabels={showOrganLabels}
+            setShowOrganLabels={setShowOrganLabels}
         ></OverView>
     </Row>
     )
@@ -274,7 +286,7 @@ function App() {
       return (
         <Container className={'noGutter fillSpace'}>
             <span className={'centerText controlPanelTitle'}>
-              {'Symptom Trajectory'}
+              {Utils.getVarDisplayName(mainSymptom) + ' Trajectory vs Time'}
             </span>
             <SymptomPlotD3
                 doseData={doseData}
@@ -294,7 +306,7 @@ function App() {
       return (
         <Container className={'noGutter fillSpace'}>
           <span className={'centerText controlPanelTitle'}>
-                {'Symptom Trajectory'}
+                {'Symptom Trajectory vs Time'}
             </span>
           <Spinner as={'span'}></Spinner>
         </Container>
@@ -328,6 +340,8 @@ function App() {
                   showContralateral={showContralateral}
                   setShowContralateral={setShowContralateral}
                   allSymptoms={allSymptoms}
+                  showOrganLabels={showOrganLabels}
+                setShowOrganLabels={setShowOrganLabels}
                 ></ClusterControlPanel>
               </Row>
               <Row className={'clusterContainer vizComponent noGutter scroll'} lg={12}>
@@ -347,6 +361,8 @@ function App() {
                   categoricalColors={categoricalColors}
                   mainSymptom={mainSymptom}
                   setMainSymptom={setMainSymptom}
+                  showOrganLabels={showOrganLabels}
+                  setShowOrganLabels={setShowOrganLabels}
                 ></DoseView>
               </Row>
               <Row  className={'clusterSymptomContainer fillWidth'} lg={12}>

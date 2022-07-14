@@ -157,6 +157,8 @@ export default function OverView(props){
                         clusterData={props.clusterData}
                         additiveClusterResults={props.additiveClusterResults}
                         clusterOrgans={props.clusterOrgans}
+                        clusterOrganCue={props.clusterOrganCue}
+                        setClusterOrganCue={props.setClusterOrganCue}
                         activeCluster={props.activeCluster}
                         symptomsOfInterest={props.symptomsOfInterest}
                         mainSymptom={props.mainSymptom}
@@ -253,6 +255,7 @@ export default function OverView(props){
                 clusterOrgans={props.clusterOrgans}
                 selectedPatientId={props.selectedPatientId}
                 setSelectedPatientId={props.setSelectedPatientId}
+                categoricalColors={props.categoricalColors}
             ></RuleView>
         )
         // } else{

@@ -27,12 +27,13 @@ export default function RuleView(props){
     //the max # of splits to allow
     const [ruleMaxDepth,setRuleMaxDepth] = useState(2);
     //used to filter out the best rules at each depth
-    const [maxRules,setMaxRules] = useState(5);
+    const [maxRules,setMaxRules] = useState(3);
     //what to use to determine optimal splits. currently 'info' or 'odds ratio'
     const [ruleCriteria,setRuleCriteria] = useState('info');
     //if > 0 and not undefined, we predict membership in a cluster instead of outcomes
-    const [ruleTargetCluster,setRuleTargetCluster] = useState(-1)
+    const [ruleTargetCluster,setRuleTargetCluster] = useState(props.activeCluster)
     const [ruleUseAllOrgans,setRuleUseAllOrgans] = useState(false);
+    const [ruleMinInfo,setRuleMinInfo] = useState(.8);
 
     const [vizComponents,setVizComponents] = useState(
         <Spinner 
@@ -45,7 +46,8 @@ export default function RuleView(props){
     var fetchClusterRules = async(cData,organs,
         symptoms,clusterFeatures,
         threshold,cluster,
-        maxDepth,maxR,rCriteria,targetCluster
+        maxDepth,maxR,rCriteria,
+        targetCluster,mInfo,
         )=>{
         if(cData !== undefined & !props.clusterDataLoading){
             setRuleData(undefined);
@@ -54,6 +56,7 @@ export default function RuleView(props){
                 threshold,cluster,
                 maxDepth,maxR,
                 rCriteria,targetCluster,
+                mInfo,
             ).then(response=>{
                 // console.log('rule data main',response);
                 setRuleData(response);
@@ -83,9 +86,17 @@ export default function RuleView(props){
                 rOrgans = [...constants.ORGANS_TO_SHOW];
             }
             fetchClusterRules(
-                props.clusterData,rOrgans,
-                [props.mainSymptom],props.clusterFeatures,ruleThreshold,
-                ruleCluster,ruleMaxDepth,maxRules,ruleCriteria,ruleTargetCluster
+                props.clusterData,
+                rOrgans,
+                [props.mainSymptom],
+                props.clusterFeatures,
+                ruleThreshold,
+                ruleCluster,
+                ruleMaxDepth,
+                maxRules,
+                ruleCriteria,
+                ruleTargetCluster,
+                ruleMinInfo,
             );
         
         }
@@ -95,7 +106,7 @@ export default function RuleView(props){
         props.clusterDataLoading,
         ruleMaxDepth,maxRules,
         ruleCriteria,ruleTargetCluster,
-        ruleUseAllOrgans
+        ruleUseAllOrgans,ruleMinInfo,
     ])
 
     const filterCluster = parseInt(ruleCluster) === parseInt(props.activeCluster)
@@ -154,6 +165,7 @@ export default function RuleView(props){
                         selectedPatientId={props.selectedPatientId}
                         setSelectedPatientId={props.setSelectedPatientId}
                         ruleTargetCluster={ruleTargetCluster}
+                        categoricalColors={props.categoricalColors}
                     ></RuleViewD3>
                 </Row>
             </Row>
@@ -189,12 +201,12 @@ export default function RuleView(props){
                     variant={(filterCluster & !predictClusterActive)? 'dark':'outline-secondary'}
                     onClick={()=>toggleFilter(true)}
                     disabled={filterCluster & !predictClusterActive}
-                >{'clust ' + props.activeCluster + '->outcome'}</Button>
+                >{'clst' + props.activeCluster + '->outcome'}</Button>
                 <Button
                     variant={predictClusterActive? 'dark':'outline-secondary'}
                     onClick={onSetTargetCluster}
                     disabled={predictClusterActive}
-                >{'cohort->clust ' + props.activeCluster}</Button>
+                >{'cohort->clst ' + props.activeCluster}</Button>
             </InputGroup>
             </div>
         )
@@ -326,6 +338,29 @@ export default function RuleView(props){
         )
     }
 
+    function makeMinInfoDropDown(){
+        const dItems = [.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0,1.1,1.2,1.3,1.4,1.5].map((t,i) => {
+            return (
+                <Dropdown.Item
+                    key={i}
+                    value={t}
+                    eventKey={t}
+                    onClick={e => {
+                        if(ruleMinInfo !== t){
+                            setRuleMinInfo(t);
+                        }
+                    }}
+                >{t}</Dropdown.Item>
+            )
+        });
+        return (
+            <DropdownButton
+                className={'controlDropdownButton'}
+                title={'Min Split Info: ' + ruleMinInfo.toFixed(1)}
+            >{dItems}</DropdownButton>
+        )
+    }
+
     function makeThresholdForm(){
         let onKey = (e) => {
             if(e.code === 'Enter'){
@@ -382,6 +417,7 @@ export default function RuleView(props){
                     {makeOrganSetToggle()}
                     {makeThresholdDropDown()}
                     {makeMaxSplitsDropDown()}
+                    {makeMinInfoDropDown()}
                     {makeMaxRulesDropDown()}
                     {/* {makeThresholdForm()} */}
                 </Col>

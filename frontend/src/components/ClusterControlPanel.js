@@ -50,6 +50,7 @@ export default function ClusterControlPanel(props){
         setTempClusterFeatures(features);
     },[props.clusterFeatures])
 
+
     useEffect(()=>{
         let confs = [];
         for(let f of props.lrtConfounders){ confs.push(f);}
@@ -264,7 +265,7 @@ export default function ClusterControlPanel(props){
                 </Col>
             </Row>
             <Row className={'noGutter controlPanelTitle'} md={12}>
-                <Col className={'noGutter'} md={3}>
+                <Col className={'noGutter'} md={2}>
                     {'# Clust:'}
                     <DropdownButton
                         className={'controlDropdownButton'}
@@ -274,7 +275,7 @@ export default function ClusterControlPanel(props){
                         {nClustButtonOptions}
                     </DropdownButton>
                 </Col>
-                <Col className={'noGutter'} md={3}>
+                <Col className={'noGutter'} md={2}>
                     {'Method:'}
                     <DropdownButton
                         className={'controlDropdownButton'}
@@ -284,17 +285,31 @@ export default function ClusterControlPanel(props){
                         {clusterTypeButtonOptions}
                     </DropdownButton>
                 </Col>
-                <Col className={'noGutter'}  md={3}>
+                <Col className={'noGutter'}  md={2}>
                     {'PlotVar:'}
                     {plotVarButton}
                 </Col>
-                <Col className={'noGutter'} md={3}>
+                <Col className={'noGutter'} md={2}>
                     {'Symp:'}
                     <DropdownButton
                         className={'controlDropdownButton'}
                         value = {props.mainSymptom}
                         title = {props.mainSymptom}
                     >{mainSymptomButtonOptions}</DropdownButton>
+                </Col>
+                <Col className={'noGutter'} md={4}>
+                    <Button
+                        value={props.showOrganLabels}
+                        variant={props.showOrganLabels? 'dark': 'outline-secondary'}
+                        onClick={() => props.setShowOrganLabels(true)}
+                        disabled={props.showOrganLabels}
+                    >{'Show Labels'}</Button>
+                    <Button
+                        value={!props.showOrganLabels}
+                        variant={props.showOrganLabels? 'outline-secondary': 'dark'}
+                        onClick={() => props.setShowOrganLabels(false)}
+                        disabled={!props.showOrganLabels}
+                    >{'Hide Labels'}</Button>
                 </Col>
                 {/* <Col className={'noGutter'} md={2}>
                     <Button

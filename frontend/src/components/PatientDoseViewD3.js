@@ -177,7 +177,7 @@ export default function PatientDoseViewD3(props){
                 // .attr('transform',(d,i)=>transforms[i])
                 .attr('fill', x=>getColor(colorScale(x.dVal)))
                 .attr('stroke','black')
-                .attr('stroke-width','.1')
+                .attr('stroke-width',0)
                 .on('mouseover',function(e){
                     let d = d3.select(this).datum();
                     let tipText = d.organ_name + '</br>' 

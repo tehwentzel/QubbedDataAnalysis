@@ -146,6 +146,25 @@ export default function DoseEffectView(props){
             </Row>
         )
     }
+
+    const addOrganToCue = (org)=>{
+        //there is a version of this in App.js without the props parts
+        //that need seperate updating
+        if(props.clusterData !== undefined & org !== undefined & constants.ORGANS_TO_SHOW.indexOf(org) >= 0){
+            let newCue = [];
+
+            for(let o of props.clusterOrganCue){ newCue.push(o); }
+
+            if(props.clusterOrganCue.length < 1 | props.clusterOrganCue.indexOf(org) < 0){
+            newCue.push(org);
+            props.setClusterOrganCue(newCue);
+            } else{
+            newCue = newCue.filter(x=>x!=org);
+            props.setClusterOrganCue(newCue);
+            }
+        }
+    }
+
     return (
         <div ref={ref} className={'noGutter fillSpace'}>
             <Row md={12} className={'noGutter fillSpace'}>
@@ -158,6 +177,8 @@ export default function DoseEffectView(props){
                             effectData={props.additiveClusterResults.organ}
                             clusterOrgans={props.clusterOrgans}
                             activeCluster={props.activeCluster}
+                            clusterOrganCue={props.clusterOrganCue}
+                            addOrganToCue={addOrganToCue}
                             symptomsOfInterest={props.symptomsOfInterest}
                             mainSymptom={props.mainSymptom}
                             svgPaths={props.svgPaths}

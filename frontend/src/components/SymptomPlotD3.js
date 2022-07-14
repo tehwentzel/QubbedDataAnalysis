@@ -12,8 +12,8 @@ export default function SymptomPlotD3(props){
     //this lets me group timepoints by aggregating them in a single list
     //the code takes the maximum of the groups time points for each patient
     const treatmentDates = [
-        [0,1,2],
-        [3,4,5],
+        [0,1],
+        [2,3,4,5],
         [6,7],
         [13],
         [33],
@@ -39,17 +39,18 @@ export default function SymptomPlotD3(props){
     const tTipFeatures = ['id','hpv','t_stage','n_stage','rt','ic','concurrent','subsite','totalDose'];
 
     const xMarginRight = 10;
-    const xMarginLeft = 10;//bigger for x Axis
-    const yMargin = 20;
-    const legendFontSize = 10;
+    const xMarginLeft = 15;//bigger for x Axis
+    const yMargin = 25;
+    const legendFontSize = 14;
     const maxSymptomValue = 10;
     const barWidth = (width-xMarginLeft - xMarginRight)/(treatmentDates.length + 2);
     const barHeight = (height- 2*yMargin - legendFontSize - 10)/(symptomBins.length + 2);
     const maxR = Math.min(barWidth,barHeight)/2;
+    const legendWidth = Math.max(70, width*.15);
 
     const xScale = d3.scaleLinear()
         .domain([0, treatmentDates.length-1])
-        .range([xMarginLeft + barWidth/2,width-xMarginRight-barWidth/2]);
+        .range([xMarginLeft + barWidth/2,width-xMarginRight-barWidth/2-legendWidth]);
     const yScale = d3.scaleLinear()
         .domain([0,getSymptomLevel(maxSymptomValue)])
         .range([height- legendFontSize - yMargin - maxR,yMargin]);
@@ -141,25 +142,25 @@ export default function SymptomPlotD3(props){
         if(svg !== undefined & patientData !== undefined & clusterData !== undefined){
 
             var isActive = d => (d.clusterId == props.activeCluster);
-
+            const catLineColor = (d) => props.categoricalColors(parseInt(d.clusterId));
             function makeLines(data,className,oBase,wBase,showNotActive){
                 svg.selectAll('path').filter('.'+className).remove();
-                var getOpacity = (d,base) => isActive(d)? base:(base/1.25)*showNotActive;
-                var getThickness = (d,base) => isActive(d)? base:(base*.666)*showNotActive;
+                var getOpacity = (d,base) => isActive(d)? base:(base/1)*showNotActive;
+                var getThickness = (d,base) => isActive(d)? base:(base*.7)*showNotActive;
                 let lines = svg.selectAll('path').filter('.'+className)
                     .data(data).enter()
                     .append('path')
                     .attr('class',className)
                     .attr('d',d=>d.path)
                     .attr('fill','none')
-                    .attr('stroke', d=> isActive(d)? props.categoricalColors(d.clusterId): 'black')
+                    .attr('stroke', catLineColor)
                     .attr('stroke-opacity',d=>getOpacity(d,oBase))
                     .attr('stroke-width',d=>getThickness(d,wBase));
                 return lines;
             }
             let activeClusterSize = patientData.filter(d=>isActive(d)).length;
             let symptomLines = makeLines(patientData,'patientLine',1/(activeClusterSize**.75),3,false);
-            let clusterLines = makeLines(clusterData,'clusterLine',1,6,true);
+            let clusterLines = makeLines(clusterData,'clusterLine',.9,9,true);
         }
     },[svg,patientData,clusterData,props.activeCluster]);
 
@@ -254,9 +255,9 @@ export default function SymptomPlotD3(props){
                     if(!yTicksDone){
                         let valIdx =  parseInt(yScale.invert(parseInt(y)));
                         let sValRange = symptomBins[valIdx];
-                        let name = Math.min(...sValRange) + '-' + Math.max(...sValRange)
+                        let name = Math.min(...sValRange) + '-' + Math.max(...sValRange);
                         tickData.push({
-                            'x': xMarginLeft,
+                            'x': xMarginLeft + 5,
                             'y': parseInt(y) + legendFontSize/2,
                             'name': name,
                             'position': 'start',
@@ -267,6 +268,7 @@ export default function SymptomPlotD3(props){
             }
 
             const catColor = (d,active) => active? props.categoricalColors(parseInt(props.activeCluster)): 'none';
+            
             let getStrokeWidth = (d,active) => active? 0:1;
             let getOpacity = (d,active) => active? 1:0;
             let getR = (d,active) => active? d.activeRadius:d.inactiveRadius;
@@ -315,7 +317,76 @@ export default function SymptomPlotD3(props){
                 .attr('font-size',legendFontSize)
                 .attr('text-anchor',d=>d.position)
                 .html(d=>d.name)
-            // svg.selectAll('.symptomFront').raise();
+
+
+            //legend code
+            const legendX = Math.min(width - legendWidth, width - maxR - 10);
+            var currLegendY = yMargin + maxR;
+            svg.selectAll('.legendObj').remove();
+
+            var makeLegend = (scale, maxVal, className, active) => {
+                let titleEntry = {
+                    x: legendX - maxR/2,
+                    y: currLegendY,
+                    radius: 0,
+                    value: 0,
+                    text: (active)? 'In Cluster ' + props.activeCluster: 'Not In Cluster ' + props.activeCluster,
+                    stroke: 0,
+                    fillOpacity: 0,
+                    opacity: 0,
+                }
+                currLegendY += 18;
+                let entries = [titleEntry];
+                for(let i of [maxVal/6, maxVal/2,maxVal]){
+                    let radius = scale(i);
+                    currLegendY += radius;
+                    let count = (active)? i*nActive: i*nInactive;
+                    let text = count.toFixed(0) + ' (' + 100*i.toFixed(2) + '%)';
+                    let entry = {
+                        x: legendX + (maxR - radius),
+                        radius: radius,
+                        value: i,
+                        text: text,
+                        y: currLegendY,
+                        color: catColor({},active),
+                        stroke: getStrokeWidth({},active),
+                        fillOpacity: getOpacity({},active),
+                        opacity: 1,
+                    }
+                    entries.push(entry)
+                    currLegendY = currLegendY + radius + 2;
+                }
+
+                
+                svg.selectAll('circle').filter('.'+className).remove();
+                svg.selectAll('circle').filter('.'+className)
+                    .data(entries).enter()
+                    .append('circle').attr('class',className + ' legendObj')
+                    .attr('cx',d=>d.x)
+                    .attr('cy',d=>d.y)
+                    .attr('r',d=>d.radius)
+                    .attr('fill',d=>d.color)
+                    .attr('opacity',d=>d.opacity)
+                    .attr('fill-opacity',d=>d.fillOpacity)
+                    .attr('stroke-width',d=>d.stroke)
+                    .attr('stroke','black');
+
+                svg.selectAll('text').filter('.'+className).remove();
+                svg.selectAll('text').filter('.'+className)
+                    .data(entries).enter()
+                    .append('text').attr('class',className + ' legendObj')
+                    .attr('x',d=>d.x+d.radius+5)
+                    .attr('y',d=>d.y)
+                    .attr('text-anchor','start')
+                    .attr('alignment-baseline','middle')
+                    .attr('font-weight', d=> (d.opacity == 1)? '':'bold')
+                    .text(d=> d.text);
+                return entries;
+            }
+            const maxTotal = Math.max(maxActiveTotal,maxInactiveTotal)
+            makeLegend(rScaleActive, maxTotal, 'activeLegend', true);
+            currLegendY += 15; //spacing between active and inactive;
+            makeLegend(rScaleInactive, maxTotal, 'inactiveLegend', false);
         }
     },[svg,patientData,clusterData,props.activeCluster,props.categoricalColors]);
 

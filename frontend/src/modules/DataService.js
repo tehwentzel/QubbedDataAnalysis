@@ -78,6 +78,7 @@ export default class DataService {
         threshold,cluster,
         maxDepth,maxRules,
         ruleCriteria,predictCluster,
+        minInfo,
         ){
         let postData = {
             'clusterData': clusterData,
@@ -90,6 +91,7 @@ export default class DataService {
             'max_rules': maxRules,
             'criteria': ruleCriteria,
             'predictCluster': predictCluster,
+            'min_info': minInfo,
         }
         let goodPostData = {}
         for(let key of Object.keys(postData)){

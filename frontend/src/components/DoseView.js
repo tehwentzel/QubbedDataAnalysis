@@ -113,9 +113,11 @@ export default function DoseView(props){
                                     plotVar={props.plotVar}
                                     svgPaths={props.svgPaths}
                                     orient={'both'}
-                                    addOrganToCue={props.addOrganToCue}
+                                    addOrganToCue={props.addOrganToCue.bind(this)}
                                     clusterOrganCue={props.clusterOrganCue}
+                                    setClusterOrganCue={props.setClusterOrganCue}
                                     showContralateral={props.showContralateral}
+                                    showOrganLabels={props.showOrganLabels}
                                 ></Dose2dCenterViewD3>
                             </Col>
                             
@@ -172,7 +174,10 @@ export default function DoseView(props){
         props.svgPaths,props.clusterOrganCue,
         props.plotVar,props.activeCluster,
         symptomPlotDate,
-        props.symptomsOfInterest,props.showContralateral])
+        props.showOrganLabels,
+        props.symptomsOfInterest,
+        props.showContralateral,
+    ])
 
     return ( 
         <div ref={ref} className={'noGutter'} >

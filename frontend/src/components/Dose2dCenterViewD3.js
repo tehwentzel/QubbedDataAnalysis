@@ -12,6 +12,7 @@ export default function Dose2dCenterViewD3(props){
     const tipDvhValues = [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80];
 
     const maxQuants = 4;
+    const [box,setBox] = useState();
 
     function reduceQuantiles(values){
         //function because I originally had 6 quantiles but I have to manually make the curves and > 3 doesnt work good
@@ -241,7 +242,11 @@ export default function Dose2dCenterViewD3(props){
                         pName += (parseInt(i)+1)
                     }
                     let path = paths[pName];
-                    let entry = {'path':path,path_name:pName}
+
+                    let entry = {
+                        'path':path,
+                        'path_name':pName,
+                    }
                     let scale =  Math.pow(.75,i);
                     entry.scale= scale;
                     entry.dVal = vals[i];
@@ -292,7 +297,7 @@ export default function Dose2dCenterViewD3(props){
             // });
 
             organGroup.selectAll('.organPath').remove();
-
+            
             var getColor = v => d3.interpolateReds(v/maxDVal)
             let organShapes = organGroup
                 .selectAll('path').filter('.organPath')
@@ -319,6 +324,7 @@ export default function Dose2dCenterViewD3(props){
                     tTip.selectAll().remove();
                 });
 
+
             setPathsDrawn(true)
         }
     },[props.data,svg,props.svgPaths,props.plotVar,props.showContralateral])
@@ -332,12 +338,12 @@ export default function Dose2dCenterViewD3(props){
             function getStrokeWidth(d){
                 if(d.scale == 1){
                     if(isActive(d)){
-                        return .4;
+                        return .6;
                     } 
                     if(inCue(d)){
-                        return .3;
+                        return .5;
                     } else{
-                        return .1;
+                        return .01;
                     }
                 } 
                 return 0
@@ -366,11 +372,84 @@ export default function Dose2dCenterViewD3(props){
     useEffect(()=>{
         if(svg !== undefined & pathsDrawn){
             let box = svg.node().getBBox();
-            let transform = 'translate(' + (-box.x)*(width/box.width)  + ',' + (-box.y)*(height/box.height) + ')'
-            transform += ' scale(' + width/box.width + ',' + (-height/box.height) + ')';
+            let translate = 'translate(' + (-box.x)*(width/box.width)  + ',' + (-box.y)*(height/box.height) + ')'
+            let scale = 'scale(' + width/box.width + ',' + (-height/box.height) + ')';
+            let transform = translate + ' ' + scale
             svg.selectAll('g').attr('transform',transform);
+            setBox(box);
         }
     },[props.data,svg,pathsDrawn]);
+
+    useEffect(()=>{
+        if(box !== undefined & props.showOrganLabels){
+            let labelData = [];
+            let getTransform = (y) => {
+                let tform = 'translate(0, ' + -((box.y + box.height/2) - y) +') ' ;
+                tform += 'scale(1,-1) ' 
+                tform += 'translate(0,' + ((box.y + box.height/2) - y) + ')';
+                return tform;
+            }
+            svg.selectAll('.organPath').each((d,i,j) => {
+                if(d.organ_name === d.path_name){ 
+                    let bbox = j[i].getBBox();
+
+                    //trial and error tweaking names so they are small but readable ish
+                    let name = d.organ_name.replace('Lt_','I_').replace('Rt_','C_')
+                        .replace("Sternocleidomastoid",'SCM')
+                        .replace('Gland','Glnd')
+                        .replace('Upper','Up')
+                        .replace('Lower','Lw')
+                        .replace('Submandibular','sbmnd')
+                        .replace('_M','')
+                        .replace('_Muscle','')
+                        .replace('_Bone','')
+                        .replace('Lateral','Lat')
+                        .replace('Medial','Med')
+                        .replace('Anterior','Ant')
+                        .replace('Extended_','')
+                        .replace('o','')
+                        .replace('u','')
+                        .replace('i','');
+                    let fSize =  1.5*(bbox.width/name.length);
+                    fSize = Math.min(5, Math.max(2.5,fSize))
+                    let entry = {
+                        x: bbox.x + bbox.width/2,
+                        y: bbox.y + (bbox.height/2),
+                        text: Utils.getVarDisplayName(name),
+                        fontSize: fSize,
+                        textWidth: bbox.width*.8,
+                        oData: d,
+                    }
+                    //just trial and error making submandibular gland and digastric not collide
+                    if(d.organ_name.includes("Submandibular")){
+                        entry.y += 1
+                    } else if(d.organ_name.includes('Digastric')){
+                        entry.y -= 1;
+                    }
+                    entry.transform = getTransform(entry.y);
+                    labelData.push(entry);
+                }
+            })
+            // svg.selectAll('.organLabel').remove()
+            let organGroup = svg.select('g').filter('.organGroup');
+            let labels = organGroup.selectAll('.organLabel')
+                .data(labelData).enter()
+                .append('text').attr('class','organLabel')
+                .attr('x',d=>d.x)
+                .attr('y',d=>d.y)
+                .attr('font-size',d=>d.fontSize)
+                .attr('text-anchor','middle')
+                .attr('dominant-baseline','central')
+                .attr('font-weight','bold')
+                .attr('transform',d=>d.transform)
+                .attr('stroke','white')
+                .attr('stroke-width',d=>.01*d.fontSize)
+                .attr('pointer-events','none')
+                .text(d=>d.text);
+        } else{
+            svg.selectAll('.organLabel').remove();
+        }
+    },[box, props.showOrganLabels])
 
     return (
         <div

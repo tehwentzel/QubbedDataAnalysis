@@ -499,15 +499,15 @@ export default function PatientScatterPlotD3(props){
                 .enter()
                 .append('circle').attr('class','scatterPoint')
                 .merge(scatterGroup)
-                .attr('opacity', (d)=> isActive(d)? 1:.5)
+                .attr('opacity', (d)=> isActive(d)? 1:.75)
                 .attr('stroke','black')
                 .attr('stroke-width', (d) => {
                     let w = 1;
-                    if(isActive(d)){
-                        w = 1.5;
-                    }
+                    // if(isActive(d)){
+                    //     w = 1.5;
+                    // }
                     if(isSelected(d)){
-                        w *= 2;
+                        w *= 1.5;
                     }
                     return w;
                 }).on('mouseover',function(e){

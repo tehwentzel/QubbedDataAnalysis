@@ -8,11 +8,11 @@ export default function ClusterSymptomsD3(props){
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [drawn, setDrawn] = useState(false);
 
-    const maxXLabelSize = 12;
+    const maxXLabelSize = 16;
 
     const yMargin = 5;
-    const xMargin = 1;
-    const sideTextMargin = 30;
+    const xMargin = 5;
+    const sideTextMargin = 20;
     const spacing = 2;
 
     const timeSteps = [

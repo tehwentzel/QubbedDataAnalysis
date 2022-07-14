@@ -144,7 +144,18 @@ export default function DoseEffectViewD3(props){
             
             organGroup.selectAll('.organPath').remove();
 
-            const getStroke = d => (props.clusterOrgans.indexOf(d.organ) < 0)? 0.1:.6;
+            const getStroke = d => {
+                if(props.clusterOrganCue.indexOf(d.organ) >= 0){ return .6;}
+                if(props.clusterOrgans.indexOf(d.organ) >= 0){ return .4;}
+                return 0
+            };
+
+            const getStrokeColor = d => {
+                if(props.clusterOrgans.indexOf(d.organ) >= 0){ return 'red';}
+                if(props.clusterOrganCue.indexOf(d.organ) >= 0){ return 'black';}
+                return 0
+            };
+
             const organShapes = organGroup
                 .selectAll('path').filter('.organPath')
                 .data(pathData)
@@ -152,7 +163,7 @@ export default function DoseEffectViewD3(props){
                 .attr('class','organPath')
                 .attr('d',x=>x.path)
                 .attr('fill', x=>getColor(x))
-                .attr('stroke','black')
+                .attr('stroke',getStrokeColor)
                 .attr('stroke-width',getStroke)
                 .on('mouseover',function(e){
                     let d = d3.select(this).datum();
@@ -174,14 +185,19 @@ export default function DoseEffectViewD3(props){
                     Utils.moveTTipEvent(tTip,e);
                 }).on('mouseout', function(e){
                     Utils.hideTTip(tTip);
-                });
+                }).on('contextmenu',function(e){
+                    e.preventDefault();
+                    let d = d3.select(this).datum();
+                    let organ = d.organ;
+                    props.addOrganToCue(organ);
+                });;
 
             let box = svg.node().getBBox();
             let transform = 'translate(' + (-box.x)*(width/box.width)  + ',' + (-box.y)*(height/box.height) + ')'
             transform += ' scale(' + width/box.width + ',' + (-height/box.height) + ')';
             organGroup.attr('transform',transform);
         }
-    },[svg,props.svgPaths,props.effectData,props.clusterOrgans,props.colorMetric,props.fPos])
+    },[svg,props.svgPaths,props.effectData,props.clusterOrgans,props.colorMetric,props.fPos,props.clusterOrganCue])
     
     return (
         <div
