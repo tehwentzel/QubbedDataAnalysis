@@ -68,7 +68,7 @@ svg > path, svg > circle{
 }
 
 #clusterControlPanelContainer{
-  height: 150px;
+  height: 175x;
   overflow-y: show;
 }
 
@@ -81,7 +81,7 @@ svg > path, svg > circle{
 }
 
 .clusterContainer{
-  height: calc(60vh - 150px)!important;
+  height: calc(60vh - 175px)!important;
   justify-content: start;
 }
 

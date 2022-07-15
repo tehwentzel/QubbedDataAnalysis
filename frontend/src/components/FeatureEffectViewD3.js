@@ -9,10 +9,10 @@ export default function FeatureEffectViewD3(props){
     const xMargin = 10;
     const yMargin = 10;
     const barMargin = 2;
-    const useChange = true;
+    const useChange = props.useChange;
 
     useEffect(function draw(){
-        if(svg !== undefined & props.effectData !== undefined){
+        if(svg !== undefined & props.effectData !== undefined & props.extents !== undefined){
             const data = props.effectData;
             const maxWidth = (width - 2*xMargin)/(data.length)
             const maxHeight = (height - 2*yMargin);
@@ -37,7 +37,7 @@ export default function FeatureEffectViewD3(props){
             }
 
             
-            const [minVal,maxVal] = d3.extent(data, getValue);
+            const [minVal,maxVal] = props.extents;
             let colorScale = d3.scaleLinear()
                 .domain([minVal,maxVal])
                 .range([0,1])

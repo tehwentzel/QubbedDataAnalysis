@@ -210,8 +210,8 @@ export default function Dose2dCenterViewD3(props){
 
     useEffect(function draw(){
         var nQuants = 0;
-        var maxDVal = 70;
-        if(svg !== undefined & props.svgPaths !== undefined & props.data != undefined & height > 0 & width > 0){
+        // var maxDVal = 70;
+        if(svg !== undefined & props.svgPaths !== undefined & props.data != undefined & height > 0 & width > 0 & props.doseColor !== undefined){
             svg.selectAll('g').remove();
             svg.selectAll('path').remove();
             setPathsDrawn(false);
@@ -263,7 +263,7 @@ export default function Dose2dCenterViewD3(props){
                             entry[subkey] = props.data[skey][i]
                         }
                     }
-                    if(vals[i] > maxDVal){ maxDVal = vals[i]; }
+                    // if(vals[i] > maxDVal){ maxDVal = vals[i]; }
                     pathData.push(entry)
                 }
             }
@@ -297,8 +297,8 @@ export default function Dose2dCenterViewD3(props){
             // });
 
             organGroup.selectAll('.organPath').remove();
-            
-            var getColor = v => d3.interpolateReds(v/maxDVal)
+            var getColor = props.doseColor;
+            // var getColor = v => d3.interpolateReds(v/maxDVal)
             let organShapes = organGroup
                 .selectAll('path').filter('.organPath')
                 .data(pathData)
@@ -327,7 +327,7 @@ export default function Dose2dCenterViewD3(props){
 
             setPathsDrawn(true)
         }
-    },[props.data,svg,props.svgPaths,props.plotVar,props.showContralateral])
+    },[props.data,svg,props.svgPaths,props.plotVar,props.showContralateral,props.doseColor])
 
 
     useEffect(function brushSelected(){
@@ -381,6 +381,7 @@ export default function Dose2dCenterViewD3(props){
     },[props.data,svg,pathsDrawn]);
 
     useEffect(()=>{
+        if(svg === undefined){ return; }
         if(box !== undefined & props.showOrganLabels){
             let labelData = [];
             let getTransform = (y) => {
@@ -392,40 +393,21 @@ export default function Dose2dCenterViewD3(props){
             svg.selectAll('.organPath').each((d,i,j) => {
                 if(d.organ_name === d.path_name){ 
                     let bbox = j[i].getBBox();
-
+                    let organ = d.organ_name;
                     //trial and error tweaking names so they are small but readable ish
-                    let name = d.organ_name.replace('Lt_','I_').replace('Rt_','C_')
-                        .replace("Sternocleidomastoid",'SCM')
-                        .replace('Gland','Glnd')
-                        .replace('Upper','Up')
-                        .replace('Lower','Lw')
-                        .replace('Submandibular','sbmnd')
-                        .replace('_M','')
-                        .replace('_Muscle','')
-                        .replace('_Bone','')
-                        .replace('Lateral','Lat')
-                        .replace('Medial','Med')
-                        .replace('Anterior','Ant')
-                        .replace('Extended_','')
-                        .replace('o','')
-                        .replace('u','')
-                        .replace('i','');
+                    let name = Utils.truncateOrganNames(organ);
                     let fSize =  1.5*(bbox.width/name.length);
                     fSize = Math.min(5, Math.max(2.5,fSize))
                     let entry = {
                         x: bbox.x + bbox.width/2,
                         y: bbox.y + (bbox.height/2),
-                        text: Utils.getVarDisplayName(name),
+                        text: name,
                         fontSize: fSize,
                         textWidth: bbox.width*.8,
                         oData: d,
                     }
                     //just trial and error making submandibular gland and digastric not collide
-                    if(d.organ_name.includes("Submandibular")){
-                        entry.y += 1
-                    } else if(d.organ_name.includes('Digastric')){
-                        entry.y -= 1;
-                    }
+                    entry = Utils.adjustOrganSpacing(organ,entry);
                     entry.transform = getTransform(entry.y);
                     labelData.push(entry);
                 }
@@ -447,9 +429,10 @@ export default function Dose2dCenterViewD3(props){
                 .attr('pointer-events','none')
                 .text(d=>d.text);
         } else{
-            svg.selectAll('.organLabel').remove();
+             let labels = svg.selectAll('.organLabel')
+             if(labels !== undefined){ labels.remove();}
         }
-    },[box, props.showOrganLabels])
+    },[svg,box, props.showOrganLabels])
 
     return (
         <div

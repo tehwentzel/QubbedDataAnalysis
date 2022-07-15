@@ -3,6 +3,7 @@ import * as d3 from 'd3';
 import useSVGCanvas from './useSVGCanvas.js';
 import Utils from '../modules/Utils.js'
 import {forceSimulation,forceCollide} from 'd3';
+import { Container } from 'react-bootstrap';
 
 export default function PatientScatterPlotD3(props){
     const d3Container = useRef(null);
@@ -16,6 +17,10 @@ export default function PatientScatterPlotD3(props){
     const tipChartSize = [150,80];
     const tipSymptomChartSize = [160,15];//height is for each symptom here
 
+    function rScale(val){
+        return maxR*(val**.25);
+    }
+
     function getR(d){
         //if I want to make this fancy
         //in the proproccessing I make thes all unitl scale
@@ -23,8 +28,9 @@ export default function PatientScatterPlotD3(props){
         if(val === undefined){
             val = .4;
         }
-        return maxR*(val**.25);
+        return rScale(val);
     }
+    
 
     // function getShape(d){
     //     let val = d[props.sizeVar];
@@ -65,9 +71,10 @@ export default function PatientScatterPlotD3(props){
         return path;
     }
 
-    function getShape(d){
-        let val = d[props.sizeVar];
-        let size = getR(d);
+    function valToShape(val,size){
+        if(size === undefined){
+            size = rScale(val);
+        }
         if(val === undefined){
             return d3.symbol().size(size).type(d3.symbolSquare);
         }
@@ -84,6 +91,12 @@ export default function PatientScatterPlotD3(props){
             currAngle += arcLength;
         }
         return string;
+    }
+
+    function getShape(d){
+        let val = d[props.sizeVar];
+        let size = getR(d);
+        return valToShape(val,size);
     }
 
     function getMaxSymptoms(pEntry,symptom,dates){
@@ -411,6 +424,7 @@ export default function PatientScatterPlotD3(props){
                     .attr('stroke-width',2)
                     .attr('fill','none')
                     .attr('stroke-opacity',1)
+                    .attr('visibility',d=>d.active? 'visible':'hidden');
 
                 clusterOutlines
                     .on('mouseover',function(e){
@@ -483,10 +497,94 @@ export default function PatientScatterPlotD3(props){
 
     useEffect(function makeShape(){
         if(formattedData !== undefined & dotsDrawn & props.sizeVar !== undefined){
+            //fill in pinwheel shape after simulation is done for layout
             svg.selectAll('.scatterPoint')
                 .attr('d',getShape);
+
+            //stuff for drawing the legend
+            //figure out the corner that it's best to draw in
+            const legendHeight = 60;
+            const legendWidth = 60;
+            const legendMargin = 20;
+
+            //get clostest point to each corner
+            let ltDist = 10000;
+            let rtDist = 10000;
+            let lbDist = 10000;
+            let rbDist = 10000;
+            let distSquared = (d,x0,y0) => {
+                //distance squared is faster than just distanc
+                let vect = (d.x - x0)**2 + (d.y -y0)**2;
+                return vect
+            }
+            let minDist = (d,x0,y0,currMin) =>{
+                let dist = distSquared(d,x0,y0)
+                if(dist < currMin){
+                    return dist;
+                } 
+                return currMin;
+            }
+            svg.selectAll('.scatterPoint').each((d,i)=>{
+                ltDist = minDist(d,0,0,ltDist);
+                rtDist = minDist(d,width,0,rtDist);
+                lbDist = minDist(d,0,height,lbDist);
+                rbDist = minDist(d,width,height,rbDist);
+            });
+            //calibrate start position baseed on the corner
+            var legendTop = legendMargin;
+            var legendLeft = legendMargin;
+            const minCorner = Math.max(ltDist,rtDist,lbDist,rbDist);
+            if(rtDist === minCorner | rbDist === minCorner){
+                legendLeft = width - legendWidth;
+            }
+            if(lbDist === minCorner | rbDist === minCorner){
+                legendTop = height - legendHeight;
+            }
+            //values = 0 is special case for the legend title
+            //other values are the ones included in the legend
+            const legendVals = [0,.1,.5,.9];
+            let currY = legendTop;
+            var legendData = legendVals.map((v) => {
+                let shape = valToShape(v);
+                let entry = {
+                    y: currY,
+                    shape: shape,
+                    x: legendLeft + maxR,
+                    isTitle: (v === 0),
+                    textX: (v===0)? legendLeft-(maxR*props.sizeVar.length/2):legendLeft + 2*maxR+1,
+                    text: (v===0)? props.sizeVar : (10*v).toFixed(0),
+                    fontSize: (v===0)? 2.2*maxR:2*maxR,
+                    fontWeight: (v===0)? 'bold':'',
+                }
+                currY += 2*maxR;
+                return entry;
+            })
+            
+            svg.selectAll('.legendShapes').remove();
+            let lCircles = svg.selectAll('.legendShapes')
+                .data(legendData).enter()
+                .append('path')
+                .attr('class','legendShapes')
+                .attr('transform',d=> 'translate(' + d.x + ',' + d.y + ')')
+                .attr('d',d=>d.shape)
+                .attr('fill','gray')
+                .attr('stroke','black')
+                .attr('stroke-width',1)
+                .attr('visibility',d=>d.isTitle? 'hidden':'visible');
+
+            svg.selectAll('.legendText').remove();
+            svg.selectAll('.legendText').data(legendData)
+                .enter().append('text')
+                .attr('class','legendText')
+                .attr('x',d=>d.textX)
+                .attr('y',d=>d.y+1)
+                .attr('text-anchor','start')
+                .attr('alignment-baseline','middle')
+                .attr('font-size',d=>d.fontSize)
+                .attr('font-weight',d=>d.fontWeight)
+                .text(d=> d.text)
         }
-    },[props.clusterData,formattedData,dotsDrawn,props.sizeVar]);
+    },[svg,props.clusterData,formattedData,dotsDrawn,props.sizeVar]);
 
     useEffect(function brush(){
         if(formattedData !==undefined & dotsDrawn){

@@ -14,6 +14,7 @@ import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
 import * as constants from './modules/Constants.js';
 import { Spinner } from 'react-bootstrap';
+import * as d3 from 'd3';
 
 function App() {
   var api = new DataService();
@@ -106,8 +107,10 @@ function App() {
     'pain',
   ]
   const [mainSymptom,setMainSymptom] = useState('drymouth');
-
-
+  function getDoseColor(v){
+    return d3.interpolateReds(v/100);
+  }
+  const [doseColor,setDoseColor] = useState(() => getDoseColor);
   
   //hnc diagram svg patths
   const [svgPaths,setSvgPaths] = useState();
@@ -116,7 +119,7 @@ function App() {
   //this use to be d3.scaleOrdinal but it wasn't wokring for some reason
   //returns color based on index bascially
   const categoricalColors = (i) => {
-    let colors = ['#4daf4a','#377eb8','magenta','#bebada','#ffffb3','#984ea3','#fb8072','#ffff33','#a65628',,'#f781bf','999999','#e41a1c',];
+    let colors = ['#4daf4a','#377eb8','magenta','#bebada','#ffffb3','#984ea3','#fb8072','#ffff33','#a65628','#f781bf','999999','#e41a1c',];
     let ii = Math.round(i);
     if(ii < 0 | ii > colors.length - 1){
       return 'black';
@@ -152,7 +155,7 @@ function App() {
         newCue.push(org);
         setClusterOrganCue(newCue);
       } else{
-        newCue = newCue.filter(x=>x!=org);
+        newCue = newCue.filter(x=>x!==org);
         setClusterOrganCue(newCue);
       }
     }
@@ -276,6 +279,7 @@ function App() {
             nDoseCluster={nDoseClusters}
             showOrganLabels={showOrganLabels}
             setShowOrganLabels={setShowOrganLabels}
+            doseColor={doseColor}
         ></OverView>
     </Row>
     )
@@ -299,6 +303,7 @@ function App() {
                 setActiveCluster={setActiveCluster}
                 mainSymptom={mainSymptom}
                 categoricalColors={categoricalColors}
+                
             ></SymptomPlotD3>
         </Container>
       )
@@ -341,7 +346,8 @@ function App() {
                   setShowContralateral={setShowContralateral}
                   allSymptoms={allSymptoms}
                   showOrganLabels={showOrganLabels}
-                setShowOrganLabels={setShowOrganLabels}
+                  setShowOrganLabels={setShowOrganLabels}
+                  doseColor={doseColor}
                 ></ClusterControlPanel>
               </Row>
               <Row className={'clusterContainer vizComponent noGutter scroll'} lg={12}>
@@ -363,6 +369,7 @@ function App() {
                   setMainSymptom={setMainSymptom}
                   showOrganLabels={showOrganLabels}
                   setShowOrganLabels={setShowOrganLabels}
+                  doseColor={doseColor}
                 ></DoseView>
               </Row>
               <Row  className={'clusterSymptomContainer fillWidth'} lg={12}>

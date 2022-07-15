@@ -143,7 +143,7 @@ export default function SymptomPlotD3(props){
 
             var isActive = d => (d.clusterId == props.activeCluster);
             const catLineColor = (d) => props.categoricalColors(parseInt(d.clusterId));
-            function makeLines(data,className,oBase,wBase,showNotActive){
+            function makeLines(data,className,oBase,wBase,showNotActive,brush){
                 svg.selectAll('path').filter('.'+className).remove();
                 var getOpacity = (d,base) => isActive(d)? base:(base/1)*showNotActive;
                 var getThickness = (d,base) => isActive(d)? base:(base*.7)*showNotActive;
@@ -155,12 +155,33 @@ export default function SymptomPlotD3(props){
                     .attr('fill','none')
                     .attr('stroke', catLineColor)
                     .attr('stroke-opacity',d=>getOpacity(d,oBase))
-                    .attr('stroke-width',d=>getThickness(d,wBase));
+                    .attr('stroke-width',d=>getThickness(d,wBase))
+                    .style('cursor',brush? 'pointer':'auto');
+                if(brush){
+                    lines.on('dblclick', (e,d)=>{
+                        if(d !== undefined){
+                            if(!isActive(d) & d.clusterId !== undefined){
+                                props.setActiveCluster(parseInt(d.clusterId));
+                            }
+                        }
+                    }).on('mouseover',function(e,d){
+                        if(d.size === undefined){ return; }
+                        let tipText = 'Cluster: ' + d.clusterId 
+                        + '</br>' + 'Size: ' + d.size + ' patients';
+                        tTip.html(tipText);
+                    }).on('mousemove', function(e,d){
+                        if(d.size === undefined){ return; }
+                        Utils.moveTTipEvent(tTip,e);
+                    }).on('mouseout', function(e){
+                        Utils.hideTTip(tTip);
+                    });
+                }
+                
                 return lines;
             }
             let activeClusterSize = patientData.filter(d=>isActive(d)).length;
-            let symptomLines = makeLines(patientData,'patientLine',1/(activeClusterSize**.75),3,false);
-            let clusterLines = makeLines(clusterData,'clusterLine',.9,9,true);
+            let symptomLines = makeLines(patientData,'patientLine',1/(activeClusterSize**.75),3,false,false);
+            let clusterLines = makeLines(clusterData,'clusterLine',.9,9,true,true);
         }
     },[svg,patientData,clusterData,props.activeCluster]);
 

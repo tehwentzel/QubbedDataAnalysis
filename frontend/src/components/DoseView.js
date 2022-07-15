@@ -1,7 +1,5 @@
 import React, {useState, useEffect, useRef, Fragment} from 'react';
-import Utils from '../modules/Utils.js';
-import * as constants from "../modules/Constants.js"
-import * as d3 from 'd3';
+
 import Button from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
@@ -17,8 +15,6 @@ import Spinner from 'react-bootstrap/Spinner';
 export default function DoseView(props){
     const ref = useRef(null)
 
-   
-
     const [clusterVizComponents,setClusterVizComponents] = useState(
         <Spinner 
             as="span" 
@@ -29,6 +25,8 @@ export default function DoseView(props){
     const [symptomPlotDate,setSymptomPlotDate] = useState(33);
 
     const clinicalPlotVars = ['t_stage','n_stage','hpv','is_male','subsite'];
+
+    
     function makeToggleButton(value){
         let active = value === symptomPlotDate;
         let variant = active? 'dark':'outline-secondary';
@@ -118,6 +116,7 @@ export default function DoseView(props){
                                     setClusterOrganCue={props.setClusterOrganCue}
                                     showContralateral={props.showContralateral}
                                     showOrganLabels={props.showOrganLabels}
+                                    doseColor={props.doseColor}
                                 ></Dose2dCenterViewD3>
                             </Col>
                             

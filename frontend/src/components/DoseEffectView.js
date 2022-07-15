@@ -5,27 +5,59 @@ import * as d3 from 'd3';
 import Button from 'react-bootstrap/Button';
 import Dropdown from 'react-bootstrap/Dropdown';
 import DropdownButton from 'react-bootstrap/DropdownButton';
-import FormControl from 'react-bootstrap/FormControl';
-import InputGroup from 'react-bootstrap/InputGroup';
-import Form from 'react-bootstrap/Form';
-import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 
-import Spinner from 'react-bootstrap/Spinner';
-
 import DoseEffectViewD3 from './DoseEffectViewD3.js';
 import FeatureEffectViewD3 from './FeatureEffectViewD3.js';
+import EffectViewLegendD3 from './EffectViewLegendD3.js';
 
 export default function DoseEffectView(props){
     const ref = useRef(null)
 
     const [colorMetric,setColorMetric] = useState('bic_diff');
     const [fPos,setFPos] = useState(0);
+    // const [colorScale,setColorScale] = useState(v=>v);
+
+    const linearInterpolator = d3.interpolateBlues;
+    const divergentInterpolator = d3.scaleDiverging().domain([0,.5,1]).range(['pink','white','rgb(100,149,237)']);
+    const [extents,setExtents] = useState();
+
     const metricOptions = ['aic_diff','bic_diff','lrt_pval'];
     const fPosOptions = [-1,0,1];
-    const linearInterpolator = d3.interpolateBlues;
-    const divergentInterpolator = d3.interpolateGnBu;
+    
+    const [useChange,setUseChange] =  useState(true); //this encodes color as a change from baseline
+
+    useEffect(()=>{
+        //get data extents to share between things
+        //I tried making this a constant getcolor thing but it doesn't work for some reason
+        if(props.additiveClusterResults !== undefined){
+            const metric = colorMetric;
+            const data = props.additiveClusterResults.organ;
+            
+            var metricTransform = x => -x;
+            if(metric.includes('pval')){
+                metricTransform = x => -(1/x);
+            }
+
+            var getValue = (d) => {
+                if(d === undefined){
+                    return undefined;
+                } else if(d[metric] === undefined){
+                    return undefined;
+                }
+                let v = d[metric];
+                let baselineValue = d[metric+'_base']
+                if(useChange &  baselineValue !== undefined){
+                    v = v - baselineValue;
+                }
+                return metricTransform(v)
+            }
+            
+            const [minVal,maxVal] = d3.extent(data, getValue);
+            setExtents([minVal,maxVal])    
+        }
+    },[props.additiveClusterResults,colorMetric]);
 
     function makeMetricDropdown(){
         var handleMetricChange = (m) => {
@@ -188,8 +220,12 @@ export default function DoseEffectView(props){
                             setAdditiveClusterThreshold={props.setAdditiveClusterThreshold}
                             colorMetric={colorMetric}
                             fPos={fPos}
+
+                            extents={extents}
                             linearInterpolator={linearInterpolator}
                             divergentInterpolator={divergentInterpolator}
+                            useChange={useChange}
+                            showOrganLabels={props.showOrganLabels}
                         ></DoseEffectViewD3>
                     </Row>
                     {makeTitle('Effect of Adding/Removing Features')}
@@ -207,17 +243,30 @@ export default function DoseEffectView(props){
                             setAdditiveClusterThreshold={props.setAdditiveClusterThreshold}
                             colorMetric={colorMetric}
                             clusterFeatures={props.clusterFeatures}
+
+                            extents={extents}
                             linearInterpolator={linearInterpolator}
                             divergentInterpolator={divergentInterpolator}
-                            clusterFeatures={props.clusterFeatures}
+                            useChange={useChange}
                         ></FeatureEffectViewD3>
                     </Row>
                 </Col>
                 <Col md={2} className={'noGutter'}>
-                    {makeThresholdDropdown()}
-                    {makeMetricDropdown()}
-                    {makeToggleCluster()}
-                    {/* {makeWindowToggle(props.additiveClusterResults.organ)} */}
+                    <Row md={12} style={{'height': 'auto'}}>
+                        {makeThresholdDropdown()}
+                        {makeMetricDropdown()}
+                        {makeToggleCluster()}
+                        {/* {makeWindowToggle(props.additiveClusterResults.organ)} */}
+                    </Row>
+                    <Row md={12} style={{'height': '40%'}}>
+                        <EffectViewLegendD3
+                            colorMetric={colorMetric}
+                            extents={extents}
+                            linearInterpolator={linearInterpolator}
+                            divergentInterpolator={divergentInterpolator}
+                            useChange={useChange}
+                        ></EffectViewLegendD3>
+                    </Row>
                 </Col>
             </Row>
         </div>

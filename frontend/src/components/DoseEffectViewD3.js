@@ -7,12 +7,14 @@ export default function DoseEffectViewD3(props){
     const d3Container = useRef(null);
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [pathsDrawn, setPathsDrawn] = useState(false);
-    const useChange = true;
+    const [box,setBox] = useState();
+    const useChange = props.useChange;
     
 
     useEffect(function drawBorders(){
-        if(svg !== undefined & props.svgPaths !== undefined & props.effectData !== undefined){
+        if(svg !== undefined & props.svgPaths !== undefined & props.effectData !== undefined & props.extents !== undefined){
             const metric = props.colorMetric;
+
             svg.selectAll('g').remove();
             svg.selectAll('path').remove();
             setPathsDrawn(false);
@@ -73,7 +75,7 @@ export default function DoseEffectViewD3(props){
 
             let paths = props.svgPaths['both'];
             let pathData = [];
-            let [minVal,maxVal] = [10000000000,0]
+            // let [minVal,maxVal] = [10000000000,0]
             let organPaths = [];
 
             //get all relevant paths
@@ -102,14 +104,15 @@ export default function DoseEffectViewD3(props){
                     for(let k of Object.keys(dPoint)){
                         entry[k] = dPoint[k];
                     }
-                    if(val !== undefined){
-                        if(val > maxVal){ maxVal = val; }
-                        if(val < minVal){ minVal = val; }
-                    }
+                    // if(val !== undefined){
+                    //     if(val > maxVal){ maxVal = val; }
+                    //     if(val < minVal){ minVal = val; }
+                    // }
                 }
                 pathData.push(entry);
             }
 
+            const [minVal, maxVal] = props.extents;
             let colorScale = d3.scaleLinear()
                 .domain([minVal,maxVal])
                 .range([0,1])
@@ -132,10 +135,8 @@ export default function DoseEffectViewD3(props){
                         return 'grey';
                     }
                 }
-                // if(props.clusterOrgans.indexOf(d.organ) >= 0){
-                //     return inclusterInterp(colorScale(value));
-                // }
-                return interp(colorScale(value))
+                return interp(colorScale(value));
+                // return interp(colorScale(value))
             }
 
             svg.selectAll('g').filter('.organGroup').remove();
@@ -196,8 +197,64 @@ export default function DoseEffectViewD3(props){
             let transform = 'translate(' + (-box.x)*(width/box.width)  + ',' + (-box.y)*(height/box.height) + ')'
             transform += ' scale(' + width/box.width + ',' + (-height/box.height) + ')';
             organGroup.attr('transform',transform);
+            setBox(box);
         }
-    },[svg,props.svgPaths,props.effectData,props.clusterOrgans,props.colorMetric,props.fPos,props.clusterOrganCue])
+    },[svg,props.svgPaths,props.effectData,props.clusterOrgans,props.colorMetric,props.fPos,props.clusterOrganCue,props.extents,props.useChange])
+
+    useEffect(()=>{
+        if(svg === undefined){ return; }
+        if(box !== undefined & props.showOrganLabels){
+            let labelData = [];
+            let getTransform = (y) => {
+                let tform = 'translate(0, ' + -((box.y + box.height/2) - y) +') ' ;
+                tform += 'scale(1,-1) ' 
+                tform += 'translate(0,' + ((box.y + box.height/2) - y) + ')';
+                return tform;
+            }
+            svg.selectAll('.organPath').each((d,i,j) => {
+                if(!d.organ.toLowerCase().includes('side')){
+                    let bbox = j[i].getBBox();
+                    let organ = d.organ;
+                    //trial and error tweaking names so they are small but readable ish
+                    let name = Utils.truncateOrganNames(organ);
+                    let fSize =  1.5*(bbox.width/name.length);
+                    fSize = Math.min(5, Math.max(2.5,fSize))
+                    let entry = {
+                        x: bbox.x + bbox.width/2,
+                        y: bbox.y + (bbox.height/2),
+                        text: name,
+                        fontSize: fSize,
+                        textWidth: bbox.width*.8,
+                        oData: d,
+                    }
+                    //just trial and error making submandibular gland and digastric not collide
+                    entry = Utils.adjustOrganSpacing(organ,entry);
+                    entry.transform = getTransform(entry.y);
+                    labelData.push(entry);
+                }
+                
+            })
+            // svg.selectAll('.organLabel').remove()
+            let organGroup = svg.select('g').filter('.organGroup');
+            let labels = organGroup.selectAll('.organLabel')
+                .data(labelData).enter()
+                .append('text').attr('class','organLabel')
+                .attr('x',d=>d.x)
+                .attr('y',d=>d.y)
+                .attr('font-size',d=>d.fontSize)
+                .attr('text-anchor','middle')
+                .attr('dominant-baseline','central')
+                .attr('font-weight','bold')
+                .attr('transform',d=>d.transform)
+                .attr('stroke','white')
+                .attr('stroke-width',d=>.01*d.fontSize)
+                .attr('pointer-events','none')
+                .text(d=>d.text);
+        } else{
+             let labels = svg.selectAll('.organLabel')
+             if(labels !== undefined){ labels.remove();}
+        }
+    },[svg,box, props.showOrganLabels])
     
     return (
         <div
