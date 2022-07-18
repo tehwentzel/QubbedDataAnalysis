@@ -111,6 +111,12 @@ def get_single_organ_effects():
 
     symptom = request.args.get('symptom')
 
+    dates = request.args.getlist('dates')
+    if len(dates) <= 0:
+        dates = [13,33]
+
+    if dates is not None:
+        dates = [int(i) for i in dates]
     vals = select_single_organ_cluster_effects(
         data,
         symptom=symptom,
@@ -122,6 +128,7 @@ def get_single_organ_effects():
         features=features,
         clustertype=clustertype,
         organ_list=organ_list,
+        dates=dates,
     )
 
     response = responsify(vals)
@@ -161,9 +168,15 @@ def get_dose_cluster_json():
     n_clusters = request.args.get('nClusters',3)
     clustertype = request.args.get('clusterType',None)
     # print('cluster type argument',clustertype)
+
     cluster_features = request.args.getlist('clusterFeatures')
     if len(cluster_features) <= 0:
         cluster_features = None
+
+    dates = request.args.getlist('dates')
+    if len(dates) <= 0:
+        dates = [13,33]
+    dates=[int(i) for i in dates]
 
     covars = request.args.getlist('confounders')
     if len(covars) <= 0:
@@ -178,6 +191,7 @@ def get_dose_cluster_json():
         clustertype=clustertype,
         features=cluster_features,
         confounders=covars,
+        sdates = dates,
     )
     # print('features for clusering',cluster_features)
     response = responsify(ddict)

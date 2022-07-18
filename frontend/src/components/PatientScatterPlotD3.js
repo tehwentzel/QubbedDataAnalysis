@@ -101,7 +101,8 @@ export default function PatientScatterPlotD3(props){
 
     function getMaxSymptoms(pEntry,symptom,dates){
         if(dates == undefined){
-            dates = [13,33];
+            dates = props.endpointDates;
+            console.log('scatterplot dates',dates)
         }
         let val = pEntry['symptoms_'+symptom];
         if(val === undefined | pEntry.dates === undefined){
@@ -217,6 +218,7 @@ export default function PatientScatterPlotD3(props){
             }
             return entry
         });
+        
         // console.log('dots',xScale(sVals[0]['6W']))
         
         var plotDots = function(xKey,color){
@@ -312,12 +314,13 @@ export default function PatientScatterPlotD3(props){
                 newD.tstage = fromMap(d.t_stage);
                 newD.nstage = fromMap(d.n_stage);
         
-                let dateSliceStart = d.dates.indexOf(13);
-                let dateSliceStop = d.dates.indexOf(33);
+                // let dateSliceStart = d.dates.indexOf(13);
+                // let dateSliceStop = d.dates.indexOf(33);
                 // console.log('symptoms',props.symptomsOfInterest)
                 for(let sympt of props.symptomsOfInterest){
-                    let svals = d['symptoms_'+sympt].slice(dateSliceStart,dateSliceStop+1)
-                    newD[sympt] = Math.max(...svals)/10;
+                    // let svals = d['symptoms_'+sympt].slice(dateSliceStart,dateSliceStop+1)
+                    // newD[sympt] = Math.max(...svals)/10;
+                    newD[sympt] = getMaxSymptoms(d, sympt, props.endpointDates)/10
                 }
                 return newD;
             }
@@ -343,7 +346,7 @@ export default function PatientScatterPlotD3(props){
             setFormattedData(dataPoints);
 
         }
-    },[props.clusterData,props.doseData])
+    },[props.clusterData,props.doseData,props.endpointDates])
 
     useEffect(function drawPoints(){
         if(svg !== undefined & formattedData !== undefined & height > 0 & width > 0 & props.xVar !== undefined & props.yVar !== undefined){

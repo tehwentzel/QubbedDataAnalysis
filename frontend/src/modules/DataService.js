@@ -44,12 +44,13 @@ export default class DataService {
         }
     }
 
-    async getClusterMetrics(clusterData,lrtConfounders,symptom,modelType){
+    async getClusterMetrics(clusterData,lrtConfounders,symptom,modelType,dates){
         let postData = {
             'clusterData': clusterData,
             'lrtConfounders':lrtConfounders,
             'symptom': symptom,
             'modelType':modelType,
+            'symptom_dates':dates,
         }
         let goodPostData = {}
         for(let key of Object.keys(postData)){
@@ -79,6 +80,7 @@ export default class DataService {
         maxDepth,maxRules,
         ruleCriteria,predictCluster,
         minInfo,
+        dates,
         ){
         let postData = {
             'clusterData': clusterData,
@@ -92,6 +94,7 @@ export default class DataService {
             'criteria': ruleCriteria,
             'predictCluster': predictCluster,
             'min_info': minInfo,
+            'symptom_dates':dates,
         }
         let goodPostData = {}
         for(let key of Object.keys(postData)){
@@ -131,7 +134,7 @@ export default class DataService {
         }
     }
     
-    async getDoseClusterJson(organs,nClusters,clusterFeatures,clusterType,lrtConfounders,symptoms){
+    async getDoseClusterJson(organs,nClusters,clusterFeatures,clusterType,lrtConfounders,symptoms,dates){
         try{
             var params = {
                 'organs': organs,
@@ -140,6 +143,7 @@ export default class DataService {
                 'clusterType':clusterType,
                 'confounders':lrtConfounders,
                 'symptoms':symptoms,
+                'dates':dates,
             }
             let qstring = '/dose_clusters';
             qstring += this.getParamList(params)
@@ -154,7 +158,7 @@ export default class DataService {
     }
 
     async getAdditiveOrganClusterEffects(baseOrgans,nClusters,features,clusterType,
-        symptom,confounders,thresholds,clusters){
+        symptom,confounders,thresholds,clusters,dates){
         try{
             let params = {
                 symptom:symptom,
@@ -165,6 +169,7 @@ export default class DataService {
                 confounders:confounders,
                 thresholds:thresholds,
                 clusters:clusters,
+                dates:dates,
             }
             let qstring = '/single_organ_effects';
             qstring += this.getParamList(params);

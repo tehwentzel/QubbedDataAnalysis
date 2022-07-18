@@ -48,6 +48,7 @@ export default function RuleView(props){
         threshold,cluster,
         maxDepth,maxR,rCriteria,
         targetCluster,mInfo,
+        dates,
         )=>{
         if(cData !== undefined & !props.clusterDataLoading){
             setRuleData(undefined);
@@ -56,7 +57,7 @@ export default function RuleView(props){
                 threshold,cluster,
                 maxDepth,maxR,
                 rCriteria,targetCluster,
-                mInfo,
+                mInfo,dates,
             ).then(response=>{
                 // console.log('rule data main',response);
                 setRuleData(response);
@@ -97,6 +98,7 @@ export default function RuleView(props){
                 ruleCriteria,
                 ruleTargetCluster,
                 ruleMinInfo,
+                props.endpointDates,
             );
         
         }
@@ -107,6 +109,7 @@ export default function RuleView(props){
         ruleMaxDepth,maxRules,
         ruleCriteria,ruleTargetCluster,
         ruleUseAllOrgans,ruleMinInfo,
+        props.endpointDates,
     ])
 
     const filterCluster = parseInt(ruleCluster) === parseInt(props.activeCluster)

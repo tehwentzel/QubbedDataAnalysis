@@ -502,11 +502,13 @@ def sddf_to_json(df,
     return ddict
 
 
-def add_late_symptoms(df,symptoms=None):
+def add_late_symptoms(df,symptoms=None,dates=None):
     df = df.copy()
+    if dates is None:
+        dates = [13,33]
     if symptoms is None:
         symptoms = Const.symptoms[:]
-    date_idxs = [i for i,v in enumerate(df.dates.iloc[0]) if v > 12 and v < 35]
+    date_idxs = [i for i,v in enumerate(df.dates.iloc[0]) if v in dates]
     for symptom in symptoms:
         mval = df['symptoms_'+symptom].apply(lambda x: np.max([x[i] for i in date_idxs]))
         df[symptom+'_late'] = mval
@@ -619,6 +621,7 @@ def get_all_dvh(df,key='V'):
 def select_single_organ_cluster_effects(df,
                                         symptom=None,
                                         base_organs=None,
+                                        dates=None,
                                         covars=None,
                                         n_clusters=4,
                                         clustertype=None,
@@ -646,9 +649,9 @@ def select_single_organ_cluster_effects(df,
                   ])
         organ_list = [o for o in Const.organ_list if o not in exclude]
     if symptom is None:
-        symptom = drymouth
+        symptom = 'drymouth'
 
-    df = add_late_symptoms(df,[symptom])
+    df = add_late_symptoms(df,[symptom],dates=dates)
     df = add_confounder_dose_limits(df)
     
     if features is None:
@@ -989,6 +992,9 @@ def get_rule_stuff(df,post_results=None):
     organ_features = ['V5','V10','V15','V20','V25','V30','V35','V40','V45','V50','V55','V60','V65','V70','V75','V80']
     organ_features.extend(['mean_dose','max_dose'])
     s_dates = post_results.get('symptom_dates',[13,33])
+    print('____________')
+    print('rule dates',s_dates)
+    print('_____________')
     threshold = post_results.get('threshold',6)
     cluster = post_results.get('cluster',None)
     maxdepth = post_results.get('max_depth',3)

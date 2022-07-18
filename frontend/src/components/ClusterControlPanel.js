@@ -15,6 +15,7 @@ export default function ClusterControlPanel(props){
 
     const plotVarOptions = constants.DVH_KEYS.slice();
     const nClusterOptions = [2,3,4,5,6,7,8];
+    const endpointDateOptions = [7,13,33];
     const clusterTypeOptions = ['bgmm','gmm','kmeans','ward','spectral',];
     const lrtConfounderOptions = [
         't4','n3',
@@ -40,6 +41,7 @@ export default function ClusterControlPanel(props){
     const [tempNClusters, setTempNClusters] = useState(1);
     const [tempConfounders,setTempConfounders] = useState();
     const [tempClusterType,setTempClusterType] = useState();
+    const [tempEndpointDates, setTempEndpointDates] = useState()
     const [tempSOIs,setTempSOIs] = useState();
     const [plotVarButton, setPlotVarButton] = useState(<></>);
     const removeKey = 'None'
@@ -69,6 +71,12 @@ export default function ClusterControlPanel(props){
             setTempSOIs(props.symptomsOfInterest);
         }
     },[props.symptomsOfInterest])
+
+    useEffect(()=>{
+        if(props.endpointDates !== tempEndpointDates){
+            setTempEndpointDates(props.endpointDates)
+        }
+    },[props.endpointDates])
 
     
     function handleChangeNClusters(d,e){
@@ -110,7 +118,20 @@ export default function ClusterControlPanel(props){
             let tempSymptoms = tempSOIs.slice();
             props.setSymptomsOfInterest(tempSymptoms);
         }
+        if(tempEndpointDates !== undefined & tempEndpointDates.length > 0){
+            let tempEndpoints = tempEndpointDates.slice();
+            tempEndpoints.sort();
+            props.setEndpointDates(tempEndpoints);
+        }
         props.updateClusterOrgans();
+    }
+
+    function updateEndpoints(){
+        if(tempEndpointDates !== undefined & tempEndpointDates.length > 0){
+            let tempEndpoints = tempEndpointDates.slice();
+            tempEndpoints.sort();
+            props.setEndpointDates(tempEndpoints);
+        }
     }
 
     function makeDropdownListUpdater(tempVals,setTempVals){
@@ -265,6 +286,48 @@ export default function ClusterControlPanel(props){
         )
     }
 
+    function addEndpoint(date){
+        if(tempEndpointDates.indexOf(date) < 0){
+            let newDates = tempEndpointDates.map(d=>parseInt(d));
+            newDates.push(parseInt(date))
+            newDates.sort();
+            setTempEndpointDates(newDates);
+        } else{
+            let index = tempEndpointDates.indexOf(date);
+            let newDates = tempEndpointDates.slice();
+            newDates.splice(index,1);
+            newDates.sort();
+            setTempEndpointDates(newDates);
+        }
+    }
+
+    function makeEndpointToggle(date){
+        if(tempEndpointDates === undefined){
+            return (
+                <Button>
+                    {'Temp'}
+                </Button>
+            )
+        }
+        let active = tempEndpointDates.indexOf(date) >= 0;
+        return (
+            <Button
+                value={date}
+                variant={active? 'dark':'outline-secondary'}
+                disabled={active & (tempEndpointDates.length <= 1)}
+                onClick={()=>addEndpoint(date)}
+            >{date}</Button>
+        )
+    }
+    
+    function makeEndpointButtons(){
+        let buttons = endpointDateOptions.map(d=>makeEndpointToggle(d));
+        return (
+            <span>
+                {buttons}
+            </span>
+        )
+    }
 
     const clusterButtonTitle = (tempClusterType === undefined)? props.clusterType: tempClusterType;
     const onToggleShowContra = () => {
@@ -299,7 +362,7 @@ export default function ClusterControlPanel(props){
                             {nClustButtonOptions}
                         </DropdownButton>
                     </Col>
-                    <Col className={'noGutter'} md={3}>
+                    <Col className={'noGutter'} md={2}>
                         {'Method:'}
                         <DropdownButton
                             className={'controlDropdownButton'}
@@ -309,7 +372,7 @@ export default function ClusterControlPanel(props){
                             {clusterTypeButtonOptions}
                         </DropdownButton>
                     </Col>
-                    <Col className={'noGutter'} md={3}>
+                    <Col className={'noGutter'} md={2}>
                         {'Symp:'}
                         <DropdownButton
                             className={'controlDropdownButton'}
@@ -317,7 +380,18 @@ export default function ClusterControlPanel(props){
                             title = {props.mainSymptom}
                         >{mainSymptomButtonOptions}</DropdownButton>
                     </Col>
-                    <Col className={'noGutter'} md={4}>
+                    <Col className={'noGutter'} md={3}>
+                        {makeEndpointButtons()}
+                        <span>
+                            <Button
+                                variant={'outline-secondary'}
+                                onClick={updateEndpoints}
+                            >
+                                {'Set Endpoints'}
+                            </Button>
+                        </span>
+                    </Col>
+                    <Col className={'noGutter'} md={3}>
                         {makeToggleLabelsButton()}
                     </Col>
                     {/* <Col className={'noGutter'} md={2}>

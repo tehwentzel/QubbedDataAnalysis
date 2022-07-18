@@ -87,6 +87,7 @@ export default function OverView(props){
                         categoricalColors={props.categoricalColors}
                         svgPaths={props.svgPaths}
                         symptomsOfInterest={props.allSymptoms}
+                        endpointDates={props.endpointDates}
                     ></PatientScatterPlotD3>
                 </Container>
             )
@@ -171,6 +172,7 @@ export default function OverView(props){
                         clusterFeatures={props.clusterFeatures}
                         showOrganLabels={props.showOrganLabels}
                         setShowOrganLabels={props.setShowOrganLabels}
+                        endpointDates={props.endpointDates}
                     ></DoseEffectView>
             )
         } else{
@@ -198,6 +200,7 @@ export default function OverView(props){
                         clusterMetricData={props.clusterMetricData}
                         clusterDataLoading={props.clusterDataLoading}
                         lrtConfounders={props.lrtConfounders}
+                        endpointDates={props.endpointDates}
                         api={props.api}
                     ></ClusterCVMetrics>
                 </Container>
@@ -230,6 +233,7 @@ export default function OverView(props){
                         mainSymptom={props.mainSymptom}
                         sizeVar={sizeVar}
                         categoricalColors={props.categoricalColors}
+                        endpointDates={props.endpointDates}
                     ></ClusterMetricsD3>
                 </Container>
             )
@@ -258,6 +262,7 @@ export default function OverView(props){
                 selectedPatientId={props.selectedPatientId}
                 setSelectedPatientId={props.setSelectedPatientId}
                 categoricalColors={props.categoricalColors}
+                endpointDates={props.endpointDates}
             ></RuleView>
         )
         // } else{

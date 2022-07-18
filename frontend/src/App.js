@@ -47,6 +47,8 @@ function App() {
     'Parotid_Gland_limit',
     'performance_1','performance_2',
   ]);
+
+  const [endpointDates,setEndpointDates] = useState([33]);
   //which variable is being ploted when showing patient dose distirbutions
   const [plotVar,setPlotVar] = useState('V55');
 
@@ -175,18 +177,18 @@ function App() {
     setDoseData(response.data);
   }
 
-  var fetchDoseClusters = async(org,nClust,clustFeatures,clusterType,confounders,symptoms) => {
+  var fetchDoseClusters = async(org,nClust,clustFeatures,clusterType,confounders,symptoms,dates) => {
     setClusterData();
     setClusterDataLoading(true);
     // console.log('clustering with organs', org)
-    const response = await api.getDoseClusterJson(org,nClust,clustFeatures,clusterType,confounders,symptoms);
+    const response = await api.getDoseClusterJson(org,nClust,clustFeatures,clusterType,confounders,symptoms,dates);
     // console.log('cluster data',response.data);
     setClusterData(response.data);
     setClusterDataLoading(false);
     resetSelections();
   }
 
-  var fetchAdditiveEffects= async(org,nClust,clustFeatures,clusterType,symp,lrtConfounders,thresholds,useAllClusters) => {
+  var fetchAdditiveEffects= async(org,nClust,clustFeatures,clusterType,symp,lrtConfounders,thresholds,useAllClusters,dates) => {
     setAdditiveClusterResults(undefined);
     // console.log('aadditive clusters',clusters)
     if(clusterDataLoading){ return; }
@@ -204,8 +206,8 @@ function App() {
       symp,
       lrtConfounders,
       thresholds,
-      // [nDoseClusters-1],
       clusters,
+      dates,
     );
     // console.log('fetched addtive',response.data);
     setAdditiveClusterResults(response.data);
@@ -216,15 +218,15 @@ function App() {
   useEffect(() => {
 
     fetchDoseData(clusterOrgans,clusterFeatures);
-    fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest);
-    fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,mainSymptom,lrtConfounders,[additiveClusterThreshold],additiveCluster);
+    fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest,endpointDates);
+    fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,mainSymptom,lrtConfounders,[additiveClusterThreshold],additiveCluster,endpointDates);
   },[])
 
 
   useEffect(() => {
     if(clusterData !== undefined & clusterData !== null){
       // console.log('cluster organ query', clusterOrgans)
-      fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest);
+      fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest,endpointDates);
     }
   },[clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest])
 
@@ -240,9 +242,9 @@ function App() {
 
   useEffect(function updateEffect(){
     if(clusterData !== undefined & !clusterDataLoading){
-      fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,mainSymptom,lrtConfounders,[additiveClusterThreshold],additiveCluster);
+      fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,mainSymptom,lrtConfounders,[additiveClusterThreshold],additiveCluster,endpointDates);
     }
-  },[clusterDataLoading,clusterData,mainSymptom,clusterDataLoading,lrtConfounders,additiveClusterThreshold,additiveCluster])
+  },[clusterDataLoading,clusterData,mainSymptom,clusterDataLoading,lrtConfounders,additiveClusterThreshold,additiveCluster,endpointDates])
 
   function makeOverview(state){
     return (
@@ -280,6 +282,8 @@ function App() {
             showOrganLabels={showOrganLabels}
             setShowOrganLabels={setShowOrganLabels}
             doseColor={doseColor}
+            endpointDates={endpointDates}
+            setEndpointDates={setEndpointDates}
         ></OverView>
     </Row>
     )
@@ -348,6 +352,8 @@ function App() {
                   showOrganLabels={showOrganLabels}
                   setShowOrganLabels={setShowOrganLabels}
                   doseColor={doseColor}
+                  endpointDates={endpointDates}
+                  setEndpointDates={setEndpointDates}
                 ></ClusterControlPanel>
               </Row>
               <Row className={'clusterContainer vizComponent noGutter scroll'} lg={12}>
@@ -370,6 +376,8 @@ function App() {
                   showOrganLabels={showOrganLabels}
                   setShowOrganLabels={setShowOrganLabels}
                   doseColor={doseColor}
+                  endpointDates={endpointDates}
+                  setEndpointDates={setEndpointDates}
                 ></DoseView>
               </Row>
               <Row  className={'clusterSymptomContainer fillWidth'} lg={12}>
