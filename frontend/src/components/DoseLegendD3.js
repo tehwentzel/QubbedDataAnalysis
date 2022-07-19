@@ -12,7 +12,7 @@ export default function DoseLegendD3(props){
 
     useEffect(function draw(){
         if(svg !== undefined & props.plotVar !== undefined & props.doseColor !== undefined){
-            const steps = [1,33,66,100];
+            const steps = [1,props.maxDose*.33,props.maxDose*.66,props.maxDose];
             const barHeight = (height - 2*yMargin)/(steps.length + 1);
             const fontSize = barHeight/2;
             const barWidth = Math.min(barHeight, width/2);
@@ -22,7 +22,7 @@ export default function DoseLegendD3(props){
             for(let v of steps){
                 let entry = {
                     y: currY,
-                    color: props.doseColor(v),
+                    color: props.doseColor(v/props.maxDose),
                     text: v.toFixed(0) + ' (Gy)',
                 }
                 legendData.push(entry);

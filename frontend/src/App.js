@@ -109,10 +109,13 @@ function App() {
     'pain',
   ]
   const [mainSymptom,setMainSymptom] = useState('drymouth');
-  function getDoseColor(v){
-    return d3.interpolateReds(v/100);
-  }
-  const [doseColor,setDoseColor] = useState(() => getDoseColor);
+  
+  const [maxDose, setMaxDose] = useState(100);
+  const doseColor = d3.interpolateReds;
+  // function doseColor(v){
+  //   return d3.interpolateReds(v/100);
+  // }
+  // const [doseColor,setDoseColor] = useState(() => getDoseColor);
   
   //hnc diagram svg patths
   const [svgPaths,setSvgPaths] = useState();
@@ -352,6 +355,7 @@ function App() {
                   showOrganLabels={showOrganLabels}
                   setShowOrganLabels={setShowOrganLabels}
                   doseColor={doseColor}
+                  maxDose={maxDose}
                   endpointDates={endpointDates}
                   setEndpointDates={setEndpointDates}
                 ></ClusterControlPanel>
@@ -378,6 +382,8 @@ function App() {
                   doseColor={doseColor}
                   endpointDates={endpointDates}
                   setEndpointDates={setEndpointDates}
+                  maxDose={maxDose}
+                  setMaxDose={setMaxDose}
                 ></DoseView>
               </Row>
               <Row  className={'clusterSymptomContainer fillWidth'} lg={12}>

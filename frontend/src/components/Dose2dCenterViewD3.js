@@ -222,6 +222,7 @@ export default function Dose2dCenterViewD3(props){
             var paths = props.svgPaths[orient];
             let organList = Object.keys(paths)
             let pathData = [];
+            let maxDVal = 0;
             for(let organ of organList){
                 if(!props.showContralateral & organ.includes('Rt_')){
                     continue;
@@ -263,11 +264,15 @@ export default function Dose2dCenterViewD3(props){
                             entry[subkey] = props.data[skey][i]
                         }
                     }
-                    // if(vals[i] > maxDVal){ maxDVal = vals[i]; }
+                    if(vals[i] > maxDVal){ maxDVal = vals[i]; }
                     pathData.push(entry)
                 }
             }
-
+            if(props.maxDose < maxDVal){
+                props.setMaxDose(maxDVal);
+            } else{
+                maxDVal = props.maxDose;
+            }
             svg.selectAll('g').filter('.organGroup').remove();
             const organGroup = svg.append('g')
                 .attr('class','organGroup');
@@ -297,7 +302,7 @@ export default function Dose2dCenterViewD3(props){
             // });
 
             organGroup.selectAll('.organPath').remove();
-            var getColor = props.doseColor;
+            var getColor = d => props.doseColor(d/maxDVal);
             // var getColor = v => d3.interpolateReds(v/maxDVal)
             let organShapes = organGroup
                 .selectAll('path').filter('.organPath')

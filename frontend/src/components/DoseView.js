@@ -117,6 +117,8 @@ export default function DoseView(props){
                                     showContralateral={props.showContralateral}
                                     showOrganLabels={props.showOrganLabels}
                                     doseColor={props.doseColor}
+                                    maxDose={props.maxDose}
+                                    setMaxDose={props.setMaxDose}
                                 ></Dose2dCenterViewD3>
                             </Col>
                             

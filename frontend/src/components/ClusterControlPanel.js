@@ -424,6 +424,7 @@ export default function ClusterControlPanel(props){
                     <DoseLegendD3
                         plotVar={props.plotVar}
                         doseColor={props.doseColor}
+                        maxDose={props.maxDose}
                     />
                 </Row>
             </Col>

@@ -28,10 +28,10 @@ export default function ClusterCVMetrics(props){
     const [metricsModelType,setMetricsModelType] = useState('regression');
     const metrics = ['roc','precision','recall','f1','f2','mcc'];
 
-    var fetchClusterMetrics = async(cData,lrtConfounders,symptom,mType)=>{
+    var fetchClusterMetrics = async(cData,lrtConfounders,symptom,mType,dates)=>{
         if(cData !== undefined & !props.clusterDataLoading){
             setClusterMetricData(undefined);
-            props.api.getClusterMetrics(cData,lrtConfounders,symptom,mType).then(response =>{
+            props.api.getClusterMetrics(cData,lrtConfounders,symptom,mType,dates).then(response =>{
             // console.log('cluster metric data',response)
             setClusterMetricData(response);
           }).catch(error=>{
@@ -43,9 +43,9 @@ export default function ClusterCVMetrics(props){
 
     useEffect(()=>{
         if(!props.clusterDataLoading & props.clusterData !== undefined & props.clusterData !== null){
-            fetchClusterMetrics(props.clusterData, props.lrtConfounders,props.mainSymptom,metricsModelType);
+            fetchClusterMetrics(props.clusterData, props.lrtConfounders,props.mainSymptom,metricsModelType,props.endpointDates);
         }
-      },[props.clusterDataLoading,props.clusterData,props.mainSymptom,props.lrtConfounders,metricsModelType]);
+      },[props.clusterDataLoading,props.clusterData,props.mainSymptom,props.lrtConfounders,metricsModelType,props.endpointDates]);
       
 
     function makeMetricPlot(key){
