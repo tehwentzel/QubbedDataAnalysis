@@ -147,7 +147,7 @@ export default function RuleView(props){
         return (
             <Row 
                 key={keyName} 
-                style={{'display':'inline-block','width':'50%','height': '20em','marginBottom':'1em'}}
+                style={{'display':'inline-block','width':'95%','height': '20em','marginBottom':'1em'}}
             >
                 <span  style={{'fontSize':'.7em'}}>
                 {title}
@@ -169,6 +169,7 @@ export default function RuleView(props){
                         setSelectedPatientId={props.setSelectedPatientId}
                         ruleTargetCluster={ruleTargetCluster}
                         categoricalColors={props.categoricalColors}
+                        endpointDates={props.endpointDates}
                     ></RuleViewD3>
                 </Row>
             </Row>

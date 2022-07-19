@@ -9,8 +9,7 @@ export default function RuleViewD3(props){
     const [pointData,setPointData] = useState();
     const [pathData,setPathData] = useState();
     const [dotsDrawn,setDotsDrawn] = useState(false);
-    const outcomeDates = [13,33];
-    const xMargin = 20;
+    const xMargin = 10;
     const yMargin = 10;
     
     const xLabelSize = 9;
@@ -25,6 +24,11 @@ export default function RuleViewD3(props){
     const targetIsCluster = (props.ruleTargetCluster !== undefined & props.ruleTargetCluster >= 0);
     const targetColor = targetIsCluster? props.categoricalColors(props.ruleTargetCluster):'red';
     const nonTargetColor = targetIsCluster? '#D8D8D8':'#2166ac';
+    const outcomeStrokeWidth = .7*R;
+    const strokeWidth = .1*R;
+
+    const legendWidth = 120 //Math.min(30, R*3 + width*.05);
+    const ruleWidth = width - legendWidth;
     
     
     function getSplitParts(fname){
@@ -67,6 +71,7 @@ export default function RuleViewD3(props){
         
     }
     function getSymptomOutcome(d){
+        const outcomeDates = props.endpointDates;
         let dateIdxs = outcomeDates.map(i => d.dates.indexOf(i));
         let sVals = d['symptoms_'+props.mainSymptom];
         let maxS = 0;
@@ -80,11 +85,11 @@ export default function RuleViewD3(props){
 
 
     useEffect(function draw(){
-        if( Utils.allNotUndefined([svg,props.svgPaths,props.rule,props.doseData]) ){
+        if( Utils.allNotUndefined([svg,props.svgPaths,props.rule,props.doseData,props.endpointDates]) ){
             const organList = props.doseData[0].organList;
             const nFeatures = props.rule.features.length;
             const rFeatures = props.rule.features;
-            const stepWidth = (width-2*xMargin)/(nFeatures+1);
+            const stepWidth = (ruleWidth-xMargin)/(nFeatures+.9);
             const lineFunc = d3.line();
             const curveFunc = d3.curveBasis();
             const yRange = [height-yMargin-xLabelSize-yPadding,yMargin+yPadding];
@@ -177,7 +182,7 @@ export default function RuleViewD3(props){
                     let dotEntry = {
                         'x': x,
                         'y': y,
-                        'aboveThreshold': (sVal > oThreshold),
+                        'aboveThreshold': (sVal >= oThreshold),
                         'baseX': x,
                         'baseY': y,
                         'axisX': split.x,
@@ -210,7 +215,7 @@ export default function RuleViewD3(props){
                     'feature': oThreshold,
                     'id': p.id,
                     'targetClass': inTargetClass(p),
-                    'aboveThreshold': (sVal > oThreshold),
+                    'aboveThreshold': (sVal >= oThreshold),
                     'outcome': sVal,
                 }
                 tempDots.push(finalDot);
@@ -257,7 +262,7 @@ export default function RuleViewD3(props){
                 .attr('font-size',xLabelSize)
                 .html(makeLabel);
 
-            const [tRectW, tRectH] = [width/(2+nFeatures),2]
+            const [tRectW, tRectH] = [ruleWidth/(2+nFeatures),2]
             svg.selectAll('rect').filter('.thresholdRect').remove();
             let rects = svg.selectAll('rect').filter('.thresholdRect')
                 .data(splitData).enter()
@@ -274,25 +279,34 @@ export default function RuleViewD3(props){
             }
             
         }
-    },[props.data,svg,props.svgPaths,props.plotVar])
+    },[props.data,svg,props.svgPaths,props.plotVar,props.endpointDates])
 
     useEffect(function drawDots(){
         if(pointData !== undefined & svg !== undefined){
             svg.selectAll('circle').filter('.patientCircle').remove();
             setDotsDrawn(false);
+            let formatDots = g => g.attr('cx', d=>d.x)
+            .attr('cy',d=>d.y)
+            .attr('fill',d=>d.targetClass? targetColor:nonTargetColor)
+            .attr('stroke', d => d.aboveThreshold? 'black':'white')
+            .attr('stroke-width', d => d.aboveThreshold? outcomeStrokeWidth:strokeWidth)
+            .attr('opacity', .9)
+            .attr('r',R);
+
             let dots = svg.selectAll('circle').filter('.patientCircle')
                 .data(pointData).enter()
-                .append('circle').attr('class','patientCircle')
-                .attr('cx', d=>d.x)
-                .attr('cy',d=>d.y)
-                .attr('fill',d=>d.targetClass? targetColor:nonTargetColor)
-                .attr('stroke', d => d.aboveThreshold? 'black':'white')
-                .attr('stroke-width', d => d.aboveThreshold? .7*R:0.1*R)
-                .attr('opacity', .9)
-                .attr('r',R);
+                .append('circle').attr('class','patientCircle');
+            formatDots(dots);
+                // .attr('cx', d=>d.x)
+                // .attr('cy',d=>d.y)
+                // .attr('fill',d=>d.targetClass? targetColor:nonTargetColor)
+                // .attr('stroke', d => d.aboveThreshold? 'black':'white')
+                // .attr('stroke-width', d => d.aboveThreshold? outcomeStrokeWidth:strokeWidth)
+                // .attr('opacity', .9)
+                // .attr('r',R);
 
             function boundX(d){
-                let bx = Math.max(R, Math.min(width-R, d.x));
+                let bx = Math.max(R, Math.min(ruleWidth-R, d.x));
                 if(splitAxes){
                     if(d.outcome >= oThreshold){
                         bx = Math.max(d.axisX+R,bx);
@@ -328,6 +342,52 @@ export default function RuleViewD3(props){
                     });
                     setDotsDrawn(true);
                 });
+
+            //legend
+            let legendData = [];
+            const legendX = width - legendWidth;
+            let lCurrY = Math.min(height/2, 100);
+            for(let inTarget of [true,false]){
+                for(let aboveThreshold of [true,false]){
+                    let title = '';
+                    if(!targetIsCluster & (aboveThreshold !== inTarget)){ continue; }
+                    if(targetIsCluster){
+                        if(inTarget){ 
+                            title = 'clust. ' + props.ruleTargetCluster;
+                         } else{
+                            title = 'other clust.';
+                        } 
+                    }
+                    let compare = aboveThreshold? '>' + (props.ruleThreshold-1):'<' + props.ruleThreshold;
+                    title = title + ' ' + props.mainSymptom.substring(0,3) + compare;
+                    
+                    let entry = {
+                        x: legendX,
+                        y: lCurrY,
+                        targetClass: inTarget,
+                        aboveThreshold: aboveThreshold,
+                        text: title,
+                    }
+                    legendData.push(entry);
+                    lCurrY += 5*R;
+                }
+            }
+            svg.selectAll('.legendItem').remove()
+            let lCircles=  svg.selectAll('circle').filter('.legendItem')
+                .data(legendData).enter()
+                .append('circle').attr('class','legendItem')
+            formatDots(lCircles);
+            lCircles.attr('r',2*R);
+
+            svg.selectAll('text').filter('.legendItem')
+                .data(legendData).enter()
+                .append('text').attr('class','legendItem')
+                .attr('x',d=>d.x + 2*R + 5)
+                .attr('y',d=>d.y)
+                .attr('font-size',Math.max(3*R,12))
+                .attr('alignment-baseline','middle')
+                .text(d=>d.text)
+
         }
     },[svg,pointData]);
 
