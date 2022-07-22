@@ -14,7 +14,7 @@ import DoseEffectView from './DoseEffectView.js';
 import SymptomPlotD3 from './SymptomPlotD3.js';
 import Spinner from 'react-bootstrap/Spinner';
 import PatientDoseView from './PatientDoseView.js';
-import ClusterMetricsD3 from './ClusterMetricsD3.js';
+import ClusterMetrics from './ClusterMetrics.js';
 import RuleView from './RuleView.js';
 import ClusterCVMetrics from './ClusterCVMetrics.js'
 
@@ -214,11 +214,12 @@ export default function OverView(props){
             );
         }
     }
+
     function makeMetricsPlot(){
         if(props.clusterData != undefined & props.doseData != undefined){
             return (
                 <Container className={'noGutter fillSpace'}>
-                    <ClusterMetricsD3
+                    <ClusterMetrics
                         doseData={props.doseData}
                         clusterData={props.clusterData}
                         selectedPatientId={props.selectedPatientId}
@@ -227,14 +228,11 @@ export default function OverView(props){
                         clusterOrgans={props.clusterOrgans}
                         activeCluster={props.activeCluster}
                         setActiveCluster={props.setActiveCluster}
-                        xVar={xVar}
-                        yVar={yVar}
                         symptomsOfInterest={props.symptomsOfInterest}
                         mainSymptom={props.mainSymptom}
-                        sizeVar={sizeVar}
                         categoricalColors={props.categoricalColors}
                         endpointDates={props.endpointDates}
-                    ></ClusterMetricsD3>
+                    ></ClusterMetrics>
                 </Container>
             )
         } else{

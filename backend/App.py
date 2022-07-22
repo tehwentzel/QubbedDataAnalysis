@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app)
 print('code yay')
 
-data = load_dose_symptom_data()
+data = load_dose_symptom_data(file='unfiltered_dose_symptoms_merged.csv')
 
 def as_float(item):
     if item is None:
@@ -160,6 +160,18 @@ def dose_rules():
     print('______________')
     return responsify(rules)
 
+@app.route('/lrt',methods=['POST'])
+def dose_rules():
+    post_results = request.get_json(force=True)
+    
+    print('______________')
+    print('lrt data')
+    print(post_results.get('organs'))
+    
+    lrt_res = get_lrt_json(data,post_results)
+    print('______________')
+    return responsify(lrt_res)
+
 @app.route('/dose_clusters',methods=['GET'])
 def get_dose_cluster_json():
     organ_list = request.args.getlist('organs')
@@ -181,8 +193,6 @@ def get_dose_cluster_json():
     covars = request.args.getlist('confounders')
     if len(covars) <= 0:
         covars = None
-
-    
 
     # print('cluster symptoms',symptoms)
     ddict = get_cluster_json(data,

@@ -154,11 +154,14 @@ def add_total_doses(df,cols):
             df['total_'+col] = df[col].apply(np.sum)
     return df
 
-def load_dose_symptom_data(use_lstm=False):
-    if use_lstm:
-        data = pd.read_csv(Const.data_dir + 'lstm_dose_symptoms_merged.csv')
+def load_dose_symptom_data(use_lstm=False,file= None):
+    if file is not None:
+        data = pd.read_csv(Const.data_dir + file)
     else:
-        data = pd.read_csv(Const.data_dir + 'dose_symptoms_merged.csv')
+        if use_lstm:
+            data = pd.read_csv(Const.data_dir + 'lstm_dose_symptoms_merged.csv')
+        else:
+            data = pd.read_csv(Const.data_dir + 'dose_symptoms_merged.csv')
     to_drop = [c for c in data.columns if 'symptom' in c and ('symptoms_' not in c or 'original' in c)]
     data = data.drop(to_drop,axis=1)
     dose_cols = get_df_dose_cols(data)
@@ -227,18 +230,18 @@ def var_test(df, testcol, ycol,xcols,
         'odds_ratio': odds[testcol]
     }
     return results
-
 def get_cluster_lrt(df,clust_key = 'dose_clusters',
                              symptoms=None,
-                             nWeeks = None,
+                             nWeekList = None,
                              confounders=None,
+                             thresholds=None,
                             ):
     #add tests for pvalues for data
     # print('cluster lrt',symptoms)
     if symptoms is None:
         symptoms = Const.symptoms[:]
-    if nWeeks is None:
-        nWeeks = [13,33]
+    if nWeekList is None:
+        nWeekList = [[13],[33]]
     if confounders is None:
         confounders = [
             't4',
@@ -250,89 +253,102 @@ def get_cluster_lrt(df,clust_key = 'dose_clusters',
            #'Larynx_limit',
            #'Parotid_Gland_limit'
                       ]
-    date_keys = [df.dates.iloc[0].index(week) for week in nWeeks if week in df.dates.iloc[0]]
-    #calculate change from baseline instead of absolute
-    get_symptom_max = lambda x: np.max([x[d] for d in date_keys])
+    if thresholds is None:
+        thresholds = [-5,-1,0,5]
+    
     
     tdose_cols = [c.replace('total_','') for c in confounders if ('total_' in c)]
     if len(tdose_cols) > 0:
         print('tdose cols',tdose_cols)
         df = add_total_doses(df,tdose_cols)
-    for symptom in symptoms:
-        skey = 'symptoms_'+symptom
-        if skey not in df.columns:
-            continue
-        max_symptoms = df[skey].apply(get_symptom_max).values
-        for threshold in [-1,3, 5, 7]:
-            colname=  'cluster_'+symptom
-            boolean = threshold > 0
-            if boolean:
-                y = max_symptoms >= threshold
-                colname += '_'+str(threshold)
-            else:
-                y = max_symptoms
-            names = ['lrt_pval','ttest_tval','ttest_pval','aic_diff','odds_ratio']
-            for n in names:
-                df[colname+'_'+n] = -1
-            for clust in df[clust_key].unique():
-                in_clust = df[clust_key] == clust
-                if len(np.unique(y)) < 2:
-                    continue
+    for nWeeks in nWeekList:
+        date_keys = [df.dates.iloc[0].index(week) for week in nWeeks if week in df.dates.iloc[0]]
+        #calculate change from baseline instead of absolute
+        get_symptom_max = lambda x: np.max([x[d] for d in date_keys])
+        get_symptom_change_max = lambda x: np.max([x[d]-x[0] for d in date_keys])
+        for symptom in symptoms:
+            skey = 'symptoms_'+symptom
+            if skey not in df.columns:
+                continue
+            
+            for threshold in thresholds:
+                colname=  'cluster_'+symptom
+                boolean = threshold not in [0,-1]
+                use_change = threshold < 0
+                if use_change:
+                    max_symptoms = df[skey].apply(get_symptom_max).values
+                    colname += '_change'
                 else:
-                    df['x'] = in_clust
-                    df['y'] = y
-                    res = var_test(df,'x','y',confounders)
-                    for name in names:
-                        if not pd.isnull(res[name]):
-                            df.loc[df[in_clust].index,[colname+'_'+name]] = res[name]
+                    max_symptoms = df[skey].apply(get_symptom_change_max).values
+                if boolean:
+                    y = max_symptoms >= np.abs(threshold)
+                    colname += '_'+str(np.abs(threshold))
+                    colname += '_' + ''.join([str(w) for w in nWeeks]) + 'wks'
+                else:
+                    y = max_symptoms
+                names = ['lrt_pval','ttest_tval','ttest_pval','aic_diff','odds_ratio']
+                for n in names:
+                    df[colname+'_'+n] = -1
+                for clust in df[clust_key].unique():
+                    in_clust = df[clust_key] == clust
+                    if len(np.unique(y)) < 2:
+                        continue
+                    else:
+                        df['x'] = in_clust
+                        df['y'] = y
+                        res = var_test(df,'x','y',confounders)
+                        for name in names:
+                            if not pd.isnull(res[name]):
+                                df.loc[df[in_clust].index,[colname+'_'+name]] = res[name]
                     
     return df
-
+    
 def get_cluster_correlations(df,clust_key = 'dose_clusters',
                              symptoms=None,
-                             nWeeks = None,
+                             nWeekList = None,
                              thresholds=None,
                              baselines=[False],
                             ):
     #add tests for pvalues for data
     if symptoms is None:
         symptoms = Const.symptoms[:]
-    if nWeeks is None:
-        nWeeks = [13,33]
+    if nWeekList is None:
+        nWeekList = [[13],[33]]
     if thresholds is None:
-        thresholds = [5,7]
-    date_keys = [df.dates.iloc[0].index(week) for week in nWeeks if week in df.dates.iloc[0]]
-    #calculate change from baseline instead of absolute
-    get_symptom_change_max = lambda x: np.max([x[d]-x[0] for d in date_keys])
-    get_symptom_max = lambda x: np.max([x[d] for d in date_keys])
+        thresholds = [5]
     df = df.copy()
-
-    for symptom in symptoms:
-        skey = 'symptoms_'+symptom
-        if skey not in df.columns:
-            continue
-        max_symptoms = df[skey].apply(get_symptom_max).values
-        max_change = df[skey].apply(get_symptom_change_max).values
-        for threshold in thresholds:
-            for baseline in baselines:
-                if baseline:
-                    y = (max_change >= threshold).astype(int)
-                else:
-                    y = (max_symptoms >= threshold).astype(int)
-                colname=  'cluster_'+symptom
-                if baseline:
-                    colname += '_change'
-                colname += "_" + str(threshold)
-                df[colname+'_fisher_odds_ratio'] = -1
-                df[colname+'_fisher_pval'] = -1
-                for clust in df[clust_key].unique():
-                    in_clust = df[clust_key] == clust
-                    if len(np.unique(y)) < 2:
-                        (odds_ratio,pval) = (0,1)
+    for nWeeks in nWeekList:
+        date_keys = [df.dates.iloc[0].index(week) for week in nWeeks if week in df.dates.iloc[0]]
+        #calculate change from baseline instead of absolute
+        get_symptom_change_max = lambda x: np.max([x[d]-x[0] for d in date_keys])
+        get_symptom_max = lambda x: np.max([x[d] for d in date_keys])
+        for symptom in symptoms:
+            skey = 'symptoms_'+symptom
+            if skey not in df.columns:
+                continue
+            max_symptoms = df[skey].apply(get_symptom_max).values
+            max_change = df[skey].apply(get_symptom_change_max).values
+            for threshold in thresholds:
+                for baseline in baselines:
+                    if baseline:
+                        y = (max_change >= threshold).astype(int)
                     else:
-                        (odds_ratio, pval) = Metrics.boolean_fisher_exact(in_clust.astype(int),y)
-                    df.loc[df[in_clust].index,[colname+'_fisher_odds_ratio']] = odds_ratio
-                    df.loc[df[in_clust].index,[colname+'_fisher_pval']] = pval
+                        y = (max_symptoms >= threshold).astype(int)
+                    colname=  'cluster_'+symptom
+                    if baseline:
+                        colname += '_change'
+                    colname += "_" + str(threshold)
+                    colname += '_' + ''.join([str(w) for w in nWeeks]) + 'wks'
+                    df[colname+'_fisher_odds_ratio'] = -1
+                    df[colname+'_fisher_pval'] = -1
+                    for clust in df[clust_key].unique():
+                        in_clust = df[clust_key] == clust
+                        if len(np.unique(y)) < 2:
+                            (odds_ratio,pval) = (0,1)
+                        else:
+                            (odds_ratio, pval) = Metrics.boolean_fisher_exact(in_clust.astype(int),y)
+                        df.loc[df[in_clust].index,[colname+'_fisher_odds_ratio']] = odds_ratio
+                        df.loc[df[in_clust].index,[colname+'_fisher_pval']] = pval
     return df
 
 def keyword_clusterer(cluster_type, n_clusters,**kwargs):
@@ -364,11 +380,13 @@ def get_cluster_json(df,
                      quantiles = None,
                      sdates = [13,33],
                      other_values = None,
-                     add_metrics = True,
+                     add_metrics=True,
+                    #  add_metrics = False,
                      update_clusters=True,
                      clustertype = None,
                      confounders=None,
                      n_clusters = 4,
+                     thresholds=[3,5,7],
                      symptoms=None,
                      **kwargs):
     if organ_list is None:
@@ -385,12 +403,12 @@ def get_cluster_json(df,
     else:
         print('skipping stuff')
     clust_dfs = []
-    dose_cols = get_df_dose_cols(df,key='V') + ['max_dose','mean_dose','volume']
+    dose_cols = get_df_dose_cols(df,key='V') + ['mean_dose','volume']
     s_cols = get_df_symptom_cols(df)
     if quantiles is None:
         quantiles = np.linspace(.1,.9,6) 
     dates = df.dates.iloc[0]
-    date_positions = [(sdate, dates.index(sdate)) for sdate in sdates if sdate in dates]
+#     date_positions = [(sdate, dates.index(sdate)) for sdate in sdates if sdate in dates]
     #i'm asuming these are discrete
     if other_values is None:
         other_values = [
@@ -407,19 +425,22 @@ def get_cluster_json(df,
     stats_cols=[]
     if add_metrics:
         old_cols = df.columns
+        dates = [[13],[33]]
+        if len(sdates) > 1 or sdates[0] not in [i[0] for i in dates]:
+            dates.append(sdates)
         if confounders is None or len(confounders) < 1:
             df = get_cluster_correlations(df,
-                                          thresholds=[3,5,7],
+                                          thresholds=thresholds,
                                           clust_key='dose_clusters',
                                           baselines=[False],
                                           symptoms=symptoms,
-                                          nWeeks=sdates)
+                                          nWeekList=dates)
         else:
             df = get_cluster_lrt(df,
                                   clust_key='dose_clusters',
                                   confounders=confounders,
                                   symptoms=symptoms,
-                                  nWeeks=sdates)
+                                  nWeekList=dates)
         stats_cols =sorted(set(df.columns) - set(old_cols))
     df = df.reset_index()
     for c,subdf in df.groupby('dose_clusters'):
@@ -457,9 +478,22 @@ def add_dose_pca(df, features,organs=None,n_dims=3):
             df[f] = df[f].apply(lambda x: [x[i] for i in oidx])
             df = df.copy()
     dose_x = np.stack(df[features].apply(lambda x: np.stack(x).ravel(),axis=1).values)
+    n_dims = min(n_dims,dose_x.shape[1])
     dose_x_pca = PCA(n_dims).fit_transform(dose_x)
     return [x.tolist() for x in dose_x_pca]
     
+def pca_json(df, features=None,organs=None,**kwargs):
+    if features is None:
+        features = ['mean_dose']
+    if organs is None:
+        organs = Const.organ_list[:]
+    pca = add_dose_pca(df.copy(),features,organs=organs,**kwargs)
+    res = pd.DataFrame(pca,index=df.index)
+    res.index.name = 'id'
+    return res.reset_index().to_dict(orient='records')
+
+
+
 def sddf_to_json(df,
                  to_drop =None,
                  add_pca = True,
@@ -1212,3 +1246,28 @@ def get_cluster_cv_metrics(args):
         entry['symptom'] = symptom
         results.append(entry)
     return results
+
+
+def get_lrt_json(df, post_results=None):
+    if post_results is None:
+        print('using test post results')
+        post_results = get_sample_cluster_metrics_input()
+    
+    df = add_post_clusters(df,post_results)
+    
+    symptoms = post_results.get('symptoms',['drymouth'])
+    dates = post_results.get('endpoints',[[13],[33]])
+    thresholds = post_results.get('thresholds',[-5,5])
+    confounders = post_results.get('confounders',['hpv','age_65'])
+    old_cols = set(df.columns)
+    df = get_cluster_lrt(df,
+                         clust_key='post_cluster',
+                         symptoms=symptoms,
+                         nWeekList=dates,
+                         thresholds=thresholds,
+                         confounders=confounders,
+                                 )
+    to_keep = ['post_cluster'] + [c for c in df.columns if c not in old_cols and c not in ['x','y']]
+    df = df[to_keep].groupby('post_cluster').first()
+    df.index.name = 'clusterId'
+    return df.reset_index().to_dict(orient='records')

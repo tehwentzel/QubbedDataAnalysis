@@ -117,6 +117,38 @@ export default class DataService {
 
     }
 
+    async getLRTests(clusterData,
+        dates,
+        thresholds,
+        symptom,
+        ){
+        let postData = {
+            'clusterData': clusterData,
+            'symptom': symptom,
+            'thresholds': thresholds,
+            'endpoints':[dates],
+        }
+        let goodPostData = {}
+        for(let key of Object.keys(postData)){
+            let entry = postData[key];
+            if(entry !== undefined){
+                goodPostData[key] = entry;
+            }
+        }
+        // console.log('rule post data',goodPostData)
+        if(goodPostData.clusterData === undefined){
+            return undefined;
+        }
+        try{
+            const response = await this.api.post('/lrt', goodPostData);
+            // console.log('rules response',response.data);
+            return response.data;
+        } catch(error){
+            console.log(error);
+        }
+
+    }
+
     async getDoseJson(organs,clusterFeatures){
         try{
             var params = {

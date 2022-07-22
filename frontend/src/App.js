@@ -77,9 +77,21 @@ function App() {
     'taste',
     'swallow',
     'voice',
+    'mucus',
     'mucositis',
     'choke',
     'pain',
+    'teeth',
+    'throat_mean',
+    'throat_max',
+    'mouth_max',
+    'mouth_mean',
+    'core_mean',
+    'core_max',
+    'interference_mean',
+    'interference_max',
+    'hnc_mean',
+    'hnc_max',
   ]);
   //all possible symptoms I coded into the data
   const allSymptoms = [
@@ -110,6 +122,7 @@ function App() {
   ]
   const [mainSymptom,setMainSymptom] = useState('drymouth');
   
+  //this is theoreticall better than static 100 in case it goes really high?
   const [maxDose, setMaxDose] = useState(100);
   const doseColor = d3.interpolateReds;
   // function doseColor(v){
