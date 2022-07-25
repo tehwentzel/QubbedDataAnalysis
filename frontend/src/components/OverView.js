@@ -221,6 +221,7 @@ export default function OverView(props){
                 <Container className={'noGutter fillSpace'}>
                     <ClusterMetrics
                         doseData={props.doseData}
+                        api={props.api}
                         clusterData={props.clusterData}
                         selectedPatientId={props.selectedPatientId}
                         setSelectedPatientId={props.setSelectedPatientId}

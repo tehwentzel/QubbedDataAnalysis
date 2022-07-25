@@ -119,12 +119,14 @@ export default class DataService {
 
     async getLRTests(clusterData,
         dates,
+        confounders,
         thresholds,
-        symptom,
+        symptoms,
         ){
         let postData = {
             'clusterData': clusterData,
-            'symptom': symptom,
+            'confounders':confounders,
+            'symptoms': symptoms,
             'thresholds': thresholds,
             'endpoints':[dates],
         }

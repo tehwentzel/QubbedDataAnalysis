@@ -7,11 +7,11 @@ import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 
-import ClusterCVMetricsD3 from './ClusterCVMetricsD3.js'
+import ClusterMetricsD3 from './ClusterMetricsD3.js'
 import Spinner from 'react-bootstrap/Spinner';
 
 
-export default function ClusterCVMetrics(props){
+export default function ClusterMetrics(props){
     const ref = useRef(null)
 
     const [vizComponents,setVizComponents] = useState(
@@ -23,17 +23,16 @@ export default function ClusterCVMetrics(props){
     )
 
     //I dont think I use this
-    const [clusterMetricData,setClusterMetricData] = useState(null);
-    const modelTypeOptions = ['regression','forest','adaboost_forest','adaboost_regression','linear_svm','rbf_svm']
-    const [metricsModelType,setMetricsModelType] = useState('regression');
-    const metrics = ['roc','precision','recall','f1','f2','mcc'];
+    const [metricData,setMetricData] = useState(null);
 
-    var fetchClusterMetrics = async(cData,lrtConfounders,symptom,mType,dates)=>{
+    const [metricThresholds,setMetricThresholds] = useState([0,-1,5,-5]);
+
+    var fetchMetrics = async(cData,dates,lrtConfounders,thresholds,symptoms)=>{
         if(cData !== undefined & !props.clusterDataLoading){
-            setClusterMetricData(undefined);
-            props.api.getClusterMetrics(cData,lrtConfounders,symptom,mType,dates).then(response =>{
+            setMetricData(undefined);
+            props.api.getLRTests(cData,dates,lrtConfounders,thresholds,symptoms).then(response =>{
             // console.log('cluster metric data',response)
-            setClusterMetricData(response);
+            setMetricData(response);
           }).catch(error=>{
             console.log('cluster metric data error',error);
           })
@@ -43,34 +42,27 @@ export default function ClusterCVMetrics(props){
 
     useEffect(()=>{
         if(!props.clusterDataLoading & props.clusterData !== undefined & props.clusterData !== null){
-            fetchClusterMetrics(props.clusterData, props.lrtConfounders,props.mainSymptom,metricsModelType,props.endpointDates);
+            fetchMetrics(props.clusterData,props.endpointDates,props.lrtConfounders,metricThresholds,[props.mainSymptom]);
         }
-      },[props.clusterDataLoading,props.clusterData,props.mainSymptom,props.lrtConfounders,metricsModelType,props.endpointDates]);
+      },[props.clusterDataLoading,props.clusterData,props.mainSymptom,props.lrtConfounders,props.endpointDates,metricThresholds]);
       
-
-    function makeMetricPlot(key){
-        return (
-            <Col
-            md={6}
-            key={key+props.mainSymptom}
-            className={'noGutter'}
-            style={{'display':'inline-block','padding':0,'width':'50%','height': '12em','marginBottom':'1em'}}>
-                <ClusterCVMetricsD3
+    useEffect(function makePlots(){
+        if(metricData !== undefined & metricData !== null){
+            let components = (
+                <ClusterMetricsD3
+                    doseData={props.doseData}
                     clusterData={props.clusterData}
-                    metric={key}
-            
+                    metricData={metricData}
+                    plotVar={props.plotVar}
+                    clusterOrgans={props.clusterOrgans}
                     activeCluster={props.activeCluster}
                     setActiveCluster={props.setActiveCluster}
                     mainSymptom={props.mainSymptom}
+                    thresholds={metricThresholds}
                     categoricalColors={props.categoricalColors}
-                    clusterMetricData={clusterMetricData}
-                ></ClusterCVMetricsD3>
-            </Col>
-        )
-    }
-    useEffect(function makePlots(){
-        if(clusterMetricData !== undefined & clusterMetricData !== null){
-            let components = metrics.map(makeMetricPlot);
+                    endpointDates={props.endpointDates}
+                ></ClusterMetricsD3>
+            )
             setVizComponents(components);
         } else{
             setVizComponents(<Spinner 
@@ -79,38 +71,13 @@ export default function ClusterCVMetrics(props){
                 role='status'
                 className={'spinner'}/>)
         }
-    },[clusterMetricData,props.mainSymptom,props.activeCluster,props.clusterData])
+    },[metricData,props.mainSymptom,props.endpointDates,props.activeCluster])
 
-    function makeMetricToggleOptions(){
-        const buttons = modelTypeOptions.map((o) => {
-            return (
-                <Button
-                    variant={ (o===metricsModelType)? 'dark':'outline-secondary'}
-                    onClick={()=>{ if(metricsModelType !== o) {setMetricsModelType(o);} }}
-                >{o.replace('_',' ')}</Button>
-            )
-        })
-        return (
-            <span>
-                <Button
-                variant={'light'}
-                >{'Model:'}</Button>
-                {buttons}
-            </span>
-        )
-    }
     return ( 
         <div ref={ref} id={'doseClusterContainer'}>
             <Container md={12} className = {'noGutter fillWidth'} style={{'height':'45vh'}}>
-                <Row md={12} style={{'height': '3em'}}>
-                    {makeMetricToggleOptions()}
-                </Row>
-                <Row md={12} className={'scroll'} style={{'height': 'calc(45vh - 2.2em)'}}>
-                    {vizComponents}
-                </Row>
-                
+                    {vizComponents}                
             </Container>
-            
         </div> 
         )
 }

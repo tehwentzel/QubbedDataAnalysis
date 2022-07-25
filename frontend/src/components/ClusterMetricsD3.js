@@ -7,163 +7,190 @@ import { count } from 'd3';
 export default function ClusterMetricsD3(props){
     const d3Container = useRef(null);
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
-    const [data,setData] = useState();
     const [rectsDrawn,setRectsDrawn] = useState(false);
     const yMarginTop = 10;
-    const yMarginBottom = 40;
+    const yMarginBottom = 50;
     const xMargin = 10;
-    const metrics = [
-        'aic_diff',
-        '3_odds_ratio',
-        '5_odds_ratio',
-        '7_odds_ratio',
-    ];
-    const pvals = [
-        '7_lrt_pval',
-        '5_lrt_pval',
-        '3_lrt_pval',
-        'lrt_pval'
-    ];
-    const graphWidth = width/(metrics.length+1);
+    const barMargin = 2;
+    const chartMargin = 10;
 
-    function addThresholdText(source,target){
-        for(let v = 1; v<=9; v++){
-            if(source.includes(v+'_')){
-                return target + ' (>'+v+')';
+    const binaryMetric = 'odds_ratio';
+    const linearMetric = 'aic_diff';
+    const pvalMetric = 'lrt_pval';
+
+    function getKey(metric, threshold){
+        let key = 'cluster_' + props.mainSymptom + '_';
+        if(threshold < 0){
+            key += 'change_';
+        }
+        if(Math.abs(threshold) > 1){
+            key += Math.abs(threshold) + '_';
+            if(props.endpointDates !== undefined){
+                for(let endpoint of props.endpointDates){
+                    key += endpoint;
+                }
+                key += 'wks_';
             }
-        };
-        return target;
+        }
+        
+        key += metric;
+        return key;
     }
 
-    function formatText(text){
-        if(text == 'aic_diff'){ return '-ΔAIC (Linear).'}
-        if(text.includes('odds_ratio')){
-            return addThresholdText(text,'ΔOdds')
+    function makeTitle(key, threshold){
+        let title = Utils.getVarDisplayName(key);
+        if(threshold < 0){
+            title =  title + ' Δ';
         }
-        if(text.includes('lrt_pval')){
-            let baseText = "1-p";
-            return addThresholdText(text,baseText);
+        if(Math.abs(threshold) > 1){
+            title += '>' + (Math.abs(threshold) - 1);
+        } else{
+            title += ' linear';
         }
-        return text;
+        return title;
     }
 
     useEffect(function format(){
-        if(svg != undefined & props.clusterData !== undefined){
-            let formattedData  = [];
-            let entryId = 0;
-            for(let clusterEntry of props.clusterData){
-                let symptom = props.mainSymptom
-                let entry = {
-                    'cluster': parseInt(clusterEntry.clusterId),
-                    'symptom': symptom,
-                    'entryId':entryId,
+        
+        if(svg != undefined & props.metricData !== undefined){
+            // console.log('data',props.metricData,props.thresholds,props.mainSymptom,props.endpointDates)
+            var data = [];
+            var titleData = [];
+            let maxVal = {'binary': 0, 'linear': 0};
+            let minVal = {'binary': Infinity, 'linear': Infinity};
+            const chartWidth = (width-2*xMargin)/(props.thresholds.length) - chartMargin;
+            const barWidth = (chartWidth/props.metricData.length) - barMargin;
+            var currX = xMargin; 
+            for(let thold of props.thresholds){
+                let isLinear =  (Math.abs(thold) <= 1);
+                let metric = isLinear? linearMetric:binaryMetric;
+                let key = getKey(metric, thold);
+                let pKey = getKey(pvalMetric,thold);
+                let titleEntry = {
+                    'x': currX + chartWidth/2,
+                    'text': makeTitle(metric, thold),
                 }
-                entryId += 1;
-                let keyBase = 'cluster_'+symptom;
-                const options = metrics.concat(pvals);
-                for(let metric of options){
-                    let key = keyBase + '_' + metric;
-                    entry[metric] = clusterEntry[key]
-                    formattedData.push(entry);
+                titleData.push(titleEntry);
+                for(let clusterEntry of props.metricData){
+                    let value = clusterEntry[key];
+                    if(value === undefined){
+                        // console.log('invalid key', key, clusterEntry);
+                        continue;
+                    }
+                    let pVal = clusterEntry[pKey];
+                    // if(pVal === undefined){
+                    //     console.log(pVal, pKey, clusterEntry)
+                    // }
+                    let clusterId = clusterEntry.clusterId;
+                    let color = (pVal < .05)? props.categoricalColors(clusterId): 'grey';
+                    if(metric.includes('odds_ratio')){
+                        value = (value - 1);
+                    } else if(metric.includes('aic_') | metric.includes('bic_')){
+                        value = -value;
+                    }
+                    let entry = {
+                        'value': value,
+                        'baseValue':  clusterEntry[key],
+                        'metric': metric,
+                        'isLinear': isLinear,
+                        'threshold': thold,
+                        'key': key,
+                        'pval': pVal,
+                        'change': thold < 0,
+                        'color': color,
+                        'x': currX,
+                        'cluster':clusterId,
+                    }
+                    currX += barWidth + barMargin;
+                    let vKey = isLinear? 'linear': 'binary';
+                    maxVal[vKey] = Math.max(maxVal[vKey], value);
+                    minVal[vKey] = Math.min(minVal[vKey], value);
+                    data.push(entry);
                 }
+                currX += chartMargin;
             }
-            setData(formattedData);
-        }
-    },[svg,props.clusterData,props.mainSymptom,props.symptomsOfInterest])
+            // console.log('formattedData ', data, maxVal, minVal)
 
-    useEffect(function drawLines(){
-        if(svg !== undefined & data !== undefined){
             //why are barcharts actually the hardest to prrogram
-            svg.selectAll('rect').remove()
-            var makeYScale = (accessor) => {
-                let [minVal,maxVal] = d3.extent(data, d=>accessor(d));
-                if(maxVal > 0){
-                    minVal = Math.min(0,minVal);
-                }
-                let topRatio = Math.abs(maxVal)/(Math.abs(maxVal)+Math.abs(minVal));
-                if(maxVal <= 0){
-                    topRatio = 0;
-                }
-                let h = (height-yMarginBottom-yMarginTop);
+            
+            let h = height - yMarginBottom - yMarginTop;
 
-                let yCenter = Math.max(yMarginTop + 3, h*topRatio -yMarginBottom);
+            function makeScale(isLinear){
+                let vKey = isLinear? 'linear': 'binary';
+                let mxVal = maxVal[vKey]
+                let mnVal = minVal[vKey];
+                // if(mxVal > 0){
+                //     mnVal = Math.min(0,mnVal);
+                // }
+                let topVal = Math.max(Math.abs(mxVal),Math.abs(mnVal))
+                // let topRatio = topVal/(Math.abs(mxVal)+Math.abs(mnVal));
+                let topRatio = Math.abs(mxVal)/(Math.abs(mxVal)+Math.abs(mnVal));
+                let yCenter = h*topRatio;
+                let maxHeight = Math.max(yCenter - yMarginTop, h - yCenter)
+
                 let scale = d3.scaleLinear()
-                    .domain([minVal,maxVal])
-                    .range([0,yCenter-yMarginTop]);
+                    .domain([0,topVal])
+                    .range([0,maxHeight]);
+
                 if(maxVal <= 0){
                     scale = d3.scaleLinear()
-                        .domain([0,Math.abs(minVal)])
+                        .domain([0,Math.abs(mnVal)])
                         .range([0,h])
                 }
-                var yScale =  d=> {
-                    let val = accessor(d);
-                    return scale(Math.abs(val));
-                }    
 
-                return [yScale, yCenter]
-            }
+                var yScale = d => {
+                    return scale(Math.abs(d.value));
+                }; 
 
-            let xBaseScale = d3.scaleLinear()
-                .domain([0,metrics.length-1])
-                .range([xMargin,width-graphWidth-xMargin]);
-
-            const nClusters = 1 + d3.max(data,d=>d.cluster) - d3.min(data,d=>d.cluster);
-            const barWidth = (graphWidth*.9)/(nClusters)
-            let xOffsetScale = d3.scaleLinear()
-                .domain(d3.extent(data,d=>d.cluster))
-                .range([0,graphWidth-barWidth]);
-
-            
-            var getX = (d,key) => {
-                let idx = metrics.indexOf(key);
-                let xBase = xBaseScale(idx);
-                let xOffset = xOffsetScale(parseInt(d.cluster));
-                return xBase + xOffset;
-            }
-
-            var xAxisPoints = [];
-            var xAxisData = [];
-            const lineFunc = d3.line()
-    
-            var makeRect = (accessor,xKey,sigKey,sigThreshold) => {
-                if(sigThreshold === undefined){
-                    sigThreshold = .05;
-                }
-                let [yScale, yCenter] = makeYScale(accessor);
-                let className = 'metricRect'+xKey;
-                svg.selectAll('rect').filter('.'+className).remove();
                 let getYPos = (d) => {
-                    if(accessor(d) < 0){
+                    if(d.value < 0){
                         return yCenter;
                     } else{
                         return yCenter-yScale(d);
                     }
                 }
-                var getColor = function(d){
-                    let p = d[sigKey];
-                    if(p < sigThreshold){
-                        return props.categoricalColors(d.cluster);
-                    } else{
-                        return 'grey';
-                    }
+
+                return {
+                    'scale': scale,
+                    'yCenter': yCenter,
+                    'yScale': yScale,
+                    'getYPos': getYPos,
                 }
-                var getOpacity = function(d){
-                     if(d[sigKey] < sigThreshold){
-                         return 1;
-                     } else{
-                         return '.5';
-                     }
+            }
+            
+            var scales = {
+                'linear': makeScale(true),
+                'binary': makeScale(false),
+            }
+
+            var yScale = (d) => {
+                if(d.isLinear){
+                    return scales.linear.yScale(d);
+                } else{
+                    return scales.binary.yScale(d);
                 }
-                let rects = svg.selectAll('rect').filter('.'+className)
+            }
+
+            var getYPos = (d) => {
+                if(d.isLinear){
+                    return scales.linear.getYPos(d);
+                } else{
+                    return scales.binary.getYPos(d);
+                }
+            }
+
+
+            svg.selectAll('rect').remove();
+            let rects = svg.selectAll('rect').filter('.metricRect')
                     .data(data).enter()
                     .append('rect')
-                    .attr('class',className + ' metricRect')
+                    .attr('class','metricRect')
                     .attr('y',getYPos)
-                    .attr('x',d=>getX(d,xKey))
+                    .attr('x',d=>d.x)
                     .attr('width',barWidth)
-                    .attr('fill',getColor)
-                    .attr('fill-opacity',getOpacity)
-                    .attr('height',d=>yScale(d))
+                    .attr('fill',d=>d.color)
+                    .attr('fill-opacity',1)
+                    .attr('height',yScale)
                     .attr('stroke','black')
                     .attr('stroke-width',0)
                     .on('mouseover',function(e){
@@ -179,82 +206,50 @@ export default function ClusterMetricsD3(props){
                         Utils.hideTTip(tTip);
                     });
 
-                var getTextY = d => {
-                    if(accessor(d) < 0){
-                        let y = getYPos(d) + yScale(d) - 5;
-                        y = Math.max(yCenter+20,y)
-                        return y;
-                    } else{
-                        let y = Math.max(getYPos(d)-5,20+yMarginTop);
-                        return y;
-                    }
+            var getTextY = d => {
+                if(d.value < 0){
+                    let y = getYPos(d) + yScale(d) - 5;
+                    // y = Math.max(yCenter+20,y)
+                    return y;
+                } else{
+                    let y = Math.max(getYPos(d)-5,20+yMarginTop);
+                    return y;
                 }
-                let formatNum = (n) => {
-                    n = n.toFixed(3);
-                    n = n.replace(/^0+/, '')
-                    n = n.replace(/^-0+/, '-')
-                    n = n.replace(/0+$/, '0')
-                    n = n.replace(/.$/, '')
-                    return n+'';
-                }
+            }
+            let formatNum = (n) => {
+                n = n.toFixed(3);
+                n = n.replace(/^0+/, '')
+                n = n.replace(/^-0+/, '-')
+                n = n.replace(/0+$/, '0')
+                n = n.replace(/.$/, '')
+                return n+'';
+            }
                 
-                svg.selectAll('text').filter('.annotation'+xKey).remove();
-                let annotation = svg.selectAll('text').filter('.annotation'+xKey)
-                    .data(data).enter().append('text')
-                    .attr('class','annotation'+xKey)
-                    .attr('x',d=>getX(d,xKey)+(.5*barWidth/formatNum(accessor(d)).length))
-                    .attr('y',getTextY)
-                    .style('font-size',barWidth/2.5)
-                    .html(d=>formatNum(accessor(d)))
+            svg.selectAll('text').filter('.annotation').remove();
+            let annotation = svg.selectAll('text').filter('.annotation')
+                .data(data).enter().append('text')
+                .attr('class','annotation')
+                .attr('x',d=>d.x + barWidth/2)
+                .attr('text-anchor','middle')
+                .attr('y',getTextY)
+                .style('font-size',barWidth/2.5)
+                .html(d=>formatNum(d.value));
 
-                //add axis coordinates
-                let xBase = xBaseScale(metrics.indexOf(xKey))
-                let points = [
-                    [xBase,yCenter],
-                    [xBase+graphWidth,yCenter]
-                ];
-                xAxisPoints.push(lineFunc(points));
-
-                //add position of stuff
-                xAxisData.push({
-                    'x': xBase + 2,
-                    'y': height-yMarginBottom,
-                    'text':formatText(xKey),
-                })
-
-                return rects
-            }
-            // var formatPval = (p) => 1-p;
-            makeRect(d=>-d['aic_diff'],'aic_diff','lrt_pval');
-            for(let i = 3; i <=7; i = i+2){
-                let oddsKey = i + '_odds_ratio';
-                let lrtKey = i + '_lrt_pval';
-                makeRect(d=>d[oddsKey]-1,oddsKey,lrtKey)
-            }
-            // makeRect(d=> (d['3_odds_ratio']-1),'3_odds_ratio','3_lrt_pval');
-            // makeRect(d=> (d['5_odds_ratio']-1),'5_odds_ratio','5_lrt_pval');
-            // makeRect(d=> (d['7_odds_ratio']-1),'7_odds_ratio', '7_lrt_pval');
-            
-    
-            svg.selectAll('path').filter('.xAxisLines').remove();
-            svg.selectAll('path').filter('.xAxisLines')
-                .data(xAxisPoints).enter()
-                .append('path').attr('class','xAxisLines')
-                .attr('d',d=>d)
-                .attr('stroke','black')
-                .attr('stroke-width',3);
-
-            svg.selectAll('text').filter('.axisTextBottom').remove();
-            svg.selectAll('.axisTextBottom').data(xAxisData)
-                .enter().append('text').attr('class','axisTextBottom')
+            svg.selectAll('text').filter('.title').remove();
+            const titleSize = Math.min(barWidth/2.5,yMarginBottom/2);
+            let titleText = svg.selectAll('text').filter('.title')
+                .data(titleData).enter().append('text')
+                .attr('class','title')
                 .attr('x',d=>d.x)
-                .attr('y',d=>d.y+yMarginBottom/2)
-                .attr('font-size',yMarginBottom/2)
-                .html(x=>x.text);
-
+                .attr('y', height-(2.1*titleSize))
+                .attr('text-anchor','middle')
+                // .attr('aligment-baseline','bottom')
+                .style('font-size',titleSize)
+                .text(d=>d.text)
+          
             setRectsDrawn(true);
         }
-    },[svg,data]);
+    },[svg,props.metricData,props.mainSymptom,props.endpointDates,props.thresholds])
 
     useEffect(function brush(){
         if(!rectsDrawn){ return; }

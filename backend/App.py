@@ -161,7 +161,7 @@ def dose_rules():
     return responsify(rules)
 
 @app.route('/lrt',methods=['POST'])
-def dose_rules():
+def get_lrt():
     post_results = request.get_json(force=True)
     
     print('______________')
