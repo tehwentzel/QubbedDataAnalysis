@@ -1,5 +1,4 @@
 import * as constants from './Constants';
-import * as d3 from 'd3';
 const querystring = require('querystring');
 
 export default class DataService {

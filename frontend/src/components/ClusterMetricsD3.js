@@ -2,14 +2,13 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import useSVGCanvas from './useSVGCanvas.js';
 import Utils from '../modules/Utils.js'
-import { count } from 'd3';
 
 export default function ClusterMetricsD3(props){
     const d3Container = useRef(null);
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [rectsDrawn,setRectsDrawn] = useState(false);
     const yMarginTop = 10;
-    const yMarginBottom = 50;
+    const yMarginBottom = 70;
     const xMargin = 10;
     const barMargin = 2;
     const chartMargin = 10;
@@ -236,7 +235,7 @@ export default function ClusterMetricsD3(props){
                 .html(d=>formatNum(d.value));
 
             svg.selectAll('text').filter('.title').remove();
-            const titleSize = Math.min(barWidth/2.5,yMarginBottom/2);
+            const titleSize = Math.min(barWidth/2.5,yMarginBottom/3);
             let titleText = svg.selectAll('text').filter('.title')
                 .data(titleData).enter().append('text')
                 .attr('class','title')

@@ -1,9 +1,5 @@
 import React, {useState, useEffect, useRef, Fragment} from 'react';
-import Utils from '../modules/Utils.js';
-import * as constants from "../modules/Constants.js"
-import * as d3 from 'd3';
-import Button from 'react-bootstrap/Button';
-import Container from 'react-bootstrap/Container';
+// import Utils from '../modules/Utils.js';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 
@@ -75,9 +71,14 @@ export default function ClusterMetrics(props){
 
     return ( 
         <div ref={ref} id={'doseClusterContainer'}>
-            <Container md={12} className = {'noGutter fillWidth'} style={{'height':'45vh'}}>
-                    {vizComponents}                
-            </Container>
+            <Row md={12} className = {'noGutter fillWidth'} style={{'height':'45vh'}}>
+                <Col md={9} className={'noGutter'}>
+                    {vizComponents}     
+                </Col>
+                <Col md={3} className={'noGutter'}>
+                    {'lol'}
+                </Col>
+            </Row>
         </div> 
         )
 }

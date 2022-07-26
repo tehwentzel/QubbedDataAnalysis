@@ -1,10 +1,9 @@
 import React, {useState, useEffect} from 'react';
 
-import Utils from '../modules/Utils.js';
+// import Utils from '../modules/Utils.js';
 import * as constants from "../modules/Constants.js"
 
 import Button from 'react-bootstrap/Button';
-import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Dropdown from 'react-bootstrap/Dropdown';
@@ -34,7 +33,7 @@ export default function ClusterControlPanel(props){
 
     const [featureButtons,setFeatureButtons] = useState(<></>);
     const [confounderButtons, setConfounderButtons] = useState(<></>)
-    const [symptomsButtons,setSymptomButtons] = useState(<></>);
+    // const [symptomsButtons,setSymptomButtons] = useState(<></>);
     const [mainSymptomButtonOptions,setMainSymptomButtonOptions] = useState(<></>);
     const [nClustButtonOptions, setNClustButtonOptions] = useState(<Dropdown.Item value={0}>{0}</Dropdown.Item>);
     const [tempClusterFeatures,setTempClusterFeatures] = useState();
@@ -196,11 +195,11 @@ export default function ClusterControlPanel(props){
         setConfounderButtons(cb);
     },[tempConfounders]);
 
-    useEffect(function showSymptoms(){
-        if(tempSOIs === undefined){ return; }
-        let sb = makeDropDownList(tempSOIs,props.allSymptoms,setTempSOIs)//handleChangeSOIs);
-        setSymptomButtons(sb);
-    },[tempSOIs,props.allSymptoms])
+    // useEffect(function showSymptoms(){
+    //     if(tempSOIs === undefined){ return; }
+    //     let sb = makeDropDownList(tempSOIs,props.allSymptoms,setTempSOIs)//handleChangeSOIs);
+    //     setSymptomButtons(sb);
+    // },[tempSOIs,props.allSymptoms])
 
     useEffect(function showNClusterDropDown(){
         let nclustOptions = nClusterOptions.map((d,i)=>{
@@ -330,9 +329,9 @@ export default function ClusterControlPanel(props){
     }
 
     const clusterButtonTitle = (tempClusterType === undefined)? props.clusterType: tempClusterType;
-    const onToggleShowContra = () => {
-        props.setShowContralateral(!props.showContralateral);
-    }
+    // const onToggleShowContra = () => {
+    //     props.setShowContralateral(!props.showContralateral);
+    // }
     const disabled = props.clusterDataLoading;
     return (
         <Row className={'clusterControlPanel noGutter'} fluid={'true'} md={12}>

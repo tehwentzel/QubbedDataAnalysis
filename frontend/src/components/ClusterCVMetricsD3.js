@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import useSVGCanvas from './useSVGCanvas.js';
-import Utils from '../modules/Utils.js'
+// import Utils from '../modules/Utils.js'
 
 export default function ClusterCVMetricsD3(props){
     const d3Container = useRef(null);
@@ -10,7 +10,6 @@ export default function ClusterCVMetricsD3(props){
     const [dataDiffs,setDataDiffs] = useState();
     const [clusterOrder,setClusterOrder] = useState();
     const [thresholdOrder, setThresholdOrder] = useState();
-    const [rectsDrawn,setRectsDrawn] = useState(false);
     const [extents,setExtents] = useState([0,0])
     const yMarginTop = 20;
     const yMarginBottom = 20;
@@ -18,9 +17,9 @@ export default function ClusterCVMetricsD3(props){
     const barSpacing = 2;
     
     function formatCName(name){
-        if(name == 'baseline'){
+        if(name === 'baseline'){
             return 'base';
-        } if(name == 'all'){
+        } if(name === 'all'){
             return 'all'
         }
         return name.replace('post_cluster_','');
@@ -34,20 +33,20 @@ export default function ClusterCVMetricsD3(props){
             clusters.sort();
             const thresholds = Array.from(new Set(mData.map(d=>d.threshold)));
             thresholds.sort();
-            const getMetric = d=>(d[props.metric] == undefined)? 0: d[props.metric];
-            const getMetricChange = d=>(d[props.metric+'_change'] == undefined)? 0: d[props.metric+'_change'];
+            const getMetric = d=>(d[props.metric]=== undefined)? 0: d[props.metric];
+            const getMetricChange = d=>(d[props.metric+'_change'] === undefined)? 0: d[props.metric+'_change'];
             let data = [];
             let diffs = [];
             let maxVal = 0;
             let minVal = 0;
             for(let tHold of thresholds){
-                let tData = mData.filter(d=>d.threshold == tHold);
-                if(tData === undefined | tData.length ==  0){ continue; }
+                let tData = mData.filter(d=>d.threshold === tHold);
+                if(tData === undefined | tData.length ===  0){ continue; }
                 const baseline = getMetric(tData[0]) - getMetricChange(tData[0]);
                 let entry = [baseline];
                 let dEntry = [0];
                 for(let c of clusters){
-                    let cData = tData.filter(d=>d.cluster == c);
+                    let cData = tData.filter(d=>d.cluster === c);
                     if(cData.length <= 0){ continue; }
                     let cValue = getMetric(cData[0]);
                     let diffValue = getMetricChange(cData[0]);
@@ -139,7 +138,7 @@ export default function ClusterCVMetricsD3(props){
         }
 
         svg.selectAll('.clusterRect').remove()
-        var rects = svg.selectAll('rect').filter('.clusterRect')
+        svg.selectAll('rect').filter('.clusterRect')
             .data(barPoints).enter()
             .append('rect').attr('class','clusterRect')
             .attr('x',d=>d.x)
@@ -150,7 +149,7 @@ export default function ClusterCVMetricsD3(props){
 
         const textSize = barWidth/2;
         svg.selectAll('.valueText').remove();
-        var valueText = svg.selectAll('text').filter('.valueText')
+        svg.selectAll('text').filter('.valueText')
             .data(barPoints).enter()
             .append('text').attr('class','valueText')
             .attr('text-anchor','middle')
@@ -160,7 +159,7 @@ export default function ClusterCVMetricsD3(props){
             .html(d=>d.value.toFixed(2));
 
         svg.selectAll('.xlabel').remove()
-        var xlabels = svg.selectAll('text').filter('.xlabel')
+        svg.selectAll('text').filter('.xlabel')
             .data(barPoints).enter()
             .append('text').attr('class','xlabel')
             .attr('text-anchor','middle')
@@ -171,7 +170,7 @@ export default function ClusterCVMetricsD3(props){
 
         const symptom = props.clusterMetricData[0].symptom.substring(0,5);
         svg.selectAll('.chartTitle').remove()
-        var titles = svg.selectAll('text').filter('.chartTitle')
+        svg.selectAll('text').filter('.chartTitle')
             .data(chartTitles).enter()
             .append('text').attr('class','chartTitle')
             .attr('text-anchor','middle')

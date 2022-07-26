@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import useSVGCanvas from './useSVGCanvas.js';
 import Utils from '../modules/Utils.js'
-import { count } from 'd3';
+
 
 export default function SymptomPlotD3(props){
     const d3Container = useRef(null);
@@ -180,8 +180,8 @@ export default function SymptomPlotD3(props){
                 return lines;
             }
             let activeClusterSize = patientData.filter(d=>isActive(d)).length;
-            let symptomLines = makeLines(patientData,'patientLine',1/(activeClusterSize**.75),3,false,false);
-            let clusterLines = makeLines(clusterData,'clusterLine',.9,9,true,true);
+            makeLines(patientData,'patientLine',1/(activeClusterSize**.75),3,false,false);
+            makeLines(clusterData,'clusterLine',.9,9,true,true);
         }
     },[svg,patientData,clusterData,props.activeCluster]);
 
@@ -242,6 +242,9 @@ export default function SymptomPlotD3(props){
             for(let x of Object.keys(grid)){
 
                 let dates = treatmentDates[parseInt(.01+xScale.invert(parseFloat(x)))];
+                if(dates === undefined){
+                    dates = treatmentDates[0]
+                }
                 let dateString = 'Weeks: ';
                 for(let date of dates){
                     dateString += date + ' ';

@@ -68,7 +68,7 @@ svg > path, svg > circle{
 }
 
 #clusterControlPanelContainer{
-  height: 175x;
+  height: 175px;
   overflow-y: show;
 }
 
@@ -81,12 +81,12 @@ svg > path, svg > circle{
 }
 
 .clusterContainer{
-  height: calc(60vh - 175px)!important;
+  height: calc(60vh - 110px)!important;
   justify-content: start;
 }
 
 .clusterSymptomContainer{
-  height: calc(40vh - 2em)!important;
+  height: calc(40vh - 110px)!important;
   margin: 0px;
   margin-top: .1em!important;
 }
@@ -128,30 +128,30 @@ svg > path, svg > circle{
   width: auto;
   height: auto;
   margin: 1px;
-  margin-left: 3px;
+  margin-left: 2px;
   display: inline-flex;
   /* overflow: auto; */
   justify-content: space-evenly;
 }
 
 .btn, .btn > *{
-  padding: .2em!important;
-  font-size: 1em!important;
+  padding: 0em!important;
+  font-size: .9em!important;
 }
 
 .compactButton, .compactButton > *{
   padding: 0px!important;
   margin-left: 1px!important;
-  font-size: .9em!important;
+  font-size: .85em!important;
 }
 
 .largeButton, .largeButton > *{
-  padding: .3em!important;
-  font-size: 1.2em!important;
+  padding: .2em!important;
+  font-size: 1em!important;
 }
 
 .controlPanelTitle{
-  font-size: 1em;
+  font-size: .9em;
   font-weight: bold;
 }
 

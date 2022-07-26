@@ -1,7 +1,5 @@
-import React, {useState, useEffect, useRef, Fragment} from 'react';
-import Utils from '../modules/Utils.js';
-import * as constants from "../modules/Constants.js"
-import * as d3 from 'd3';
+import React, {useState, useEffect, useRef} from 'react';
+// import Utils from '../modules/Utils.js';
 import Button from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
@@ -85,6 +83,7 @@ export default function ClusterCVMetrics(props){
         const buttons = modelTypeOptions.map((o) => {
             return (
                 <Button
+                    key={o+'btn'}
                     variant={ (o===metricsModelType)? 'dark':'outline-secondary'}
                     onClick={()=>{ if(metricsModelType !== o) {setMetricsModelType(o);} }}
                 >{o.replace('_',' ')}</Button>

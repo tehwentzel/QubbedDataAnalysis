@@ -18,6 +18,17 @@ export default function PatientDoseView(props){
     const ref = useRef(null)
 
     const plotVars = ['V35','V45','V55','V65'];
+    const [plotSymptoms,setPlotSymptoms] = useState([
+        'drymouth',
+        'taste',
+        'mucus',
+        'mucositis',
+        'swallow',
+        'voice',
+        'choke',
+        'pain',
+        'teeth',
+    ])
     //temp limit on number of patients we plot
     //add in some sort of toggle or something here?
     const [maxPatients,setMaxPatients] = useState(10);
@@ -200,7 +211,8 @@ export default function PatientDoseView(props){
                     <PatientSymptomsD3
                         data={d}
                         key={i+''+props.activeCluster+'symptom'}
-                        plotSymptoms={props.symptomsOfInterest}
+                        plotSymptoms={plotSymptoms}
+                        // plotSymptoms={props.symptomsOfInterest}
                     ></PatientSymptomsD3>
                     <span  className={'controlPanelTitle'}>
                         <Button
@@ -249,7 +261,9 @@ export default function PatientDoseView(props){
         props.plotVar,props.activeCluster,
         showCounterfactuals,maxPatients,
         neighborhoodData,counterfactualData,
-        props.symptomsOfInterest])
+        plotSymptoms,
+        // props.symptomsOfInterest
+    ])
     
     const addPatientsButtons = (
         <Row md={12} style={{'marginTop':'2em'}}>

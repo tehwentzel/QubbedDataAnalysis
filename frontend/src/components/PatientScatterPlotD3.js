@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import useSVGCanvas from './useSVGCanvas.js';
 import Utils from '../modules/Utils.js'
 import {forceSimulation,forceCollide} from 'd3';
-import { Container } from 'react-bootstrap';
+import { transition } from 'd3-transition';
 
 export default function PatientScatterPlotD3(props){
     const d3Container = useRef(null);
@@ -30,32 +30,6 @@ export default function PatientScatterPlotD3(props){
         }
         return rScale(val);
     }
-    
-
-    // function getShape(d){
-    //     let val = d[props.sizeVar];
-    //     //visual error message lol
-    //     if(val === undefined){
-    //         return d3.symbolSquare;
-    //     }
-    //     let severe = val >= .5;
-    //     let mostSevere = val >= .7;
-    //     if(props.sizeVar === 'tstage' || props.sizeVar === 'nstage'){
-    //         severe = val > .5;
-    //         mostSevere = val >= .99;
-    //     }
-    //     let symbol = d3.symbol();
-    //     let size =12*getR(d);
-    //     let sType = d3.symbolCircle;
-    //     if(mostSevere){
-    //         sType = d3.symbolDiamond;
-    //         // size *= 1.5;//circles are smaller for some reason
-    //     } else if(severe){
-    //         sType = d3.symbolTriangle;
-    //         // size *= 1.5;
-    //     }
-    //     return symbol.size(size).type(sType)();
-    // }
 
     function radToCartesian(angle,scale=1){
         let x = Math.cos(angle)*scale;
@@ -170,7 +144,7 @@ export default function PatientScatterPlotD3(props){
         }
 
         let getColor = d3.interpolateReds;
-        const organShapes = organGroup
+        organGroup
             .selectAll('path').filter('.organPath')
             .data(pathData)
             .enter().append('path')
@@ -263,7 +237,7 @@ export default function PatientScatterPlotD3(props){
             return entry
         })
         tipSvg.selectAll('path').filter('.axisLines').remove();
-        let lines = tipSvg.selectAll('path').filter('.axisLines')
+        tipSvg.selectAll('path').filter('.axisLines')
             .data(axisLines).enter()
             .append('path')
             .attr('class','axisLines')
@@ -272,7 +246,7 @@ export default function PatientScatterPlotD3(props){
             .attr('stroke','black')
             .attr('stroke-opacity',.5)
             .attr('fill','none');
-        let axisText = tipSvg.selectAll('text').filter('.xAxisText')
+        tipSvg.selectAll('text').filter('.xAxisText')
             .data(axisLines).enter()
             .append('text').attr('class','xAxisText')
             .attr('x',d=>d.x)
@@ -455,7 +429,7 @@ export default function PatientScatterPlotD3(props){
                         .attr('transform',d=> {return 'translate(' + boundX(d) + ',' + boundY(d) + ')';});
                 }
     
-                var simulation = forceSimulation(newData)
+                forceSimulation(newData)
                     .force('collide',forceCollide().radius(getR))
                     .alphaMin(.2)
                     .on('tick',ticked)
@@ -477,20 +451,22 @@ export default function PatientScatterPlotD3(props){
 
                 // onHover(scatterGroup);
                 // uncollide();
+            }
+            function getTransition(){
+                return transition()
+                    .duration(400)
+                    .on('end',uncollide);
             } 
-            var t = d3.transition()
-            .duration(400)
-            .on('end',uncollide);
 
             scatterGroup
                 .enter().append('path')
                 .merge(scatterGroup)
                 .attr('class','scatterPoint');
 
-            // scatterGroup.exit().remove();
+            scatterGroup.exit().remove();
 
             scatterGroup
-                .transition(t)
+                .transition(getTransition())
                 .attr('transform',d=> {return 'translate(' + d.x + ',' + d.y + ')';})
                 .attr('d',getShape)
                 .attr('fill', d => d.color);
@@ -564,7 +540,7 @@ export default function PatientScatterPlotD3(props){
             })
             
             svg.selectAll('.legendShapes').remove();
-            let lCircles = svg.selectAll('.legendShapes')
+            svg.selectAll('.legendShapes')
                 .data(legendData).enter()
                 .append('path')
                 .attr('class','legendShapes')
@@ -604,9 +580,6 @@ export default function PatientScatterPlotD3(props){
                 .attr('stroke','black')
                 .attr('stroke-width', (d) => {
                     let w = 1;
-                    // if(isActive(d)){
-                    //     w = 1.5;
-                    // }
                     if(isSelected(d)){
                         w *= 1.5;
                     }
@@ -618,9 +591,7 @@ export default function PatientScatterPlotD3(props){
                             + props.xVar + ': ' + d[props.xVar].toFixed(1) + '</br>'
                             + props.yVar + ': ' + d[props.yVar].toFixed(1) + '</br>'
                             + props.sizeVar + ': ' + d[props.sizeVar].toFixed(1) + '</br>'
-                        // for(let symp of symptoms){
-                        //     tipText += 'late '+ symp + ': ' + (d[symp]*10).toFixed(0) + '</br>'
-                        // }
+
                         tTip.html(tipText);
                         makeTTipChart(tTip,d);
                         makeTTipLrtChart(tTip,d);

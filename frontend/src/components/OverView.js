@@ -382,7 +382,7 @@ export default function OverView(props){
                     {makeSymptomDropdown(viewToggle)}
                 </Col>
             </Row>
-            <Row md={12} style={{'height': 'calc(100% - 3.5em)','width':'100%'}}>
+            <Row md={12} style={{'height': 'calc(100% - 3em)','width':'100%'}} className={'noGutter fillWidth'}>
                 {switchView(viewToggle)}
             </Row>
         </div> 

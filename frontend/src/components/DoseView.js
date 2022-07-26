@@ -6,8 +6,8 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 
 import Dose2dCenterViewD3 from './Dose2dCenterViewD3.js';
-import ClusterSymptomsD3 from './ClusterSymptomsD3.js';
-import ClusterClinicalD3 from './ClusterClinicalD3.js';
+// import ClusterSymptomsD3 from './ClusterSymptomsD3.js';
+// import ClusterClinicalD3 from './ClusterClinicalD3.js';
 
 import Spinner from 'react-bootstrap/Spinner';
 

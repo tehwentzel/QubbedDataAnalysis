@@ -18,14 +18,13 @@ import * as d3 from 'd3';
 
 function App() {
   var api = new DataService();
-
   //data with entries for each patient
   const [doseData,setDoseData] = useState(null);
   //agregated data with stats for each cluster ,including ids
   const [clusterData,setClusterData] = useState(null);
   //organs used to cluster the patients
   const [clusterOrgans,setClusterOrgans] = useState([
-    'Soft_Palate',
+    'Hard_Palate',
     'Rt_Parotid_Gland','Lt_Parotid_Gland',
     'Rt_Submandibular_Gland','Lt_Submandibular_Gland',
   ])
@@ -338,11 +337,12 @@ function App() {
       )
     }
   }
+
   return (
     <div className="App">
 
         <Row className={'fillSpace noGutter'} lg={12}>
-          <Col style={{'height':'100vh'}} id={'clusterCol'} fluid={'true'} className={'noGutter'} lg={6}>
+          <Col style={{'height': '100vh'}} id={'clusterCol'} fluid={'true'} className={'noGutter'} lg={6}>
             <Row id={'clusterControlPanelContainer'} className={'noGutter'} lg={12}>
                 <ClusterControlPanel
                   nDoseCluster={nDoseClusters}
