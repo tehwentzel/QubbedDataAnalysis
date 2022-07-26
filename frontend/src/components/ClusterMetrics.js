@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef, Fragment} from 'react';
 // import Utils from '../modules/Utils.js';
 import Row from 'react-bootstrap/Row';
+import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
 
 import ClusterMetricsD3 from './ClusterMetricsD3.js'
@@ -22,6 +23,7 @@ export default function ClusterMetrics(props){
     const [metricData,setMetricData] = useState(null);
 
     const [metricThresholds,setMetricThresholds] = useState([0,-1,5,-5]);
+    const thresholdOptions = [-7,-5,-3,-1,0,3,5,7];
 
     var fetchMetrics = async(cData,dates,lrtConfounders,thresholds,symptoms)=>{
         if(cData !== undefined & !props.clusterDataLoading){
@@ -35,6 +37,45 @@ export default function ClusterMetrics(props){
         }  
       }
 
+    function toggleThreshold(t){
+        t = parseInt(t);
+        if(metricThresholds.indexOf(t) < 0){
+            let newList = metricThresholds.map(x=>x);
+            newList.push(t);
+            newList.sort();
+            setMetricThresholds(newList)
+        } else{
+            let newList = metricThresholds.filter(x=> x !== t);
+            newList.sort();
+            setMetricThresholds(newList);
+        }
+    }
+
+    function formatTButton(t){
+        if(t === -1){
+            return 'Δlinear';
+        } else if(t === 0){
+            return 'linear'
+        }
+        let string = Math.abs(t) + '';
+        if( t < 0){
+            string = 'Δ' + string;
+        }
+        return string;
+    }
+    const makeThresholdButtons = () => {
+        let buttons = thresholdOptions.map((t) => {
+            let active = (metricThresholds.indexOf(t) >= 0);
+            return (
+                <Button
+                    variant={active? 'secondary':'outline-secondary'}
+                    onClick={()=>toggleThreshold(t)}
+                    disabled={active & (metricThresholds.length <= 1)}
+                >{formatTButton(t)}</Button>
+            )
+        })
+        return buttons;
+    }
 
     useEffect(()=>{
         if(!props.clusterDataLoading & props.clusterData !== undefined & props.clusterData !== null){
@@ -72,11 +113,18 @@ export default function ClusterMetrics(props){
     return ( 
         <div ref={ref} id={'doseClusterContainer'}>
             <Row md={12} className = {'noGutter fillWidth'} style={{'height':'45vh'}}>
-                <Col md={9} className={'noGutter'}>
+                <Col md={10} className={'noGutter'}>
                     {vizComponents}     
                 </Col>
-                <Col md={3} className={'noGutter'}>
-                    {'lol'}
+                <Col md={2} className={'noGutter'}>
+                    <Button
+                        style={{'width': '100%'}}
+                        variant={'light'}
+                    >{'Outcomes'}</Button>
+                    <span >
+                        {makeThresholdButtons()}
+                    </span>
+                    
                 </Col>
             </Row>
         </div> 
