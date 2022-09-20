@@ -86,7 +86,7 @@ class Const():
             'Lt_Masseter_M',
              'Rt_Ant_Digastric_M',
              'Lt_Ant_Digastric_M',
-        'Rt_Medial_Pterygoid_M',
+             'Rt_Medial_Pterygoid_M',
              'Lt_Medial_Pterygoid_M',
              'Rt_Lateral_Pterygoid_M',
               'Lt_Lateral_Pterygoid_M',

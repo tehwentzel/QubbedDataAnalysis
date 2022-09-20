@@ -122,6 +122,22 @@ class OrganAutoEncoder(nn.Module):
         xout = self.set_bounds(x,xout)
         return xout
     
+class ConditionalOrganAutoEncoder(OrganAutoEncoder):
+    #this is for megering cohorts
+    #currently no function difference, besides default size
+    def __init__(self,
+                input_size,
+                hidden_dims = [1500,500,100,500,1500],
+                init_dropout = .6,
+                embedding_dropout = .1,
+                penult_dropout = .1,
+                ):
+        super().__init__(input_size,
+                         hidden_dims=hidden_dims,
+                         init_dropout=init_dropout,
+                         embedding_dropout=embedding_dropout,
+                        penult_dropout=penult_dropout)
+    
 class Normalizer():
 
     def __init__(self, x):

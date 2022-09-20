@@ -7,6 +7,7 @@ import Utils
 from glob import glob
 from abc import ABC, abstractmethod
 from Levenshtein import distance as levenshtein_distance
+import SymptomPreprocessing as symp
 import collections
 import re
 
@@ -375,6 +376,8 @@ class RadDataset():
             else:
                 values = np.array(values)
                 return values
+            
+            
     
 def get_dvhcol_pos(x):
     m = re.match('[DV]'+'(\d+)',x)
@@ -383,7 +386,51 @@ def get_dvhcol_pos(x):
     else:
         return -1
     
-class OrganData(ABC):
+
+class MdasiOrganData():
+       
+    organ_rename_dict = {
+        'cricoid': 'Cricoid_cartilage',
+         'cricopharyngeus': 'Cricopharyngeal_Muscle',
+         'esophagus_u': 'Esophagus',
+         'oral_cavity': 'Extended_Oral_Cavity',
+         'musc_geniogloss': 'Genioglossus_M',
+         'hardpalate': 'Hard_Palate',
+         'bone_hyoid': 'Hyoid_bone',
+         'musc_constrict_i': 'IPC',
+         'lips_lower': 'Lower_Lip',
+         'lips_upper': 'Upper_Lip',
+         'musc_constrict_m': 'MPC',
+         'musc_mgh_complex': 'Mylogeniohyoid_M',
+         'musc_mghcomplex': 'Mylogeniohyoid_M',
+         'palate_soft': 'Soft_Palate',
+         'musc_constrict_s': 'SPC',
+         'spinalcord_cerv': 'Spinal_Cord',
+         'larynx_sg': 'Supraglottic_Larynx',
+         'cartlg_thyroid': 'Thyroid_cartilage',
+         'brachial_plex_r': 'Rt_Brachial_Plexus',
+         'brachial_plex_l': 'Lt_Brachial_Plexus',
+         'pterygoid_lat_r': 'Rt_Lateral_Pterygoid_M',
+         'pterygoid_lat_l': 'Lt_Lateral_Pterygoid_M',
+         'musc_masseter_r': 'Rt_Masseter_M',
+         'musc_masseter_l': 'Lt_Masseter_M',
+         'bone_mastoid_r': 'Rt_Mastoid',
+         'bone_mastoid_l': 'Lt_Mastoid',
+         'pterygoid_med_r': 'Rt_Medial_Pterygoid_M',
+         'pterygoid_med_l': 'Lt_Medial_Pterygoid_M',
+         'parotid_r': 'Rt_Parotid_Gland',
+         'parotid_l': 'Lt_Parotid_Gland',
+         'musc_sclmast_r': 'Rt_Sternocleidomastoid_M',
+         'musc_sclmast_l': 'Lt_Sternocleidomastoid_M',
+         'glnd_submand_r': 'Rt_Submandibular_Gland',
+         'glnd_submand_l': 'Lt_Submandibular_Gland',
+         'musc_digastric_ra': 'Rt_Ant_Digastric_M',
+         'musc_digastric_la': 'Lt_Ant_Digastric_M',
+        'musc_digastric_rp': 'Rt_Post_Digastric_M',
+         'musc_digastric_lp': 'Lt_Post_Digastric_M',
+        'esophagus_u': 'Esophagus',
+        'hardpalate':'Hard_Palate',
+    }
     
     #probably depricated
     additional_renames = {
@@ -409,6 +456,9 @@ class OrganData(ABC):
         'Mean doses': 'mean_dose',
         'Minimum': 'min_dose',
         'Maximum': 'max_dose',
+        'mean': 'mean_dose',
+        'minGy': 'min_dose',
+        'maxGy': 'max_dose',
     }
     
     #header names for the files
@@ -421,43 +471,68 @@ class OrganData(ABC):
     mean_dose_col = 'mean_dose'
     centroid_cols = ['x','y','z']
     
+    default_dose_values = [
+        'mean_dose','volume',
+    ]
+    
     def __init__(self, 
+                 root = None,
                  organ_info_json = None,
                  data_type = np.float16,
-                 spellcheck_columns = True,
-                 spellcheck_organs = True
+                 spellcheck_organs = True,
+                 mdasi_dvh_path = None,
+                 require_gtv=True,
                 ):
+        if mdasi_dvh_path is None:
+            mdasi_dvh_path = Const.data_dir + 'Cohort_SMART2_530pts_(486pts).xlsx'
+        self.mdasi_dvh_path = mdasi_dvh_path
+        self.require_gtv=require_gtv
         self.data_type = data_type
-        
+        self.root = Const.mdasi_centroid_dir if root is None else root
         self.organ_list = self.get_organ_list()
         self.num_organs = len(self.organ_list)
         #see if we run a spellcheck on the data
         #robust to typos, but slow
-        self.spellcheck_columns = spellcheck_columns
         self.spellcheck_organs = spellcheck_organs
+        self.spellchecker =  SpellChecker(Const.organ_list, 
+                          MdasiOrganData.organ_rename_dict)
+        self.processed_df = None
+        
+    def load_spatial_files(self):
+        spatial_files = load_spatial_files(root=self.root)
+        #temp
+#         spatial_files = {k:v for k,v in spatial_files.items() if k > 20 and k < 100}
+        return spatial_files
         
     def get_organ_list(self, skip_gtv = True):
         return Const.organ_list
     
-    def format_gtvs(self, mdict):
-        gtvs = [(k,v) for k,v in mdict.items() if 'GTV' in k]
-        if len(gtvs) < 1:
-            return mdict
-        oars = rename_gtvs(gtvs)
-        for oname, odata in mdict.items():
-            if 'GTV' in oname:
-                continue
-            oars[oname] = odata
-        return oars
-    
-    def process_patient(self, dist_file,dose_file):
-        dose_dict= self.process_dose_file(dose_file)
-        merged_dict = self.process_distance_file(dist_file, dose_dict)
-        merged_dict= self.format_gtvs(merged_dict)
-        return merged_dict
-    
+    def rename_gtvs(self,gtvlist):
+        #rename gtvs for a single patient
+        new_dict = {}
+        sorted_entries = sorted(gtvlist, key = lambda x: -x[1].get(MdasiOrganData.volume_col,0))
+        currname = 'GTVp'
+        node_num = 0
+        for (gtvname, gtv) in sorted_entries:
+            #stuff to error check nan could go here
+            try:
+                volume = float(gtv.get(MdasiOrganData.volume_col,np.nan))
+                temp_name = currname
+                if(node_num > 1):
+                    temp_name = temp_name + str(node_num)
+                new_dict[temp_name] = gtv
+                if(currname == 'GTVp'):
+                    currname = 'GTVn'
+                node_num += 1
+            except Exception as e:
+                print('error reading gtv', gtvname, gtv)
+                print(e)
+        return new_dict
+
     def is_valid_patient(self,p_entry):
         #code for cleaning up patients that are just no good
+        if not self.require_gtv:
+            return True
         has_gtv = False
         for oar in p_entry.keys():
             if 'GTV' in oar:
@@ -485,58 +560,6 @@ class OrganData(ABC):
                     break
         return best_match, best_dist
     
-    def spellcheck_cols(self, df, words,edit_distance = 3,print_out=False):
-        #changes the names of columns that are probably misspelling of the one's we're
-        #supposed to have (given by words)
-        if not Utils.iterable(words):
-            words = [words]
-        words = list(words)
-        cols = list(df.columns)
-        rename_dict = {}
-#         for word in words:
-#             match, dist = self.best_spell_match(word, cols)
-#             if dist < edit_distance:
-#                 cols.remove(match)
-#                 if dist > 0:
-#                     rename_dict[match] = word
-        for col in cols:
-            match, dist = self.best_spell_match(col,words)
-            if dist < edit_distance:
-                words.remove(match)
-                if col != match:
-                    rename_dict[col] = match
-        if print_out and len(rename_dict) > 0:
-            print('rename cols',rename_dict)
-        return df.rename(rename_dict,axis=1)
-    
-    def spellcheck_rows(self, df, rows, words,edit_distance=3,print_out=False):
-        #based on testing, edit distances > 3 makes similar organs get messed up
-        #(becuase sometimes Lt_<organ> is missing but Rt_<organ> isn't or something
-        if not Utils.iterable(words):
-            words = [words]
-        words = list(words)
-        row_words = df.loc[:,rows].values.astype('str').ravel().tolist()
-        rename_dict = {}
-#         for word in words:
-#             match,dist = self.best_spell_match(word,row_words)
-#             if dist < edit_distance:
-#                 row_words.remove(match)
-#                 if dist > 0:
-#                     rename_dict[match] = word
-        for rword in row_words:
-            match,dist = self.best_spell_match(rword,words)
-            if dist < edit_distance:
-                words.remove(match)
-                if rword != match:
-                    rename_dict[rword] = match
-        df = df.rename(rename_dict)
-        if print_out and len(rename_dict) > 0:
-            skipprint = set(OrganData.file_header_renames.keys())
-            pdict = {k:v for k,v in rename_dict.items() if k not in skipprint}
-            print('renamed organs',pdict)
-        return df
-
-    
     def process_cohort_spatial_dict(self, spatial_files):
         patients = {}
         invalid_ids = []
@@ -544,7 +567,7 @@ class OrganData(ABC):
             try:
                 p_entry = self.process_patient(entry['distances'], entry['doses'])
                 if(self.is_valid_patient(p_entry)):
-                    patients[pid] = p_entry
+                    patients[int(pid)] = p_entry
                 else:
                     invalid_ids.append(pid)
             except Exception as e:
@@ -552,76 +575,343 @@ class OrganData(ABC):
                 print(e)
         if len(invalid_ids) > 1:
             print("invalid patients", invalid_ids)
-        return {'organs': self.organ_list, 'patients': patients}
+        return patients
+#         return {'organs': self.organ_list, 'patients': patients}
     
-    @abstractmethod
+    def process_patient(self, dist_file,dose_file):
+        dose_dict= self.process_dose_file(dose_file)
+        merged_dict = self.process_distance_file(dist_file, dose_dict)
+        merged_dict= self.format_gtvs(merged_dict)
+        return merged_dict
+    
+    def reconcile_organ_names(self, organ_dist_df, columns = None):
+        #basically tries to standardize organ names accross datasets
+        if type(columns) != type(None):
+            organ_dist_df = organ_dist_df[columns]
+        #check that this works idk
+        organ_dist_df.replace(to_replace = r'_*GTV.*N', value = '_GTVn', regex = True, inplace = True)
+        #check organs if we're looking at at a centroid file
+        if self.spellcheck_organs:
+            cols_to_check = self.roi_cols
+            if self.centroid_roi_col in organ_dist_df.columns:
+                cols_to_check = [self.centroid_roi_col]
+            organ_dist_df,renames = self.spellchecker.spellcheck_df(organ_dist_df,
+                                                            cols=cols_to_check)
+            if len(renames) > 0:
+                print('renames',renames)
+        return organ_dist_df#.replace(self.oar_rename_dict())
+    
+    def reconcile_cohort_columns(self, organ_df):
+        #placeholder
+        organ_df = organ_df.rename(MdasiOrganData.file_header_renames,axis=1)
+        return organ_df
+    
     def read_spatial_file(self, file):
-        pass
-   
+        df = pd.read_csv(file)
+        df = self.reconcile_cohort_columns(df)
+        df = self.reconcile_organ_names(df)
+        return df
+    
+    
+    def format_gtvs(self, mdict):
+        gtvs = [(k,v) for k,v in mdict.items() if 'GTV' in k]
+        if len(gtvs) < 1:
+            return mdict
+        oars = self.rename_gtvs(gtvs)
+        for oname, odata in mdict.items():
+            if 'GTV' in oname:
+                continue
+            oars[oname] = odata
+        return oars
+    
+    def process_dose_file(self, dose_file, 
+                          default_value = np.nan):
+        dose_df = self.read_spatial_file(dose_file)
+        dose_df = dose_df.set_index(MdasiOrganData.centroid_roi_col).sort_index()
+        organs = sorted(dose_df.index.values)
+        dose_dict = {}
+        for organ in organs:
+            #filter out extra organs idk
+            if ('GTV' not in organ) and organ not in self.organ_list:
+                continue
+            entry = {}
+            def getfield(col):
+                try:
+                    return dose_df.loc[organ, col]
+                except:
+                    return default_value
+            entry['centroids'] = np.array([getfield(v) for v in MdasiOrganData.centroid_cols])
+            dose_dict[organ] = entry
+        return dose_dict
+    
+    def format_patient_distances(self, pdist_file):
+        #read the file with the centroid info, and format it for the data
+        #currently outputs a dict of {(organ1, organ2): distance} where organ1, organ2 are sorted alphaetically
+        dist_df = self.read_spatial_file(pdist_file)
+        dist_df = dist_df.reindex(MdasiOrganData.roi_cols + [MdasiOrganData.roi_dist_col],axis=1)
+        dist_df = dist_df.dropna()
+        subdf = dist_df.loc[:, MdasiOrganData.roi_cols]
+        dist_df.loc[:,'organ1'] = subdf.apply(lambda x: sorted(x)[1], axis=1)
+        dist_df.loc[:,'organ2'] = subdf.apply(lambda x: sorted(x)[0], axis=1)
+        dist_df = dist_df.set_index(['organ1','organ2']).sort_index(kind='mergesort') #I just sort everthing alphabetically, may bug out otherwise idk
+        dist_df = dist_df.loc[:,MdasiOrganData.roi_dist_col]
+        return dist_df.reset_index()
+    
+    def process_distance_file(self, file, centroid_dict, default_value = np.nan):
+        #reads a file, returns a df with organ1, organ2, distance (sorted)
+        dist_df = self.format_patient_distances(file)
+        rois = set(centroid_dict.keys())
+        oars = sorted(set(self.organ_list).intersection(rois))
+        gtvs = [r for r in rois if 'GTV' in r]
+        
+        merged_dict = {}
+        organs = set(list(oars) + gtvs)
+        #we want the entrys to be all valid organs or gtvs, but
+        #the distance array to be in the shape of the predefined list
+        for o1 in organs: 
+            oentry = np.zeros((self.num_organs,)).astype(self.data_type)
+            if(o1 not in organs):
+                oentry = oentry.fill(default_value)
+            else:
+                for pos, o2 in enumerate(self.organ_list):
+                    if o1 == o2:
+                        continue
+                    if o2 not in oars:
+                        tdist = default_value
+                    else:
+                        match = dist_df[(dist_df.organ1 == o1) & (dist_df.organ2 == o2) | (dist_df.organ1 == o2) & (dist_df.organ2 == o1)]
+                        if match.shape[0] > 0:
+                            tdist = match[MdasiOrganData.roi_dist_col].values
+                            assert(len(tdist) < 2)
+                            tdist = tdist[0]
+                        else:
+                            tdist = default_value
+                    oentry[pos] = tdist
+            mdict_entry = centroid_dict[o1]
+            mdict_entry['distances'] = oentry
+            merged_dict[o1] = mdict_entry
+        return merged_dict
+    
+    def filter_valid_patients(self,df):
+        return df[~df.id.isnull()]
+    
+    def clean_dvh_df(self, df, organ_rename_dict = None):
+        df = df.rename(MdasiOrganData.file_header_renames,axis=1)
+        df = df[df.DicomType == "ORGAN"]
+        
+        #this maps words to words in the rename dict
+        #somewhat weird because it can inverse the order but it re-fixes itself?
+        #don't know how else to prevent bugs
+        print('spellchecking...')
+        spellchecked_df, _= self.spellchecker.spellcheck_df(df,['Structure'])
+        print('renaming things')
+        df['ROI'] = spellchecked_df['Structure']
+        df = df.drop(["DicomType"],axis=1)
+        df = df.reset_index()
+        df = df[df.ROI.isin(self.organ_list)] #only keep organs we car about
+        df = df.drop_duplicates(subset=['id','ROI','volume'])
+        df = df[df.mean_dose != 'error'] #idk what this is from
+        for col in df.columns:
+            if 'dose' in col.lower() or 'volume' in col.lower():
+                df[col] = df[col].astype(float)
+        print('filtering pateints')
+        df = self.filter_valid_patients(df.reset_index()) 
+#         print('adding nan values for missing organs')
+#         df = self.add_missing_organs(df) 
+        print('adding histograms')
+        hist_cols = [c for c in df.columns if (re.match('[DV]\d+',c) is not None)]
+        df[hist_cols] = df[hist_cols].astype('float16')
+        if 'index' in df.columns:
+            df = df.drop(['index'],axis=1)
+        return df
+    
+    def add_patient_organs(self,pid,patient_df):
+        pdf = patient_df.copy()
+        rois = np.unique(patient_df.ROI.values)
+        for organ in self.organ_list:
+            if organ not in rois:
+                entry = pd.Series([pid,'missing',organ],index=['id','Structure','ROI'])
+                pdf = pdf.append(entry,ignore_index=True)
+        return pdf
+    
+    def add_missing_organs(self,df):
+        dfs = []
+        for pid,subdf in df.groupby('id'):
+            subdf = self.add_patient_organs(pid,subdf).set_index("ROI")
+            subdf = subdf.loc[self.organ_list]
+            subdf = subdf.reset_index()
+            dfs.append(subdf)
+        return pd.concat(dfs)
+    
+    def load_mdasi_doses(self,path=None):
+        if path is None:
+            path = self.mdasi_dvh_path
+        if 'xlsx' in path:
+            dvh_df = pd.read_excel(path,index_col=0)
+        else: 
+            dvh_df = pd.read_csv(path,index_col=0)
+        return self.clean_dvh_df(dvh_df)
+    
+    def get_defaults(self, df,cols=None,default_value = np.nan):
+        if cols is None:
+            cols = list(df.columns)
+        defaults = {}
+        for col in cols:
+            entry = df[col].values[0]
+            if Utils.iterable(entry):
+                d = [np.nan for i in entry]
+            else:
+                d = np.nan
+            if type(entry) == np.ndarray:
+                d = np.array(d)
+            defaults[col] = d
+        return defaults
+    
+    def add_doses(self,pdict,
+                  dose_values=None,
+                  drop_missing=False):
+        ddf = self.load_mdasi_doses()
+        if dose_values is None:
+            dose_values = MdasiOrganData.default_dose_values
+        ddf = ddf[dose_values+['id','ROI','Structure']]
+        pdict2 = {k:v for k,v in pdict.items()}
+        to_copy = [c for c in ddf.columns if c not in ['ROI',"Structure",'id']]
+        defaults = self.get_defaults(ddf,cols=to_copy)
+        bad_pids = set([])
+        for pid,odata in pdict.items():
+            subddf = ddf[ddf.id.astype(int) == int(pid)]
+            for oname, oentry in odata.items():
+                if 'GTV' in oname:
+                    continue
+                match = subddf[subddf.ROI.apply(lambda x: x.lower()) == oname.lower()]
+            
+                if match.shape[0] > 0:
+                    vals = match[to_copy].to_dict(orient='records')[0]
+                else:
+                    if 'GTV' not in oname:
+                        bad_pids.add(pid)
+                    vals = {k:v for k,v in defaults.items()}
+                for k,v in vals.items():
+                    oentry[k] = v
+        if drop_missing:
+            pdict2 = {k:v for k,v in pdict2.items() if k not in bad_pids}
+        return pdict2
+    
+    def add_symptoms(self,pdict,to_drop=None):
+        symp_df = symp.load_mdasi()
+        symp_df = symp.impute_and_group(symp_df)
+        if to_drop is None:
+            to_drop = [c for c in symp_df.columns if 'symptomdomain' in c or 'symptomgroup' in c or '_original' in c]
+        symp_df = symp_df.drop(to_drop,axis=1)
+        good_ids = set([])
+        good_patients= []
+        for pid,subdf in symp_df.groupby('id'):
+            match = pdict.get(int(pid),None)
+            if subdf.shape[0] > 1:
+                print('muliple entries',pid,subdf.shape[0])
+            if match is None:
+                continue
+            else:
+                sentry = subdf.to_dict(orient='records')[0]
+                for k,v in match.items():
+                    sentry[k] = v
+            good_patients.append(sentry)
+            good_ids.add(pid)
+        missing = [k for k in pdict.keys() if k not in good_ids]
+        return {e['id']: e for e in good_patients}
+    
+    def center_centroid_df(self,df=None):
+        #should subtract center of all centroids from dataframe
+        if df is None:
+            df = self.process(as_df=True).copy()
+        centroid_cols = [c for c in df.columns if 'centroids' in c]
+        for col in centroid_cols:
+            df[col] = df[col].apply(lambda x: np.array(x) if Utils.iterable(x) else np.array([np.NaN,np.NaN,np.NaN]))
+        #only look at non-tumor organs to calculate center of point cloud
+        ocentroids = [c for c in centroid_cols if 'GTV' not in c]
+        #n patients x n_organs # 3
+        array = np.stack(df[ocentroids].apply(lambda x: np.stack(x),axis=1).values)
+        #n-patients x 3 to get center of all points
+        mean_vals = np.nanmean(array,axis=1)
+        for i,col in enumerate(centroid_cols):
+            df[col] = list(np.stack(df[col].values).reshape(-1,3) - mean_vals)
+        return df
+    
+    def process(self,
+                add_doses=True,
+                drop_missing_doses=False,
+                add_symptoms=True,
+                as_df=True,
+                use_cache=True,
+               ):
+        if as_df and self.processed_df is not None and use_cache:
+            return self.processed_df
+        files = self.load_spatial_files()
+        pdict = self.process_cohort_spatial_dict(files)
+        if add_doses:
+            #this one uses nan when missing if drop_missing=False
+            pdict = self.add_doses(pdict,drop_missing=drop_missing_doses)
+        if add_symptoms:
+            #this one does an inner join basically because I'm lazy
+            pdict = self.add_symptoms(pdict)
+        if as_df:
+            new_pdict = []
+            for k,v in pdict.items():
+                new_entry = {}
+                for kk,vv in v.items():
+                    if type(vv)==type({}):
+                        for kkk,vvv in vv.items():
+                            name = kk+'_'+kkk
+                            new_entry[name] = vvv
+                    else:
+                        new_entry[kk]=vv
+                new_pdict.append(new_entry)
+            pdict = pd.DataFrame(new_pdict)
+            pdict = self.center_centroid_df(pdict)
+            self.processed_df=pdict
+        return pdict
+    
+class CamprtOrganData(MdasiOrganData):
+       
+    
+    #header names for the files
+    
+    roi_cols = ['Reference ROI','Target ROI']
+    roi_dist_col = 'Eucledian Distance (mm)'
+    
+    centroid_roi_col = 'roi'
+    volume_col = 'volume'
+    mean_dose_col = 'mean_dose'
+    centroid_cols = ['x','y','z']
 
-    @abstractmethod
-    def process_distance_file(self,file, centroid_dict, default_value = np.nan):
-        pass
-    
-    @abstractmethod
-    def process_dose_file(self, dose_file, default_value = np.nan):
-        pass
-    
-class CamprtOrganData(OrganData):
-    
-    def reconcile_organ_names(self, organ_dist_df, columns = None):
-        #basically tries to standardize organ names accross datasets
-        if type(columns) != type(None):
-            organ_dist_df = organ_dist_df[columns]
-        #check that this works idk
-        organ_dist_df.replace(to_replace = r'_*GTV.*N', value = '_GTVn', regex = True, inplace = True)
-        #check organs if we're looking at at a centroid file
-        if self.spellcheck_organs:
-            cols_to_check = self.roi_cols
-            if self.centroid_roi_col in organ_dist_df.columns:
-                cols_to_check = [self.centroid_roi_col]
-            organ_dist_df = self.spellcheck_rows(organ_dist_df,
-                                                 cols_to_check,
-                                                 self.get_organ_list(),
-                                                 print_out=True
-                                                )
-        return organ_dist_df#.replace(self.oar_rename_dict())
+    def __init__(self, 
+                 root = None,
+                 organ_info_json = None,
+                 data_type = np.float16,
+                 spellcheck_organs = True,
+                 require_gtv=True,
+                ):
+        self.require_gtv=require_gtv
+        self.data_type = data_type
+        self.root = Const.camprt_dir if root is None else root
+        self.organ_list = self.get_organ_list()
+        self.num_organs = len(self.organ_list)
+        #see if we run a spellcheck on the data
+        #robust to typos, but slow
+        self.spellcheck_organs = spellcheck_organs
+        self.spellchecker =  SpellChecker(Const.organ_list, 
+                          MdasiOrganData.organ_rename_dict)
+        self.processed_df = None
     
     def reconcile_cohort_columns(self, organ_df):
         #placeholder
-        if self.spellcheck_columns:
-            organ_df = self.spellcheck_cols(organ_df, 
-                                            OrganData.file_header_renames.keys(),
-                                           print_out = True)
-        organ_df = organ_df.rename(OrganData.file_header_renames,axis=1)
-        organ_df = self.spellcheck_cols(organ_df,
-                                       OrganData.file_header_renames.values(),
-                                       print_out = True)
+        organ_df = organ_df.rename(CamprtOrganData.file_header_renames,axis=1)
         return organ_df
     
-    def read_spatial_file(self, file):
-        df = pd.read_csv(file)
-        df = self.reconcile_cohort_columns(df)
-        df = self.reconcile_organ_names(df)
-        return df
-    
-    def format_patient_distances(self, pdist_file):
-        #read the file with the centroid info, and format it for the data
-        #currently outputs a dict of {(organ1, organ2): distance} where organ1, organ2 are sorted alphaetically
-        dist_df = self.read_spatial_file(pdist_file)
-        dist_df = dist_df.reindex(OrganData.roi_cols + [OrganData.roi_dist_col],axis=1)
-        dist_df = dist_df.dropna()
-        subdf = dist_df.loc[:, OrganData.roi_cols]
-        dist_df.loc[:,'organ1'] = subdf.apply(lambda x: sorted(x)[1], axis=1)
-        dist_df.loc[:,'organ2'] = subdf.apply(lambda x: sorted(x)[0], axis=1)
-        dist_df = dist_df.set_index(['organ1','organ2']).sort_index(kind='mergesort') #I just sort everthing alphabetically, may bug out otherwise idk
-        dist_df = dist_df.loc[:,OrganData.roi_dist_col]
-        return dist_df.reset_index()
-    
-    def process_dose_file(self, dose_file, default_value = np.nan):
+    def process_dose_file(self, dose_file, 
+                          default_value = np.nan):
         dose_df = self.read_spatial_file(dose_file)
-        
-        dose_df = dose_df.set_index(OrganData.centroid_roi_col).sort_index()
+        dose_df = dose_df.set_index(CamprtOrganData.centroid_roi_col).sort_index()
         organs = sorted(dose_df.index.values)
         dose_dict = {}
         for organ in organs:
@@ -634,177 +924,111 @@ class CamprtOrganData(OrganData):
                     return dose_df.loc[organ, col]
                 except:
                     return default_value
-            entry[OrganData.volume_col] = getfield(OrganData.volume_col)
-            entry[OrganData.mean_dose_col] = getfield(OrganData.mean_dose_col)
-            entry['centroids'] = np.array([getfield(v) for v in OrganData.centroid_cols])
+            entry['centroids'] = np.array([getfield(v) for v in MdasiOrganData.centroid_cols])
+            for field in ['volume','min_dose','mean_dose','max_dose']:
+                #units for mdasi volume are different than this one for some reason
+                if field == 'volume':
+                    entry[field] = getfield(field)*100
+                else:
+                    entry[field] = getfield(field)
             dose_dict[organ] = entry
         return dose_dict
-    
-    def process_distance_file(self,file, centroid_dict, default_value = np.nan):
-        #reads a file, returns a df with organ1, organ2, distance (sorted)
-        dist_df = self.format_patient_distances(file)
-        rois = set(centroid_dict.keys())
-        oars = sorted(set(self.organ_list).intersection(rois))
-        gtvs = [r for r in rois if 'GTV' in r]
-        
-        merged_dict = {}
-        organs = set(list(oars) + gtvs)
-        #we want the entrys to be all valid organs or gtvs, but
-        #the distance array to be in the shape of the predefined list
-        for o1 in organs: 
-            oentry = np.zeros((self.num_organs,)).astype(self.data_type)
-            if(o1 not in organs):
-                oentry = oentry.fill(default_value)
-            else:
-                for pos, o2 in enumerate(self.organ_list):
-                    if o1 == o2:
-                        continue
-                    if o2 not in oars:
-                        tdist = default_value
+
+    def process(self,
+                as_df=True,
+                use_cache=True,
+                add_clinical=True,
+                clinical_path=None
+               ):
+        if as_df and self.processed_df is not None and use_cache:
+            return self.processed_df
+        files = self.load_spatial_files()
+#         files = {k:v for k,v in files.items() if float(k) < 30}
+        #I forgot this so Idk how to make it clinical 
+        pdict = self.process_cohort_spatial_dict(files)
+        if not as_df and add_clincal:
+            print('warning, I havent coded camprt_clinical data as a json in process() yet.')
+        if as_df:
+            new_pdict = []
+            for k,v in pdict.items():
+                new_entry = {}
+                new_entry['id'] = k
+                for kk,vv in v.items():
+                    if type(vv)==type({}):
+                        for kkk,vvv in vv.items():
+                            name = kk+'_'+kkk
+                            new_entry[name] = vvv
                     else:
-                        match = dist_df[(dist_df.organ1 == o1) & (dist_df.organ2 == o2) | (dist_df.organ1 == o2) & (dist_df.organ2 == o1)]
-                        if match.shape[0] > 0:
-                            tdist = match[OrganData.roi_dist_col].values
-                            assert(len(tdist) < 2)
-                            tdist = tdist[0]
-                        else:
-                            tdist = default_value
-                    oentry[pos] = tdist
-            mdict_entry = centroid_dict[o1]
-            mdict_entry['distances'] = oentry
-            merged_dict[o1] = mdict_entry
-        return merged_dict
+                        new_entry[kk]=vv
+                new_pdict.append(new_entry)
+            pdict = pd.DataFrame(new_pdict)
+            pdict = self.center_centroid_df(pdict)
+            if add_clinical:
+                clinical = load_camprt_clinical(path=clinical_path)
+                pdict = pdict.merge(clinical,on='id',how='left')
+            self.processed_df=pdict
+        return pdict
+
+def load_camprt_clinical(path=None):
+    if path is None:
+        path = Const.data_dir + 'camprt_clinical_data.csv'
+    rename_dict = {
+        'Dummy ID': 'id',
+        'Age at Diagnosis (Calculated)': 'age',
+        'Total dose':'total_dose',
+        'OS (Calculated)': 'os',
+        'T-category': 't_stage',
+        'N-category': 'n_stage',
+        'Smoking status at Diagnosis (Never/Former/Current)': 'smoking_status',
+        'Tumor subsite (BOT/Tonsil/Soft Palate/Pharyngeal wall/GPS/NOS)': 'subsite',
+        'Locoregional Control(1=Control,0=Failure)':'locoregional_control',
+        'Regional Control (1=regional/nodal control,0=regional/nodal recurrance)': 'regional_control',
+        'Local Control (1=no control, 0=primary recurrance)': 'local_control',
+        'Distant Control (1=no DM, 0=DM)': 'distant_control'
+    }
+    df = pd.read_csv(path).rename(rename_dict,axis=1)
+    df['hpv'] = df['HPV/P16 status'].apply(lambda x: str(x) == 'Positive')
+    is_yes = lambda x: str(x).lower() == 'y'
+    df['ft'] = df['Feeding tube 6m'].apply(is_yes)
+    df['aspiration'] = df['Aspiration rate Post-therapy'].apply(is_yes)
+    df['male'] = df['Gender'].apply(lambda x: x == 'Male')
+    df['nd'] = df['Neck Disssection after IMRT (Y/N)'].apply(is_yes)
     
-    def format_gtvs(self, mdict):
-        gtvs = [(k,v) for k,v in mdict.items() if 'GTV' in k]
-        if len(gtvs) < 1:
-            return mdict
-        oars = rename_gtvs(gtvs)
-        for oname, odata in mdict.items():
-            if 'GTV' in oname:
-                continue
-            oars[oname] = odata
-        return oars
+    stage_map = {
+        'I': 1, 'II': 2, 'III': 3, 'IV': 4,
+        'Tx': 1, 'T1': 1, 'T2': 2,'T3': 3,'T4': 4,
+        'N0': 0,'N1': 1, 'Nx': 1, 'N2a': 2, 'N2b': 2, 'N2c': 3, 'N3': 3,
+        'never': 0, 'former': .5, 'current': 1,
+    }
+#     df['ajcc'] = df['AJCC stage 8th edition'].apply(lambda x: stage_map.get(x,1))
     
-class MdasiOrganData(OrganData):
+    df['t_stage_cat'] = df['t_stage'].apply(lambda x: x.replace('L: ','').replace('R: ','').replace(',','').replace(' ',''))
+    df['t_stage'] = df['t_stage_cat'].apply(lambda x: stage_map.get(x,0))
     
-    def reconcile_organ_names(self, organ_dist_df, columns = None):
-        #basically tries to standardize organ names accross datasets
-        if type(columns) != type(None):
-            organ_dist_df = organ_dist_df[columns]
-        #check that this works idk
-        organ_dist_df.replace(to_replace = r'_*GTV.*N', value = '_GTVn', regex = True, inplace = True)
-        #check organs if we're looking at at a centroid file
-        if self.spellcheck_organs:
-            cols_to_check = self.roi_cols
-            if self.centroid_roi_col in organ_dist_df.columns:
-                cols_to_check = [self.centroid_roi_col]
-            organ_dist_df = self.spellcheck_rows(organ_dist_df,
-                                                 cols_to_check,
-                                                 self.get_organ_list(),
-                                                 print_out=True
-                                                )
-        return organ_dist_df#.replace(self.oar_rename_dict())
+    df['n_stage_cat'] = df['n_stage'].apply(lambda x: x.replace('L: ','').replace('R: ','').replace(',','').replace(' ',''))
+    df['n_stage'] = df['n_stage_cat'].apply(lambda x: stage_map.get(x,0))
     
-    def reconcile_cohort_columns(self, organ_df):
-        #placeholder
-        if self.spellcheck_columns:
-            organ_df = self.spellcheck_cols(organ_df, 
-                                            OrganData.file_header_renames.keys(),
-                                           print_out = True)
-        organ_df = organ_df.rename(OrganData.file_header_renames,axis=1)
-        organ_df = self.spellcheck_cols(organ_df,
-                                       OrganData.file_header_renames.values(),
-                                       print_out = True)
-        return organ_df
+    df['smoking_status'] = df['smoking_status'].apply(lambda x: stage_map.get(str(x).lower(),0))
     
-    def read_spatial_file(self, file):
-        df = pd.read_csv(file)
-        df = self.reconcile_cohort_columns(df)
-        df = self.reconcile_organ_names(df)
-        return df
+    df['bilateral'] = df['Tm Laterality (R/L)'].apply(lambda x: x == 'Bilateral')
     
-    def format_patient_distances(self, pdist_file):
-        #read the file with the centroid info, and format it for the data
-        #currently outputs a dict of {(organ1, organ2): distance} where organ1, organ2 are sorted alphaetically
-        dist_df = self.read_spatial_file(pdist_file)
-        dist_df = dist_df.reindex(OrganData.roi_cols + [OrganData.roi_dist_col],axis=1)
-        dist_df = dist_df.dropna()
-        subdf = dist_df.loc[:, OrganData.roi_cols]
-        dist_df.loc[:,'organ1'] = subdf.apply(lambda x: sorted(x)[1], axis=1)
-        dist_df.loc[:,'organ2'] = subdf.apply(lambda x: sorted(x)[0], axis=1)
-        dist_df = dist_df.set_index(['organ1','organ2']).sort_index(kind='mergesort') #I just sort everthing alphabetically, may bug out otherwise idk
-        dist_df = dist_df.loc[:,OrganData.roi_dist_col]
-        return dist_df.reset_index()
-    
-    def process_dose_file(self, dose_file, default_value = np.nan):
-        dose_df = self.read_spatial_file(dose_file)
-        
-        dose_df = dose_df.set_index(OrganData.centroid_roi_col).sort_index()
-        organs = sorted(dose_df.index.values)
-        dose_dict = {}
-        for organ in organs:
-            #filter out extra organs idk
-            if ('GTV' not in organ) and organ not in self.organ_list:
-                continue
-            entry = {}
-            def getfield(col):
-                try:
-                    return dose_df.loc[organ, col]
-                except:
-                    return default_value
-            entry[OrganData.volume_col] = getfield(OrganData.volume_col)
-            entry[OrganData.mean_dose_col] = getfield(OrganData.mean_dose_col)
-            entry['centroids'] = np.array([getfield(v) for v in OrganData.centroid_cols])
-            dose_dict[organ] = entry
-        return dose_dict
-    
-    def process_distance_file(self,file, centroid_dict, default_value = np.nan):
-        #reads a file, returns a df with organ1, organ2, distance (sorted)
-        dist_df = self.format_patient_distances(file)
-        rois = set(centroid_dict.keys())
-        oars = sorted(set(self.organ_list).intersection(rois))
-        gtvs = [r for r in rois if 'GTV' in r]
-        
-        merged_dict = {}
-        organs = set(list(oars) + gtvs)
-        #we want the entrys to be all valid organs or gtvs, but
-        #the distance array to be in the shape of the predefined list
-        for o1 in organs: 
-            oentry = np.zeros((self.num_organs,)).astype(self.data_type)
-            if(o1 not in organs):
-                oentry = oentry.fill(default_value)
-            else:
-                for pos, o2 in enumerate(self.organ_list):
-                    if o1 == o2:
-                        continue
-                    if o2 not in oars:
-                        tdist = default_value
-                    else:
-                        match = dist_df[(dist_df.organ1 == o1) & (dist_df.organ2 == o2) | (dist_df.organ1 == o2) & (dist_df.organ2 == o1)]
-                        if match.shape[0] > 0:
-                            tdist = match[OrganData.roi_dist_col].values
-                            assert(len(tdist) < 2)
-                            tdist = tdist[0]
-                        else:
-                            tdist = default_value
-                    oentry[pos] = tdist
-            mdict_entry = centroid_dict[o1]
-            mdict_entry['distances'] = oentry
-            merged_dict[o1] = mdict_entry
-        return merged_dict
-    
-    def format_gtvs(self, mdict):
-        gtvs = [(k,v) for k,v in mdict.items() if 'GTV' in k]
-        if len(gtvs) < 1:
-            return mdict
-        oars = rename_gtvs(gtvs)
-        for oname, odata in mdict.items():
-            if 'GTV' in oname:
-                continue
-            oars[oname] = odata
-        return oars
-    
+    df['rt'] = df['Therapeutic combination'].apply(lambda x: 'Radiation' in str(x))
+    df['cc'] = df['Therapeutic combination'].apply(lambda x: 'CC' in str(x))
+    df['ic'] = df['Therapeutic combination'].apply(lambda x: 'IC' in str(x))
+    to_keep = ['id',
+               'hpv','age','male','Race','smoking_status',
+               'ft','aspiration',
+               'ajcc','t_stage','n_stage','t_stage_cat','n_stage_cat',
+               'total_dose',
+               'bilateral','subsite',
+               'rt','ic','cc','nd',
+               'locoregional_control', 'regional_control','local_control','distant_control',
+              ]
+    #I assume this is good even though the names are inconistant about what control means
+    for c in ['locoregional_control', 'regional_control','distant_control','local_control']:
+        df[c] = df[c].apply(lambda x: x == 1 or x == '1')
+    return df[[c for c in to_keep if c in df.columns]]
+
 def set_dvh_lt_ipsilateral(ddf,organ_list=None,print_diff = False):
     #change lt and rt laterality so Lt is the side with higher mean dose
     df = ddf.copy()
@@ -867,7 +1091,6 @@ def load_spatial_files(root = None):
     #returns {'id': {'distances': <distfile>, 'doses': <centroid/dosefile>}}
     #currently only returns patients with both ids
     root = Const.camprt_dir if root is None else root
-    
     try:
         distance_files = glob(root + '**/*distances.csv')
     except:
