@@ -402,7 +402,7 @@ export default function RuleViewD3(props){
                 .attr('stroke',d=>(d.targetClass)? targetColor:nonTargetColor)
                 .attr('stroke-width',1)
                 .attr('fill','none')
-                .attr('stroke-opacity', .2);
+                .attr('stroke-opacity', d=>(d.inGroup)? .2:0);
             svg.selectAll('.patientCircle').raise();
             svg.selectAll('.thresholdRect').raise();
         }

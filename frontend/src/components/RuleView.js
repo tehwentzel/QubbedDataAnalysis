@@ -123,8 +123,10 @@ export default function RuleView(props){
                 return val.toFixed(3)
             }
         }
-        
-        let title = 'OR: ' + fix(rule.odds_ratio) 
+        console.log('rule',rule)
+        let title =  'Upper: ' + rule.upper_count
+            + ' (' + fix(100*rule.upper_count/(rule.upper_count+rule.lower_count)) + '%)'
+            + '|OR: ' + fix(rule.odds_ratio) 
             + ' |Info Gain: ' + fix(rule.info)   
             // + ' |ROC:' + fix(rule.roc_auc)
             // + ' |F1:' + fix(rule.f1) 
