@@ -9,6 +9,7 @@ export default function RuleViewD3(props){
     const [pointData,setPointData] = useState();
     const [pathData,setPathData] = useState();
     const [dotsDrawn,setDotsDrawn] = useState(false);
+    const [brushedGroup, setBrushGroup] = useState();
     const xMargin = 10;
     const yMargin = 10;
     
@@ -161,9 +162,10 @@ export default function RuleViewD3(props){
             splitData.sort((a,b) => a.x - b.x);
             var patientDots = [];
             var patientPaths = [];
-            
+            // currPoint = [];
+            // let first = true;
             for(let p of doseData){
-                let pathPoints = [];
+                // let pathPoints = [];
                 let tempDots = [];
                 let inGroup = true;
                 let numSplits = 0;
@@ -172,17 +174,19 @@ export default function RuleViewD3(props){
                     if(!inGroup | split.name =='split-group'){ continue; }
                     let pVal = split.accessor(p);
                     let x = split.x;
-                    if(splitAxes & (sVal >= oThreshold)){
+                    let aboveSThreshold = (sVal >= oThreshold);
+                    if(splitAxes & aboveSThreshold){
                         x += 1*R;
                     } else{
                         x -= 1*R;
                     }
                     let y= split.getY(pVal);
-                    pathPoints.push([x,y]);
+                    // pathPoints.push([x,y]);
                     let dotEntry = {
                         'x': x,
                         'y': y,
-                        'aboveThreshold': (sVal >= oThreshold),
+                        'aboveSymptomThreshold':aboveSThreshold,
+                        'inGroup':inGroup,
                         'baseX': x,
                         'baseY': y,
                         'axisX': split.x,
@@ -190,6 +194,7 @@ export default function RuleViewD3(props){
                         'organ': split.organ,
                         'name': split.name,
                         'targetClass': inTargetClass(p),
+                        'inTop': inTop(p),
                         'id': p.id,
                         'outcome':sVal,
                     }
@@ -199,6 +204,7 @@ export default function RuleViewD3(props){
                         inGroup = false;
                     }
                     tempDots.push(dotEntry);
+                    // patientPaths.push(lineEntry);
                 }
 
                 let oX = getX('outcome');
@@ -215,20 +221,27 @@ export default function RuleViewD3(props){
                     'feature': oThreshold,
                     'id': p.id,
                     'targetClass': inTargetClass(p),
-                    'aboveThreshold': (sVal >= oThreshold),
+                    'aboveSymptomThreshold': (sVal >= oThreshold),
+                    'inGroup': inGroup,
                     'outcome': sVal,
                 }
                 tempDots.push(finalDot);
-                pathPoints.push([oX,oY]);
-                let lineEntry = {
-                    'points':pathPoints,
-                    'path': lineFunc(pathPoints),
-                    'id': p.id,
-                    'inGroup': inGroup,
-                    'outcome':sVal,
-                    'targetClass': inTargetClass(p),
+                let startX = -1;
+                let startY = -1;
+                for(let point of tempDots){
+                    if(startX > -1 & startY > -1){
+                        let pPoints = [
+                            [startX,startY],
+                            [point.x, point.y]
+                        ];
+                        let lineEntry = Object.assign({},point);
+                        lineEntry.points = pPoints;
+                        lineEntry.path = lineFunc(pPoints);
+                        patientPaths.push(lineEntry);
+                    }
+                    startX = point.x;
+                    startY = point.y;
                 }
-                patientPaths.push(lineEntry);
                 for(let e of tempDots){
                     e.inGroup = inGroup;
                     patientDots.push(e);
@@ -288,8 +301,8 @@ export default function RuleViewD3(props){
             let formatDots = g => g.attr('cx', d=>d.x)
             .attr('cy',d=>d.y)
             .attr('fill',d=>d.targetClass? targetColor:nonTargetColor)
-            .attr('stroke', d => d.aboveThreshold? 'black':'white')
-            .attr('stroke-width', d => d.aboveThreshold? outcomeStrokeWidth:strokeWidth)
+            .attr('stroke', d => d.aboveSymptomThreshold? 'black':'white')
+            .attr('stroke-width', d => d.aboveSymptomThreshold? outcomeStrokeWidth:strokeWidth)
             .attr('opacity', .9)
             .attr('r',R);
 
@@ -297,13 +310,6 @@ export default function RuleViewD3(props){
                 .data(pointData).enter()
                 .append('circle').attr('class','patientCircle');
             formatDots(dots);
-                // .attr('cx', d=>d.x)
-                // .attr('cy',d=>d.y)
-                // .attr('fill',d=>d.targetClass? targetColor:nonTargetColor)
-                // .attr('stroke', d => d.aboveThreshold? 'black':'white')
-                // .attr('stroke-width', d => d.aboveThreshold? outcomeStrokeWidth:strokeWidth)
-                // .attr('opacity', .9)
-                // .attr('r',R);
 
             function boundX(d){
                 let bx = Math.max(R, Math.min(ruleWidth-R, d.x));
@@ -365,7 +371,7 @@ export default function RuleViewD3(props){
                         x: legendX,
                         y: lCurrY,
                         targetClass: inTarget,
-                        aboveThreshold: aboveThreshold,
+                        aboveSymptomThreshold: aboveThreshold,
                         text: title,
                     }
                     legendData.push(entry);
