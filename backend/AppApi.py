@@ -1024,7 +1024,7 @@ def get_rule_stuff(df,post_results=None):
     symptoms = post_results.get('symptoms',['drymouth'])
     # organ_features = post_results.get('clusterFeatures',['V35','V40','V45','V55'])
     organ_features = ['V5','V10','V15','V20','V25','V30','V35','V40','V45','V50','V55','V60','V65','V70','V75','V80']
-    organ_features.extend(['mean_dose','max_dose'])
+    # organ_features.extend(['mean_dose','max_dose'])
     s_dates = post_results.get('symptom_dates',[13,33])
     print('____________')
     print('rule dates',s_dates)

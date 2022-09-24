@@ -136,7 +136,7 @@ function App() {
   //this use to be d3.scaleOrdinal but it wasn't wokring for some reason
   //returns color based on index bascially
   const categoricalColors = (i) => {
-    let colors = ['#4daf4a','#377eb8','magenta','#bebada','#ffffb3','#984ea3','#fb8072','#ffff33','#a65628','#f781bf','999999','#e41a1c',];
+    let colors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#e6ab02','#999999','#666666'];
     let ii = Math.round(i);
     if(ii < 0 | ii > colors.length - 1){
       return 'black';
