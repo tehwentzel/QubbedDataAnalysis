@@ -243,7 +243,7 @@ function App() {
       // console.log('cluster organ query', clusterOrgans)
       fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest,endpointDates);
     }
-  },[clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest])
+  },[clusterOrgans,nDoseClusters,clusterFeatures,clusterType,symptomsOfInterest])
 
   useEffect(function updateDoses(){
     if(!clusterDataLoading & clusterData !== undefined){
@@ -261,15 +261,18 @@ function App() {
     }
   },[clusterDataLoading,clusterData,mainSymptom,clusterDataLoading,lrtConfounders,additiveClusterThreshold,additiveCluster,endpointDates])
 
-  function makeOverview(state){
+  function makeOverview(state,showToggle=true){
     return (
-      <Row style={{'height': '50vh','overflowY':'hidden'}} className={'noGutter'} lg={12}>
+      <Row style={{'height': 'var(section-height)','overflowY':'hidden'}} 
+        className={'noGutter'} 
+        lg={12}
+      >
         <OverView
             api={api}
             doseData={doseData}
             defaultState={state}
             clusterData={clusterData}
-            
+            showToggle={showToggle}
             clusterDataLoading={clusterDataLoading}
             selectedPatientId={selectedPatientId}
             setSelectedPatientId={setSelectedPatientId}
@@ -307,7 +310,7 @@ function App() {
   function makeSymptomPlot(){
     if(clusterData !== undefined & doseData != undefined & !clusterDataLoading){
       return (
-        <Container className={'noGutter fillSpace'}>
+        <Container>
             <span className={'centerText controlPanelTitle'}>
               {Utils.getVarDisplayName(mainSymptom) + ' Trajectory vs Time'}
             </span>
@@ -341,9 +344,8 @@ function App() {
   return (
     <div className="App">
 
-        <Row className={'fillSpace noGutter'} lg={12}>
-          <Col style={{'height': '100vh'}} id={'clusterCol'} fluid={'true'} className={'noGutter'} lg={6}>
-            <Row id={'clusterControlPanelContainer'} className={'noGutter'} lg={12}>
+        <Container className={'fillSpace noGutter'} lg={12}>
+          <Row id={'clusterControlPanelContainer'} className={'noGutter'} lg={12}>
                 <ClusterControlPanel
                   nDoseCluster={nDoseClusters}
                   setNDoseClusters={setNDoseClusters}
@@ -372,42 +374,45 @@ function App() {
                   endpointDates={endpointDates}
                   setEndpointDates={setEndpointDates}
                 ></ClusterControlPanel>
-              </Row>
+          </Row>
+          <Row id={'mainVis'} className={'noGutter'} lg={12}>   
+            <Col fluid={'true'} className={'fillHeight noGutter'} lg={6}>
+                {makeOverview('effect',false)}
+                {makeOverview('rules',false)}
+            </Col>  
+            <Col className={'noGutter'} lg={6}>
               <Row className={'clusterContainer vizComponent noGutter scroll'} lg={12}>
                 <DoseView
-                  doseData={doseData}
-                  clusterData={clusterData}
-                  clusterOrgans={clusterOrgans}
-                  addOrganToCue={addOrganToCue.bind(this)}
-                  clusterOrganCue={clusterOrganCue}
-                  nDoseClusters={nDoseClusters}
-                  plotVar={plotVar}
-                  svgPaths={svgPaths}
-                  activeCluster={activeCluster}
-                  setActiveCluster={setActiveCluster}
-                  symptomsOfInterest={symptomsOfInterest}
-                  showContralateral={showContralateral}
-                  categoricalColors={categoricalColors}
-                  mainSymptom={mainSymptom}
-                  setMainSymptom={setMainSymptom}
-                  showOrganLabels={showOrganLabels}
-                  setShowOrganLabels={setShowOrganLabels}
-                  doseColor={doseColor}
-                  endpointDates={endpointDates}
-                  setEndpointDates={setEndpointDates}
-                  maxDose={maxDose}
-                  setMaxDose={setMaxDose}
+                    doseData={doseData}
+                    clusterData={clusterData}
+                    clusterOrgans={clusterOrgans}
+                    addOrganToCue={addOrganToCue.bind(this)}
+                    clusterOrganCue={clusterOrganCue}
+                    nDoseClusters={nDoseClusters}
+                    plotVar={plotVar}
+                    svgPaths={svgPaths}
+                    activeCluster={activeCluster}
+                    setActiveCluster={setActiveCluster}
+                    symptomsOfInterest={symptomsOfInterest}
+                    showContralateral={showContralateral}
+                    categoricalColors={categoricalColors}
+                    mainSymptom={mainSymptom}
+                    setMainSymptom={setMainSymptom}
+                    showOrganLabels={showOrganLabels}
+                    setShowOrganLabels={setShowOrganLabels}
+                    doseColor={doseColor}
+                    endpointDates={endpointDates}
+                    setEndpointDates={setEndpointDates}
+                    maxDose={maxDose}
+                    setMaxDose={setMaxDose}
                 ></DoseView>
               </Row>
-              <Row  className={'clusterSymptomContainer fillWidth'} lg={12}>
-                {makeSymptomPlot()}
-              </Row>    
-          </Col>  
-          <Col style={{'height': '100vh','overflowY':'hidden'}} className={'noGutter'} lg={6}>
-            {makeOverview('scatterplot')}
-            {makeOverview('effect')}
-        </Col>
-      </Row>
+              <Row className={'clusterContainer noGutter'} lg={12}>
+                {makeOverview('symptom',true)}
+              </Row>
+            </Col>
+          </Row>
+      </Container>
     </div>
   );
 }

@@ -11,7 +11,7 @@ export default function PatientScatterPlotD3(props){
     const [formattedData,setFormattedData] = useState();
     const [dotsDrawn,setDotsDrawn] = useState(false);
     const margin = 40;
-    const maxR = .01*width;
+    const maxR = .015*Math.min(width,height);
     const curveMargin = 3;
     
     const tipChartSize = [150,80];

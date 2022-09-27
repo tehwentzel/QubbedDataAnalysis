@@ -71,7 +71,7 @@ export default function OverView(props){
     function makeScatter(){
         if(props.clusterData != undefined & props.doseData != undefined){
             return (
-                <Container className={'noGutter fillSpace'}>
+                <>
                     <PatientScatterPlotD3
                         doseData={props.doseData}
                         clusterData={props.clusterData}
@@ -89,7 +89,7 @@ export default function OverView(props){
                         symptomsOfInterest={props.allSymptoms}
                         endpointDates={props.endpointDates}
                     ></PatientScatterPlotD3>
-                </Container>
+                </>
             )
         } else{
             return (<Spinner 
@@ -125,7 +125,14 @@ export default function OverView(props){
         //I'm maybe not doing this an putting it in the left hand side as a pernament view
         if(props.clusterData != undefined & props.doseData != undefined){
             return (
-                <Container className={'noGutter fillSpace'}>
+                <Col className={'noGutter fillSpace'}>
+                    <span className={'centerText controlPanelTitle'}>
+                        {
+                            Utils.getVarDisplayName(props.mainSymptom) 
+                            + ' Trajectory for cluster ' + (props.activeCluster) 
+                            + ' vs everyone else'
+                        }
+                    </span>
                     <SymptomPlotD3
                         doseData={props.doseData}
                         clusterData={props.clusterData}
@@ -138,7 +145,7 @@ export default function OverView(props){
                         mainSymptom={props.mainSymptom}
                         categoricalColors={props.categoricalColors}
                     ></SymptomPlotD3>
-                </Container>
+                </Col>
             )
         } else{
             return (<Spinner 
@@ -278,22 +285,22 @@ export default function OverView(props){
         if(view == 'scatterplot' | view === undefined | view === null){
             let buttonHeight = 30;
             return (
-                <Row key={view} md={12} className={'noGutter fillSpace'} >
+                <>
                     <Col className={'noGutter fillHeight'} md={8}>
                         <Row md={12} className={'noGutter'} 
-                            style={{'height':'calc(100% - '+buttonHeight+'px)'}} fluid={'true'}>
+                            style={{'height':'calc(100% - ' + (100+buttonHeight)+'px)'}} fluid={'true'}>
                             {makeScatter()}
                         </Row>
-                        <Row md={12} className={'noGutter'} style={{'height': buttonHeight}}>
+                        <Row md={12} className={'noGutter'} style={{'height': buttonHeight,'overflow':'hidden'}}>
                             {makeDropdown('x-axis',xVar,setXVar,1,varOptions,'up')}
                             {makeDropdown('y-axis',yVar,setYVar,2,varOptions,'up')}
                         </Row>
                         
                     </Col>
-                    <Col md={4} fluid={'false'} style={{'height':'100%','overflowY':'scroll'}}>
+                    <Col md={4} fluid={'false'} className={'noGutter fillHeight scroll'}>
                         {makePatientDoses(false)}
                     </Col>
-                </Row>
+                </>
             )
         } 
         if(view == 'effect'){
@@ -305,9 +312,9 @@ export default function OverView(props){
         } 
         if(view == 'symptom'){
             return (
-                <Row key={view} md={12} className={'noGutter fillSpace'}>
+                <>
                     {makeSymptomPlot()}
-                </Row>
+                </>
             )
         } 
         if(view == 'patients'){
@@ -366,25 +373,63 @@ export default function OverView(props){
         return makeDropdown(props.mainSymptom,true,props.setMainSymptom,10,props.symptomsOfInterest,'down',false)
     }
 
-    return ( 
-        <div ref={ref} id={'doseClusterContainer'}>
-            <Row md={12} style={{'height': '2.5em'}} className={'noGutter fillWidth'}>
-                <Col md={8} className={'noGutter'}>
-                    {makeToggleButton('scatterplot')}
-                    {makeToggleButton('effect')}
-                    {/* {makeToggleButton('symptom')} */}
-                    {makeToggleButton('patients')}
-                    {makeToggleButton('metric')}
-                    {makeToggleButton('cv_metrics')}
-                    {makeToggleButton('rules')}
-                </Col>
-                <Col md={4}>
-                    {makeSymptomDropdown(viewToggle)}
-                </Col>
-            </Row>
-            <Row md={12} style={{'height': 'calc(100% - 3em)','width':'100%'}} className={'noGutter fillWidth'}>
-                {switchView(viewToggle)}
-            </Row>
-        </div> 
-        )
+    function getPanelTitle(title){
+        if(title === 'symptom'){
+            return ''
+        }
+        if(title === 'effect'){
+            return 'Effect of Adding/Removing Individual Organs on Cluster Metrics for Predicting ' + props.mainSymptom;
+        }
+        if(title == 'rules'){
+            return 'Dose Threshold Rules for Approximating Clusters or Outcomes';
+        }
+        return Utils.getVarDisplayName(title);
+    }
+
+    function getView(showToggleBar){
+        if(showToggleBar){
+            return (
+                <div ref={ref} className={'overviewContainer'}>
+                    <Row md={12} style={{'height': '2.5em'}} className={'noGutter fillWidth'}>
+                        <Col md={8} className={'noGutter'}>
+                            {makeToggleButton('scatterplot')}
+                            {/* {makeToggleButton('effect')} */}
+                            {makeToggleButton('symptom')}
+                            {makeToggleButton('patients')}
+                            {makeToggleButton('metric')}
+                            {/* {makeToggleButton('cv_metrics')} */}
+                            {/* {makeToggleButton('rules')} */}
+                        </Col>
+                        <Col md={4}>
+                            {makeSymptomDropdown(viewToggle)}
+                        </Col>
+                    </Row>
+                    <Row md={12} 
+                        className={'noGutter fillSpace'}
+                        style={{'height':'calc(100% - 3.5em)'}}
+                    >
+                        {switchView(viewToggle)}
+                    </Row>
+                </div> 
+            )
+        } else{
+            return (
+                <div ref={ref} id={'overviewContainer'}>
+                   <Row md={12} style={{'height': '2.5em'}} className={'noGutter fillWidth'}>
+                        <span className={'centerText controlPanelTitle'} >
+                            {getPanelTitle(viewToggle)}
+                        </span>
+                    </Row>
+                    <Row md={12} 
+                        className={'noGutter fillSpace'}
+                        style={{'height':'calc(100% - 3.5em)'}}
+                    >
+                        {switchView(viewToggle)}
+                    </Row>
+                </div> 
+            )
+        }
+    }
+    let showToggle = (props.showToggle !== undefined)? props.showToggle: true;
+    return getView(showToggle)
 }

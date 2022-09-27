@@ -1,3 +1,10 @@
+body{
+  --control-panel-height: 150px;
+  --right-panel-width: 49vw;
+  --left-panel-width: 49vw;
+  --section-height: calc((95vh - 4em - 150px)/2);
+}
+
 .App {
   text-align: center;
   height: 100vh!important;
@@ -22,6 +29,54 @@
   width: 100vw;
 }
 
+#clusterControlPanelContainer{
+  height: var(--control-panel-height);
+  width: 100vw!important;
+  overflow-y: show;
+  /* position: absolute; */
+}
+
+.borderRight{
+  border-right: 1.5px solid grey !important;
+  /* border: 0px solid grey; */
+}
+
+#mainVis{
+  height: calc(100vh - 2em - var(--control-panel-height));
+  top: calc(1em + var(--control-panel-height));
+  width: 100vw!important;
+  overflow-y: scroll;
+  /* position: absolute; */
+}
+
+.d3-component{
+  height: 100%!important;
+  width: 100%!important;
+  margin: 0px!important;
+  margin-top: 2px;
+  padding: 0px;
+  background-color: white;
+  transform-origin: 0, 0;
+}
+
+.clusterContainer{
+  height: var(--section-height)!important;
+  min-height: var(--section-height)!important;
+  justify-content: start;
+}
+
+#doseClusterContainer{
+  height: var(section-height)!important;
+}
+
+.overviewContainer, #doseClusterContainer{
+  display: block;
+  margin: 0px;
+  padding: 0px;
+  justify-content:space-between;
+  margin-top: 1em!important;
+}
+
 svg > path, svg > circle{
   cursor: pointer;
 }
@@ -41,15 +96,6 @@ svg > path, svg > circle{
   width: min(50%,50px)!important;
   margin-left: calc(50% - 25px)!important;
 }
-.d3-component{
-  height: 100%;
-  width: 100%;
-  margin: 0px!important;
-  margin-top: 2px;
-  padding: 0px;
-  background-color: white;
-  transform-origin: 0, 0;
-}
 
 .clusterPlotCol{
   height: calc(25vh - 1em)!important;
@@ -67,36 +113,12 @@ svg > path, svg > circle{
   height: calc(25vh - 3em)!important;
 }
 
-#clusterControlPanelContainer{
-  height: 175px;
-  overflow-y: show;
-}
-
-#doseClusterContainer{
-  display: block;
-  margin: 0px;
-  padding: 0px;
-  justify-content:space-between;
-  margin-top: 1em!important;
-}
-
-.clusterContainer{
-  height: calc(60vh - 110px)!important;
-  justify-content: start;
-}
-
-.clusterSymptomContainer{
-  height: calc(40vh - 110px)!important;
-  margin: 0px;
-  margin-top: .1em!important;
-}
-
 .organPath{
   position: absolute;
 }
 
 .visComponent{
-  height: 100%!important;
+  height: 100%;
   width: 100%;
   display:inline-block;
   margin: 0px;

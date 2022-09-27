@@ -183,7 +183,7 @@ export default function SymptomPlotD3(props){
             makeLines(patientData,'patientLine',1/(activeClusterSize**.75),3,false,false);
             makeLines(clusterData,'clusterLine',.9,9,true,true);
         }
-    },[svg,patientData,clusterData,props.activeCluster]);
+    },[svg,height,width,patientData,clusterData,props.activeCluster]);
 
     useEffect(function drawCircles(){
         if(svg !== undefined & patientData !== undefined & clusterData !== undefined){

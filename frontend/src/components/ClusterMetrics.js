@@ -29,7 +29,7 @@ export default function ClusterMetrics(props){
         if(cData !== undefined & !props.clusterDataLoading){
             setMetricData(undefined);
             props.api.getLRTests(cData,dates,lrtConfounders,thresholds,symptoms).then(response =>{
-            // console.log('cluster metric data',response)
+            console.log('cluster metric data',response)
             setMetricData(response);
           }).catch(error=>{
             console.log('cluster metric data error',error);

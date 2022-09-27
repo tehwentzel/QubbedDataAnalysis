@@ -162,6 +162,7 @@ export default function RuleViewD3(props){
             splitData.sort((a,b) => a.x - b.x);
             var patientDots = [];
             var patientPaths = [];
+            let endGroups = {};
             // currPoint = [];
             // let first = true;
             for(let p of doseData){
@@ -225,7 +226,9 @@ export default function RuleViewD3(props){
                     'inGroup': inGroup,
                     'outcome': sVal,
                 }
+                endGroups[p.id] = numSplits;
                 tempDots.push(finalDot);
+                //get paths for each line segment between lines
                 let startX = -1;
                 let startY = -1;
                 for(let point of tempDots){
@@ -246,6 +249,13 @@ export default function RuleViewD3(props){
                     e.inGroup = inGroup;
                     patientDots.push(e);
                 }
+            }
+            //track what the final group the points end up in for brushing later;
+            for(let p of patientDots){
+                p.endGroup = endGroups[p.id];
+            }
+            for(let line of patientPaths){
+                line.endGroup = endGroups[line.id];
             }
 
             svg.selectAll('path').filter('.axisLine').remove();
@@ -299,12 +309,12 @@ export default function RuleViewD3(props){
             svg.selectAll('circle').filter('.patientCircle').remove();
             setDotsDrawn(false);
             let formatDots = g => g.attr('cx', d=>d.x)
-            .attr('cy',d=>d.y)
-            .attr('fill',d=>d.targetClass? targetColor:nonTargetColor)
-            .attr('stroke', d => d.aboveSymptomThreshold? 'black':'white')
-            .attr('stroke-width', d => d.aboveSymptomThreshold? outcomeStrokeWidth:strokeWidth)
-            .attr('opacity', .9)
-            .attr('r',R);
+                .attr('cy',d=>d.y)
+                .attr('fill',d=>d.targetClass? targetColor:nonTargetColor)
+                .attr('stroke', d => d.aboveSymptomThreshold? 'black':'white')
+                .attr('stroke-width', d => d.aboveSymptomThreshold? outcomeStrokeWidth:strokeWidth)
+                .attr('opacity', .9)
+                .attr('r',R);
 
             let dots = svg.selectAll('circle').filter('.patientCircle')
                 .data(pointData).enter()
@@ -329,9 +339,9 @@ export default function RuleViewD3(props){
             }
             var simulation = forceSimulation(pointData)
                 .force('collide',forceCollide().radius(.1+R).strength(1.2))
-                .force('x',forceX(d=>d.baseX).strength(.05))
-                .force('y',forceY(d=>d.baseY).strength(.05))
-                .alphaMin(.05)
+                .force('x',forceX(d=>d.baseX).strength(.03))
+                .force('y',forceY(d=>d.baseY).strength(.1))
+                .alphaMin(.1)
                 .on('tick',ticked)
                 .on('end',()=>{
                     dots.on('mouseover',function(e){
@@ -341,6 +351,7 @@ export default function RuleViewD3(props){
                             + props.mainSymptom + ': ' + d.outcome + '</br>'
                             + 'in target group: ' + d.targetClass +'</br>';
                         tTip.html(tipText);
+                        setBrushGroup(parseInt(d.endGroup));
                     }).on('mousemove', function(e){
                         Utils.moveTTipEvent(tTip,e);
                     }).on('mouseout', function(e){
@@ -414,6 +425,15 @@ export default function RuleViewD3(props){
         }
     },[svg,pathData])
 
+
+    useEffect(function brush(){
+        if(svg !== undefined & dotsDrawn & brushedGroup !== undefined){
+            svg.selectAll('.patientLine')
+                .attr('stroke-opacity', d=> {
+                    return (parseInt(d.endGroup) === brushedGroup)? .3:0 
+                })
+        }
+    },[svg,brushedGroup,dotsDrawn])
     // useEffect(function brush(){
     //     if(!dotsDrawn | svg === undefined){return}
     //     let dots = svg.selectAll('circle')

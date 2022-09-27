@@ -335,74 +335,81 @@ export default function ClusterControlPanel(props){
     const disabled = props.clusterDataLoading;
     return (
         <Row className={'clusterControlPanel noGutter'} fluid={'true'} md={12}>
-            <Col md={9} >
-                <Row md={12} className={'inline controlPanelTitle'} fluid={'true'}>
-                    <Col md={12}>
-                    {'Clust Features: '}
-                    {featureButtons}
+            <Col  md={10}>
+                <Row  md={12}>
+                    <Col className={'borderRight'} md={6} >
+                        <Row md={12}>
+                            <span>
+                                {'Cluster Parameters'}
+                            </span>   
+                        </Row>
+                    
+                        <Row md={12}>
+                            <Col>
+                                {'# Clust:'}
+                                <DropdownButton
+                                    className={'controlDropdownButton'}
+                                    value={(tempNClusters!==undefined)? tempNClusters+'':props.nDoseClusters+""}
+                                    title={(tempNClusters!==undefined)? tempNClusters+'':props.nDoseClusters+""}
+                                >
+                                    {nClustButtonOptions}
+                                </DropdownButton>
+                            </Col>
+                            <Col>
+                                {'Method:'}
+                                <DropdownButton
+                                    className={'controlDropdownButton'}
+                                    value={clusterButtonTitle}
+                                    title={clusterButtonTitle}
+                                >
+                                    {clusterTypeButtonOptions}
+                                </DropdownButton>
+                            </Col>
+                        </Row>
+                        <Row md={12} className={'inline'} fluid={'true'}>
+                            <Col md={12}>
+                            {'Clust Features: '}
+                            {featureButtons}
+                            </Col>
+                        </Row>
+                        
                     </Col>
-                    <Col md={12}>
-                    {'Confounders: '}
-                        {confounderButtons}
+                    <Col className={'borderRight'} md={6}>
+                        <Row md={12}>
+                            <span>
+                                {'Outcome Parameters'}
+                            </span>   
+                        </Row>
+                        <Row md={12}>
+                            <Col className={'noGutter'}>
+                                {'Symptom:'}
+                                <DropdownButton
+                                    className={'controlDropdownButton'}
+                                    value = {props.mainSymptom}
+                                    title = {props.mainSymptom}
+                                >{mainSymptomButtonOptions}</DropdownButton>
+                            </Col>
+                            <Col className={'noGutter'}>
+                                <span>{'Endpoints (wks): '}</span>
+                                {makeEndpointButtons()}
+                                <span>{'  '}</span>
+                                <span>
+                                    <Button
+                                        variant={'outline-secondary'}
+                                        onClick={updateEndpoints}
+                                    >
+                                        {' Set '}
+                                    </Button>
+                                </span>
+                            </Col>
+                            <Col md={12}>
+                                {'Confounders: '}
+                                {confounderButtons}
+                            </Col>
+                        </Row>
                     </Col>
-                    {/* <Col md={12}>
-                    {'Symptoms: '}
-                        {symptomsButtons}
-                    </Col> */}
                 </Row>
-                <Row className={'noGutter controlPanelTitle'} md={12}>
-                    <Col className={'noGutter'} md={2}>
-                        {'# Clust:'}
-                        <DropdownButton
-                            className={'controlDropdownButton'}
-                            value={(tempNClusters!==undefined)? tempNClusters+'':props.nDoseClusters+""}
-                            title={(tempNClusters!==undefined)? tempNClusters+'':props.nDoseClusters+""}
-                        >
-                            {nClustButtonOptions}
-                        </DropdownButton>
-                    </Col>
-                    <Col className={'noGutter'} md={2}>
-                        {'Method:'}
-                        <DropdownButton
-                            className={'controlDropdownButton'}
-                            value={clusterButtonTitle}
-                            title={clusterButtonTitle}
-                        >
-                            {clusterTypeButtonOptions}
-                        </DropdownButton>
-                    </Col>
-                    <Col className={'noGutter'} md={2}>
-                        {'Symp:'}
-                        <DropdownButton
-                            className={'controlDropdownButton'}
-                            value = {props.mainSymptom}
-                            title = {props.mainSymptom}
-                        >{mainSymptomButtonOptions}</DropdownButton>
-                    </Col>
-                    <Col className={'noGutter'} md={3}>
-                        {makeEndpointButtons()}
-                        <span>
-                            <Button
-                                variant={'outline-secondary'}
-                                onClick={updateEndpoints}
-                            >
-                                {'Set Endpoints'}
-                            </Button>
-                        </span>
-                    </Col>
-                    <Col className={'noGutter'} md={3}>
-                        {makeToggleLabelsButton()}
-                    </Col>
-                    {/* <Col className={'noGutter'} md={2}>
-                        <Button
-                            value={props.showContralateral}
-                            variant={'outline-secondary'}
-                            onClick={onToggleShowContra}
-                            disabled={false}
-                        >{props.showContralateral? 'Showing Contra': 'Hidding Contra'}</Button>
-                    </Col> */}
-                </Row>
-                <Row md={12} style={{'marginTop': '.5em'}} className={'controlPanelTitle'} md={12}>
+                <Row style={{'marginTop': '.5em'}} className={'controlPanelTitle'} md={12}>
                     <Button
                         onClick={handleUpdateClusters}
                         disabled={disabled}
@@ -412,19 +419,29 @@ export default function ClusterControlPanel(props){
                     </Button>
                 </Row>
             </Col>
-            <Col md={3}>
+            <Col sm={2}>
                 <Row md={12}>
                     <span>
-                        {'Color:'}
-                        {plotVarButton}
-                    </span>   
+                        {"Plot Parameters"}
+                    </span>
                 </Row>
-                <Row md={12} style={{'width':'100%','height':'100%'}}>
+                <Row md={12}>
+                    <Col>
+                        <span>
+                            {'Dose Color:'}
+                            {plotVarButton}
+                        </span>   
+                    </Col>
+                    <Col>
+                        {makeToggleLabelsButton()}
+                    </Col>
+                {/* <Row md={12} style={{'width':'100%','height':'100%'}}s>
                     <DoseLegendD3
                         plotVar={props.plotVar}
                         doseColor={props.doseColor}
                         maxDose={props.maxDose}
                     />
+                </Row> */}
                 </Row>
             </Col>
             
