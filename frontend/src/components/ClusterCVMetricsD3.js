@@ -147,7 +147,7 @@ export default function ClusterCVMetricsD3(props){
             .attr('width',barWidth)
             .attr('fill',d=>d.color);
 
-        const textSize = barWidth/2;
+        const textSize = Math.max(50,barWidth/2);
         svg.selectAll('.valueText').remove();
         svg.selectAll('text').filter('.valueText')
             .data(barPoints).enter()

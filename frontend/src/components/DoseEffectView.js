@@ -200,9 +200,28 @@ export default function DoseEffectView(props){
     return (
         <div ref={ref} className={'noGutter fillSpace'}>
             <Row md={12} className={'noGutter fillSpace'}>
-                <Col md={10} className={'noGutter'} style={{'height':'45vh','width': '80%'}}>
-                    {makeTitle('Effect of Adding/Removing Individual Organs')}
-                    <Row md={12} className={'noGutter'} style={{'height': 'calc(45vh - 8vh - 1.5em)'}}>
+                <Col md={2} className={'noGutter'}>
+                    <Row md={12} style={{'height': 'auto'}}>
+                        {makeThresholdDropdown()}
+                        {makeMetricDropdown()}
+                        {makeToggleCluster()}
+                        {/* {makeWindowToggle(props.additiveClusterResults.organ)} */}
+                    </Row>
+                    <Row md={12} style={{'height': '40%'}}>
+                        <EffectViewLegendD3
+                            colorMetric={colorMetric}
+                            extents={extents}
+                            linearInterpolator={linearInterpolator}
+                            divergentInterpolator={divergentInterpolator}
+                            useChange={useChange}
+                        ></EffectViewLegendD3>
+                    </Row>
+                </Col>
+                <Col md={10} className={'noGutter shadow fillHeight'}>
+                    <Row md={12} 
+                        className={'noGutter fillWidth'}
+                        style={{'height': 'calc(95% - 8vh - 1em)'}}
+                    >
                         <DoseEffectViewD3
                             doseData={props.doseData}
                             clusterData={props.clusterData}
@@ -229,7 +248,7 @@ export default function DoseEffectView(props){
                         ></DoseEffectViewD3>
                     </Row>
                     {makeTitle('Effect of Adding/Removing Features')}
-                    <Row md={12} className={'noGutter'} style={{'height': 'calc(8vh - 1.5em)'}}>
+                    <Row md={12} className={'noGutter fillWidth'} style={{'height': 'calc(8vh - 1em)'}}>
                         <FeatureEffectViewD3
                             doseData={props.doseData}
                             clusterData={props.clusterData}
@@ -251,23 +270,7 @@ export default function DoseEffectView(props){
                         ></FeatureEffectViewD3>
                     </Row>
                 </Col>
-                <Col md={2} className={'noGutter'}>
-                    <Row md={12} style={{'height': 'auto'}}>
-                        {makeThresholdDropdown()}
-                        {makeMetricDropdown()}
-                        {makeToggleCluster()}
-                        {/* {makeWindowToggle(props.additiveClusterResults.organ)} */}
-                    </Row>
-                    <Row md={12} style={{'height': '40%'}}>
-                        <EffectViewLegendD3
-                            colorMetric={colorMetric}
-                            extents={extents}
-                            linearInterpolator={linearInterpolator}
-                            divergentInterpolator={divergentInterpolator}
-                            useChange={useChange}
-                        ></EffectViewLegendD3>
-                    </Row>
-                </Col>
+                
             </Row>
         </div>
     )

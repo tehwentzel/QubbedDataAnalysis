@@ -8,7 +8,6 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Dropdown from 'react-bootstrap/Dropdown';
 import DropdownButton from 'react-bootstrap/DropdownButton';
-import DoseLegendD3 from './DoseLegendD3.js';
 
 export default function ClusterControlPanel(props){
 
@@ -109,20 +108,33 @@ export default function ClusterControlPanel(props){
             let tempType = tempClusterType + '';
             props.setClusterType(tempType);
         }
+        // if(tempConfounders !== undefined & tempConfounders !== props.lrtConfounder){
+        //     let tempConf = tempConfounders.slice();
+        //     props.setLrtConfounders(tempConf);
+        // }
+        // if(tempSOIs !== undefined & tempSOIs.length > 0){
+        //     let tempSymptoms = tempSOIs.slice();
+        //     props.setSymptomsOfInterest(tempSymptoms);
+        // }
+        // if(tempEndpointDates !== undefined & tempEndpointDates.length > 0){
+        //     let tempEndpoints = tempEndpointDates.slice();
+        //     tempEndpoints.sort();
+        //     props.setEndpointDates(tempEndpoints);
+        // }
+        props.updateClusterOrgans();
+    }
+
+    function handleUpdateOutcomes(){
+
         if(tempConfounders !== undefined & tempConfounders !== props.lrtConfounder){
             let tempConf = tempConfounders.slice();
             props.setLrtConfounders(tempConf);
-        }
-        if(tempSOIs !== undefined & tempSOIs.length > 0){
-            let tempSymptoms = tempSOIs.slice();
-            props.setSymptomsOfInterest(tempSymptoms);
         }
         if(tempEndpointDates !== undefined & tempEndpointDates.length > 0){
             let tempEndpoints = tempEndpointDates.slice();
             tempEndpoints.sort();
             props.setEndpointDates(tempEndpoints);
         }
-        props.updateClusterOrgans();
     }
 
     function updateEndpoints(){
@@ -339,7 +351,7 @@ export default function ClusterControlPanel(props){
                 <Row  md={12}>
                     <Col className={'borderRight'} md={6} >
                         <Row md={12}>
-                            <span>
+                            <span className={'viewTitle'}>
                                 {'Cluster Parameters'}
                             </span>   
                         </Row>
@@ -372,16 +384,24 @@ export default function ClusterControlPanel(props){
                             {featureButtons}
                             </Col>
                         </Row>
-                        
+                        <Row style={{'marginTop': '.5em'}} className={'controlPanelTitle'} md={12}>
+                            <Button
+                                onClick={handleUpdateClusters}
+                                disabled={disabled}
+                                variant={!disabled? "outline-secondary":'dark'}
+                            >
+                                {'Run Clustering'}
+                            </Button>
+                        </Row>
                     </Col>
                     <Col className={'borderRight'} md={6}>
                         <Row md={12}>
-                            <span>
+                            <span className={'viewTitle'}>
                                 {'Outcome Parameters'}
                             </span>   
                         </Row>
                         <Row md={12}>
-                            <Col className={'noGutter'}>
+                            <Col md={6} className={'noGutter'}>
                                 {'Symptom:'}
                                 <DropdownButton
                                     className={'controlDropdownButton'}
@@ -389,7 +409,7 @@ export default function ClusterControlPanel(props){
                                     title = {props.mainSymptom}
                                 >{mainSymptomButtonOptions}</DropdownButton>
                             </Col>
-                            <Col className={'noGutter'}>
+                            <Col md={6} className={'noGutter'}>
                                 <span>{'Endpoints (wks): '}</span>
                                 {makeEndpointButtons()}
                                 <span>{'  '}</span>
@@ -407,21 +427,22 @@ export default function ClusterControlPanel(props){
                                 {confounderButtons}
                             </Col>
                         </Row>
+                        <Row style={{'marginTop': '.5em'}} className={'controlPanelTitle'} md={12}>
+                            <Button
+                                onClick={handleUpdateOutcomes}
+                                // disabled={disabled}
+                                variant={"outline-secondary"}
+                            >
+                                {'Update Outcomes'}
+                            </Button>
+                        </Row>
                     </Col>
                 </Row>
-                <Row style={{'marginTop': '.5em'}} className={'controlPanelTitle'} md={12}>
-                    <Button
-                        onClick={handleUpdateClusters}
-                        disabled={disabled}
-                        variant={!disabled? "outline-secondary":'dark'}
-                    >
-                        {'Run Clustering'}
-                    </Button>
-                </Row>
+                
             </Col>
             <Col sm={2}>
                 <Row md={12}>
-                    <span>
+                    <span className={'viewTitle'}>
                         {"Plot Parameters"}
                     </span>
                 </Row>
@@ -435,13 +456,7 @@ export default function ClusterControlPanel(props){
                     <Col>
                         {makeToggleLabelsButton()}
                     </Col>
-                {/* <Row md={12} style={{'width':'100%','height':'100%'}}s>
-                    <DoseLegendD3
-                        plotVar={props.plotVar}
-                        doseColor={props.doseColor}
-                        maxDose={props.maxDose}
-                    />
-                </Row> */}
+                
                 </Row>
             </Col>
             

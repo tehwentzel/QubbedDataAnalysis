@@ -12,6 +12,7 @@ export default function DoseLegendD3(props){
 
     useEffect(function draw(){
         if(svg !== undefined & props.plotVar !== undefined & props.doseColor !== undefined){
+            console.log('color',height,width)
             const steps = [1,props.maxDose*.33,props.maxDose*.66,props.maxDose];
             const barHeight = (height - 2*yMargin)/(steps.length + 1);
             const fontSize = barHeight/2;

@@ -1,8 +1,35 @@
 body{
-  --control-panel-height: 150px;
+  --control-panel-height: 125px;
   --right-panel-width: 49vw;
   --left-panel-width: 49vw;
   --section-height: calc((95vh - 4em - 150px)/2);
+  --ul-height: calc(50vh - 75px - .25em);
+  --ll-height: calc(50vh - 75px - .25em);
+  --ur-height: calc(55vh - 75px - .25em);
+  --lr-height: calc(45vh - 75px - .25em);
+  --cluster-width: 45%;
+  --cluster-height: 25vh;
+  --patient-dose-height: 12vh;
+  --patient-symptom-height: 10vh;
+  overflow-x: hidden!important;
+  overflow-y: show;
+}
+
+.ul-view{
+  height: var(--ul-height);
+}
+
+.ll-view{
+  height: var(--ll-height);
+}
+
+.ur-view{
+  height: var(--ur-height);
+}
+
+.lr-view{
+  height: var(--lr-height)!important;
+  overflow-y: show!important;
 }
 
 .App {
@@ -10,14 +37,16 @@ body{
   height: 100vh!important;
   width: 100vw!important;
   margin: 0px;
+  overflow-x: hidden!important;
 }
 
-.row{
+.row, .col, .col-md-4{
   /* width: 100%; */
-  margin: 0px;
-  padding: 0px;
+  margin: 0px!important;
+  padding: 0px!important;
+  overflow-x: hidden!important;
   /* overflow-y: hidden;
-  overflow-x: hidden; */
+  
   /* height: 100%; */
 }
 
@@ -32,7 +61,7 @@ body{
 #clusterControlPanelContainer{
   height: var(--control-panel-height);
   width: 100vw!important;
-  overflow-y: show;
+  overflow-y: show!important;
   /* position: absolute; */
 }
 
@@ -42,10 +71,10 @@ body{
 }
 
 #mainVis{
-  height: calc(100vh - 2em - var(--control-panel-height));
-  top: calc(1em + var(--control-panel-height));
+  height: calc(100vh - 1em - var(--control-panel-height));
+  top: var(--control-panel-height);
   width: 100vw!important;
-  overflow-y: scroll;
+  /* overflow-y: scroll; */
   /* position: absolute; */
 }
 
@@ -57,19 +86,21 @@ body{
   padding: 0px;
   background-color: white;
   transform-origin: 0, 0;
+  overflow-y: show!important;
+}
+
+.shadow{
+  box-shadow: 8px 8px 15px .25px rgba(0, 0, 0, 0.25);
 }
 
 .clusterContainer{
-  height: var(--section-height)!important;
-  min-height: var(--section-height)!important;
+  /* height: var(--section-height)!important;
+  min-height: var(--section-height)!important; */
   justify-content: start;
 }
 
-#doseClusterContainer{
-  height: var(section-height)!important;
-}
 
-.overviewContainer, #doseClusterContainer{
+.overviewContainer{
   display: block;
   margin: 0px;
   padding: 0px;
@@ -98,19 +129,19 @@ svg > path, svg > circle{
 }
 
 .clusterPlotCol{
-  height: calc(25vh - 1em)!important;
+  height: var(--cluster-height)!important;
   /* height: 20em!important; */
   margin: 0em!important;
   padding: 0em!important;
   padding-left: .1em!important;
   padding-right: .1em!important;
-  width: calc(50% - 1em)!important;
+  width: var(--cluster-width)!important;
   display: inline-flex!important;
   justify-content: left!important;
 }
 
 .clusterDoseContainer{
-  height: calc(25vh - 3em)!important;
+  height: calc(var(--cluster-height) - 2em)!important;
 }
 
 .organPath{
@@ -177,6 +208,14 @@ svg > path, svg > circle{
   font-weight: bold;
 }
 
+.viewTitle{
+  font-size: 1em;
+  font-weight: bold;
+  font-style: italic;
+  font-family:Georgia;
+  overflow-y: show!important;
+}
+
 .fillHeight{
   height:100%;
   width: auto;
@@ -194,7 +233,7 @@ svg > path, svg > circle{
 
 }
 
-.noGutter{
+.noGutter, .noGutter > *{
   margin: 0px!important;
   padding: 0px!important;
 }

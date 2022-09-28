@@ -149,6 +149,7 @@ export default function RuleView(props){
         return (
             <Row 
                 key={keyName} 
+                className={'shadow'}
                 style={{'display':'inline-block','width':'95%','height': '20em','marginBottom':'1em'}}
             >
                 <span  style={{'fontSize':'.7em'}}>
@@ -414,10 +415,11 @@ export default function RuleView(props){
     return (
         <div ref={ref} className={'noGutter fillSpace'}>
             <Row md={12} className={'noGutter fillSpace'}>
-                <Col md={10} className={'noGutter scroll'} style={{'height':'45vh'}}>
-                    {vizComponents}
-                </Col>
+                
                 <Col md={2} className={'noGutter'}>
+                    <span className={'centerText controlPanelTitle'}>
+                        {'Rule Mining Params.'}
+                    </span>
                     {makeFilterToggle()}
                     {makeCriteriaToggle()}
                     {makeOrganSetToggle()}
@@ -426,6 +428,9 @@ export default function RuleView(props){
                     {makeMinInfoDropDown()}
                     {makeMaxRulesDropDown()}
                     {/* {makeThresholdForm()} */}
+                </Col>
+                <Col md={10} className={'noGutter scroll'} style={{'height':'45vh'}}>
+                    {vizComponents}
                 </Col>
             </Row>
         </div>

@@ -45,6 +45,7 @@ export default function ClusterSymptomsD3(props){
         
         if(svg !== undefined & props.data != undefined & height > 0 & width > 0){
             const nRows = Object.keys(props.plotSymptoms).length;
+            console.log(props.plotSymptoms);
             const rowHeight = ((height - 2*yMargin - maxXLabelSize)/(nRows)) - spacing;
             const xLabelSize = Math.min(maxXLabelSize, rowHeight*.8);
             const chartHeight = rowHeight - spacing;

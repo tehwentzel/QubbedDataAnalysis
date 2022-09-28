@@ -18,17 +18,8 @@ export default function PatientDoseView(props){
     const ref = useRef(null)
 
     const plotVars = ['V35','V45','V55','V65'];
-    const [plotSymptoms,setPlotSymptoms] = useState([
-        'drymouth',
-        'taste',
-        'mucus',
-        'mucositis',
-        'swallow',
-        'voice',
-        'choke',
-        'pain',
-        'teeth',
-    ])
+    const defaultSymptoms = ['drymouth','swallow','choke','pain'];
+    const [plotSymptoms,setPlotSymptoms] = useState([...defaultSymptoms]);
     //temp limit on number of patients we plot
     //add in some sort of toggle or something here?
     const [maxPatients,setMaxPatients] = useState(10);
@@ -140,6 +131,14 @@ export default function PatientDoseView(props){
         return sims
     }
 
+    useEffect(()=>{
+        let newSymptoms = [props.mainSymptom];
+        for(let s of defaultSymptoms){
+            if(s != props.mainSymptom){newSymptoms.push(s);}
+        }
+        setPlotSymptoms(newSymptoms);
+    },[props.mainSymptom])
+
     useEffect(function getSimLists(){
         if(props.doseData !== undefined & props.clusterData !== undefined & props.activeCluster !== undefined){
             let activeIds = props.clusterData.filter(x => x.clusterId == props.activeCluster).map(x=>x.ids)[0];
@@ -188,8 +187,8 @@ export default function PatientDoseView(props){
             let width = showCounterfactuals? '48%':'90%'
             return (
                 <Container id={'pdose'+d.id} key={d.id+'_'+props.selectedPatientId} 
-                style={{'height':'15vh','width': width,'marginTop': '2em'}} 
-                    className={'inline'} key={i+props.plotVar+canClick} md={5}>
+                style={{'height':'auto','width': width,'marginTop': '1em','minHeight':'4em'}} 
+                    className={'inline shadow'} key={i+props.plotVar+canClick} md={5}>
                     <span  className={'controlPanelTitle'}>
                         <Button
                             title={title}
@@ -199,21 +198,25 @@ export default function PatientDoseView(props){
                             onClick={(e)=>handlePatientSelect(d.id)}
                         >{title}<span r={10} style={{'borderRadius':'70%','color':d.color}}>{'⬤'}</span></Button>
                     </span>
-                    <PatientDoseViewD3
-                        data={d}
-                        key={i+''+props.activeCluster+'dose'}
-                        plotVar={props.plotVar}
-                        svgPaths={props.svgPaths}
-                        orient={'both'}
-                        getColor={getColor}
-                        baseline={baseline}
-                    ></PatientDoseViewD3>
-                    <PatientSymptomsD3
-                        data={d}
-                        key={i+''+props.activeCluster+'symptom'}
-                        plotSymptoms={plotSymptoms}
-                        // plotSymptoms={props.symptomsOfInterest}
-                    ></PatientSymptomsD3>
+                    <Row style={{'height':'var(--patient-dose-height)','minHeight':'2em'}}>
+                        <PatientDoseViewD3
+                            data={d}
+                            key={i+''+props.activeCluster+'dose'}
+                            plotVar={props.plotVar}
+                            svgPaths={props.svgPaths}
+                            orient={'both'}
+                            getColor={getColor}
+                            baseline={baseline}
+                        ></PatientDoseViewD3>
+                    </Row>
+                    <Row style={{'height':'var(--patient-symptom-height)','minHeight':'2em'}}>
+                        <PatientSymptomsD3
+                            data={d}
+                            key={i+''+props.activeCluster+'symptom'}
+                            plotSymptoms={plotSymptoms}
+                            // plotSymptoms={props.symptomsOfInterest}
+                        ></PatientSymptomsD3>
+                    </Row>
                     <span  className={'controlPanelTitle'}>
                         <Button
                             title={bottomTitle}

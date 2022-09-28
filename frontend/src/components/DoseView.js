@@ -6,6 +6,8 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 
 import Dose2dCenterViewD3 from './Dose2dCenterViewD3.js';
+import DoseLegendD3 from './DoseLegendD3.js';
+
 // import ClusterSymptomsD3 from './ClusterSymptomsD3.js';
 // import ClusterClinicalD3 from './ClusterClinicalD3.js';
 
@@ -75,13 +77,6 @@ export default function DoseView(props){
                 let variant = clickableTitle? 'outline-secondary': 'dark';
                 let dotColor = props.categoricalColors(parseInt(d.clusterId));
                 return (
-                    // <Container md={12}  
-                    //     fluid={'true'} 
-                    //     flex={'true'}
-                    //     className={'noGutter'} 
-                    //     style={{'marginTop': topmargin,'display':'inline-block'}}  
-                    //     key={i}
-                    // >
                         <Row 
                             className={'clusterPlotCol'} 
                             md={6} 
@@ -103,7 +98,7 @@ export default function DoseView(props){
                                 </Button>
                             </Col>
                             <Col md={12}
-                                className={'clusterDoseContainer'}
+                                className={'clusterDoseContainer shadow'}
                             >
                                 <Dose2dCenterViewD3
                                     data={d}
@@ -181,10 +176,28 @@ export default function DoseView(props){
     ])
 
     return ( 
-        <div ref={ref} className={'noGutter'} >
-            <Container id={'doseClusterContainer'} >
-                {clusterVizComponents}
-            </Container>
+        <div ref={ref} className={'noGutter fillSpace overviewContainer'} >
+            <Row md={12} className={'ur-view noGutter fillSpace'}>
+                <Col md={10} className={' scroll noGutter'}>
+                    {clusterVizComponents}
+                </Col>
+                <Col md={2} 
+                    style={{'justifyContent':'center'}} 
+                    fluid={true} className={'noGutter fillHeight'}
+                >
+                    <Row style={{'maxHeight': '8em','minHeight':'5em'}} 
+                        className={'fillSpace noGutter'}
+                    >
+                        <span className={'controlPanelTitle'} >{'Dose (Gy)'}</span>
+                        <DoseLegendD3
+                            plotVar={props.plotVar}
+                            doseColor={props.doseColor}
+                            maxDose={props.maxDose}
+                        />
+                    </Row>
+                    
+                </Col>
+            </Row>
         </div> 
         )
 }

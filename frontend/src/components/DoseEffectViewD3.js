@@ -9,7 +9,7 @@ export default function DoseEffectViewD3(props){
     const [pathsDrawn, setPathsDrawn] = useState(false);
     const [box,setBox] = useState();
     const useChange = props.useChange;
-    
+    const margin = {'top':1,'bottom':1,'left':10,'right':40}
 
     useEffect(function drawBorders(){
         if(svg !== undefined & props.svgPaths !== undefined & props.effectData !== undefined & props.extents !== undefined){
@@ -194,8 +194,10 @@ export default function DoseEffectViewD3(props){
                 });;
 
             let box = svg.node().getBBox();
-            let transform = 'translate(' + (-box.x)*(width/box.width)  + ',' + (-box.y)*(height/box.height) + ')'
-            transform += ' scale(' + width/box.width + ',' + (-height/box.height) + ')';
+            let transform = 'translate(' + (-box.x)*((width-margin.right)/box.width)  
+            transform += ',' + (-box.y)*((height-margin.top)/box.height) + ')'
+            transform += ' scale(' + (width - margin.left - margin.right)/box.width + ',' 
+            transform += (-(height - margin.top - margin.bottom)/box.height) + ')';
             organGroup.attr('transform',transform);
             setBox(box);
         }

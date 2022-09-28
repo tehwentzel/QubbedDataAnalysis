@@ -22,7 +22,7 @@ export default function ClusterMetrics(props){
     //I dont think I use this
     const [metricData,setMetricData] = useState(null);
 
-    const [metricThresholds,setMetricThresholds] = useState([0,-1,5,-5]);
+    const [metricThresholds,setMetricThresholds] = useState([0,5,-5]);
     const thresholdOptions = [-7,-5,-3,-1,0,3,5,7];
 
     var fetchMetrics = async(cData,dates,lrtConfounders,thresholds,symptoms)=>{
@@ -111,21 +111,20 @@ export default function ClusterMetrics(props){
     },[metricData,props.mainSymptom,props.endpointDates,props.activeCluster])
 
     return ( 
-        <div ref={ref} id={'doseClusterContainer'}>
-            <Row md={12} className = {'noGutter fillWidth'} style={{'height':'45vh'}}>
-                <Col md={10} className={'noGutter'}>
-                    {vizComponents}     
-                </Col>
-                <Col md={2} className={'noGutter'}>
-                    <Button
-                        style={{'width': '100%'}}
-                        variant={'light'}
-                    >{'Outcomes'}</Button>
-                    <span >
+        <div ref={ref} className={'fillSpace noGutter'}>
+            <Row md={12} className = {'noGutter fillSpace'}>
+                <Col md={12} className={'noGutter'} style={{'height':'1.6em'}}>
+                        {/* <Button
+                            style={{'width': '100%'}}
+                            variant={'light'}
+                        >{'Outcomes'}</Button> */}
                         {makeThresholdButtons()}
-                    </span>
                     
                 </Col>
+                <Col md={12} style={{'height':'calc(100% - 1.6em)'}} className={'noGutter'}>
+                    {vizComponents}     
+                </Col>
+                
             </Row>
         </div> 
         )

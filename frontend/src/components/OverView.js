@@ -113,6 +113,7 @@ export default function OverView(props){
                     clusterOrgans={props.clusterOrgans}
                     activeCluster={props.activeCluster}
                     svgPaths={props.svgPaths}
+                    mainSymptom={props.mainSymptom}
                     clusterFeatures={props.clusterFeatures}
                     symptomsOfInterest={props.symptomsOfInterest}
                     showCounterfactuals={showCounterfactuals}
@@ -125,8 +126,8 @@ export default function OverView(props){
         //I'm maybe not doing this an putting it in the left hand side as a pernament view
         if(props.clusterData != undefined & props.doseData != undefined){
             return (
-                <Col className={'noGutter fillSpace'}>
-                    <span className={'centerText controlPanelTitle'}>
+                <Col className={'noGutter shadow fillSpace'}>
+                    <span className={'centerText viewTitle'}>
                         {
                             Utils.getVarDisplayName(props.mainSymptom) 
                             + ' Trajectory for cluster ' + (props.activeCluster) 
@@ -283,24 +284,17 @@ export default function OverView(props){
 
     function switchView(view){
         if(view == 'scatterplot' | view === undefined | view === null){
-            let buttonHeight = 30;
+            let buttonHeight = 20;
             return (
-                <>
-                    <Col className={'noGutter fillHeight'} md={8}>
-                        <Row md={12} className={'noGutter'} 
-                            style={{'height':'calc(100% - ' + (100+buttonHeight)+'px)'}} fluid={'true'}>
+                <Row md={12} className={'noGutter fillSpace'}>
+                    <Col className={'noGutter fillHeight'} md={9}>
                             {makeScatter()}
-                        </Row>
-                        <Row md={12} className={'noGutter'} style={{'height': buttonHeight,'overflow':'hidden'}}>
-                            {makeDropdown('x-axis',xVar,setXVar,1,varOptions,'up')}
-                            {makeDropdown('y-axis',yVar,setYVar,2,varOptions,'up')}
-                        </Row>
-                        
                     </Col>
-                    <Col md={4} fluid={'false'} className={'noGutter fillHeight scroll'}>
-                        {makePatientDoses(false)}
+                    <Col md={3} fluid={'false'} className={'noGutter fillHeight'}>
+                        {makeDropdown('x-axis',xVar,setXVar,1,varOptions,'up')}
+                        {makeDropdown('y-axis',yVar,setYVar,2,varOptions,'up')}
                     </Col>
-                </>
+                </Row>
             )
         } 
         if(view == 'effect'){
@@ -312,9 +306,9 @@ export default function OverView(props){
         } 
         if(view == 'symptom'){
             return (
-                <>
+                <Fragment key={view}>
                     {makeSymptomPlot()}
-                </>
+                </Fragment>
             )
         } 
         if(view == 'patients'){
@@ -326,9 +320,9 @@ export default function OverView(props){
         }
         if(view == 'metric'){
             return (
-                <Row key={view} md={12} className={'noGutter fillSpace'}>
+                <Fragment key={view}>
                     {makeMetricsPlot()}
-                </Row>
+                </Fragment>
             )
         }
         if(view == 'rules'){
@@ -385,18 +379,19 @@ export default function OverView(props){
         }
         return Utils.getVarDisplayName(title);
     }
-
+ 
+    const classes = props.className? props.className: 'overviewContainer';
     function getView(showToggleBar){
         if(showToggleBar){
             return (
-                <div ref={ref} className={'overviewContainer'}>
-                    <Row md={12} style={{'height': '2.5em'}} className={'noGutter fillWidth'}>
+                <div ref={ref} className={classes}>
+                    <Row md={12} style={{'height': '1.5em'}} className={'noGutter fillWidth'}>
                         <Col md={8} className={'noGutter'}>
                             {makeToggleButton('scatterplot')}
                             {/* {makeToggleButton('effect')} */}
                             {makeToggleButton('symptom')}
                             {makeToggleButton('patients')}
-                            {makeToggleButton('metric')}
+                            {/* {makeToggleButton('metric')} */}
                             {/* {makeToggleButton('cv_metrics')} */}
                             {/* {makeToggleButton('rules')} */}
                         </Col>
@@ -405,8 +400,8 @@ export default function OverView(props){
                         </Col>
                     </Row>
                     <Row md={12} 
-                        className={'noGutter fillSpace'}
-                        style={{'height':'calc(100% - 3.5em)'}}
+                        className={'noGutter'}
+                        style={{'height':'calc(100% - 1.5em)'}}
                     >
                         {switchView(viewToggle)}
                     </Row>
@@ -414,15 +409,15 @@ export default function OverView(props){
             )
         } else{
             return (
-                <div ref={ref} id={'overviewContainer'}>
-                   <Row md={12} style={{'height': '2.5em'}} className={'noGutter fillWidth'}>
-                        <span className={'centerText controlPanelTitle'} >
+                <div ref={ref} className={classes}>
+                   <Row md={12} style={{'height': '1.5em'}} className={'noGutter fillWidth'}>
+                        <span className={'centerText viewTitle'} >
                             {getPanelTitle(viewToggle)}
                         </span>
                     </Row>
                     <Row md={12} 
-                        className={'noGutter fillSpace'}
-                        style={{'height':'calc(100% - 3.5em)'}}
+                        className={'noGutter fillWidth'}
+                        style={{'height':'calc(100% - 1.5em)'}}
                     >
                         {switchView(viewToggle)}
                     </Row>

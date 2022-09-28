@@ -6,6 +6,7 @@ import Utils from './modules/Utils';
 import DoseView from './components/DoseView.js';
 import ClusterControlPanel from './components/ClusterControlPanel.js';
 import OverView from './components/OverView.js';
+import DoseEffectView from './components/DoseEffectView.js';
 import SymptomPlotD3 from './components/SymptomPlotD3.js';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -54,7 +55,7 @@ function App() {
   //in progress, should toggle if the dose cluster show labels for organs?
   const [showOrganLabels,setShowOrganLabels] = useState(true);
   //which cluster is the focus on in the detail views
-  const [activeCluster,setActiveCluster] = useState(0);
+  const [activeCluster,setActiveCluster] = useState(nDoseClusters-1);
   // const [updateCued,setUpdateCued] = useState(false)
   //which patient is focused on in detail views when appropriate
   const [selectedPatientId, setSelectedPatientId] = useState(-1);
@@ -144,7 +145,7 @@ function App() {
     return colors[ii];
   }
   function resetSelections(){
-    setActiveCluster(0);
+    setActiveCluster(nDoseClusters-1);
     setSelectedPatientId(-1);
   }
 
@@ -243,7 +244,7 @@ function App() {
       // console.log('cluster organ query', clusterOrgans)
       fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest,endpointDates);
     }
-  },[clusterOrgans,nDoseClusters,clusterFeatures,clusterType,symptomsOfInterest])
+  },[clusterOrgans,nDoseClusters,clusterFeatures,clusterType])
 
   useEffect(function updateDoses(){
     if(!clusterDataLoading & clusterData !== undefined){
@@ -261,7 +262,7 @@ function App() {
     }
   },[clusterDataLoading,clusterData,mainSymptom,clusterDataLoading,lrtConfounders,additiveClusterThreshold,additiveCluster,endpointDates])
 
-  function makeOverview(state,showToggle=true){
+  function makeOverview(state,showToggle=true,className){
     return (
       <Row style={{'height': 'var(section-height)','overflowY':'hidden'}} 
         className={'noGutter'} 
@@ -302,43 +303,10 @@ function App() {
             doseColor={doseColor}
             endpointDates={endpointDates}
             setEndpointDates={setEndpointDates}
+            className={className}
         ></OverView>
     </Row>
     )
-  }
-
-  function makeSymptomPlot(){
-    if(clusterData !== undefined & doseData != undefined & !clusterDataLoading){
-      return (
-        <Container>
-            <span className={'centerText controlPanelTitle'}>
-              {Utils.getVarDisplayName(mainSymptom) + ' Trajectory vs Time'}
-            </span>
-            <SymptomPlotD3
-                doseData={doseData}
-                clusterData={clusterData}
-                selectedPatientId={selectedPatientId}
-                setSelectedPatientId={setSelectedPatientId}
-                plotVar={plotVar}
-                clusterOrgans={clusterOrgans}
-                activeCluster={activeCluster}
-                setActiveCluster={setActiveCluster}
-                mainSymptom={mainSymptom}
-                categoricalColors={categoricalColors}
-                
-            ></SymptomPlotD3>
-        </Container>
-      )
-    } else{
-      return (
-        <Container className={'noGutter fillSpace'}>
-          <span className={'centerText controlPanelTitle'}>
-                {'Symptom Trajectory vs Time'}
-            </span>
-          <Spinner as={'span'}></Spinner>
-        </Container>
-      )
-    }
   }
 
   return (
@@ -376,12 +344,12 @@ function App() {
                 ></ClusterControlPanel>
           </Row>
           <Row id={'mainVis'} className={'noGutter'} lg={12}>   
-            <Col fluid={'true'} className={'fillHeight noGutter'} lg={6}>
-                {makeOverview('effect',false)}
-                {makeOverview('rules',false)}
+            <Col fluid={'true'} className={'fillHeight noGutter'} lg={5}>
+                {makeOverview('effect',false,'overviewContainer ul-view')}
+                {makeOverview('rules',false,'overviewContainer ll-view')}
             </Col>  
-            <Col className={'noGutter'} lg={6}>
-              <Row className={'clusterContainer vizComponent noGutter scroll'} lg={12}>
+            <Col className={'noGutter'} lg={7}>
+              <Row className={'clusterContainer ur-view vizComponent noGutter'} lg={12}>
                 <DoseView
                     doseData={doseData}
                     clusterData={clusterData}
@@ -408,7 +376,13 @@ function App() {
                 ></DoseView>
               </Row>
               <Row className={'clusterContainer noGutter'} lg={12}>
-                {makeOverview('symptom',true)}
+                <Col md={3}>
+                  {makeOverview('metric',false,'overviewContainer lr-view')}
+                </Col>
+                <Col md={9}>
+                  {makeOverview('symptom',true,'overviewContainer lr-view')}
+                </Col>
+                
               </Row>
             </Col>
           </Row>

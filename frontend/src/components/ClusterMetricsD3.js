@@ -8,7 +8,7 @@ export default function ClusterMetricsD3(props){
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [rectsDrawn,setRectsDrawn] = useState(false);
     const yMarginTop = 10;
-    const yMarginBottom = 70;
+    const yMarginBottom = 20;
     const xMargin = 10;
     const barMargin = 2;
     const chartMargin = 10;
@@ -37,13 +37,14 @@ export default function ClusterMetricsD3(props){
     }
 
     function makeTitle(key, threshold){
-        let title = Utils.getVarDisplayName(key);
+        let title = '';//Utils.getVarDisplayName(key);
         if(threshold < 0){
             title =  title + ' Δ';
         }
         if(Math.abs(threshold) > 1){
             title += '>' + (Math.abs(threshold) - 1);
-        } else{
+        } 
+        else{
             title += ' linear';
         }
         return title;
@@ -231,11 +232,12 @@ export default function ClusterMetricsD3(props){
                 .attr('x',d=>d.x + barWidth/2)
                 .attr('text-anchor','middle')
                 .attr('y',getTextY)
-                .style('font-size',barWidth/2.5)
+                .style('font-size',barWidth/2)
                 .html(d=>formatNum(d.value));
 
             svg.selectAll('text').filter('.title').remove();
-            const titleSize = Math.min(barWidth/2.5,yMarginBottom/3);
+            const titleSize = Math.max(10,Math.min(barWidth/2,yMarginBottom/3));
+            
             let titleText = svg.selectAll('text').filter('.title')
                 .data(titleData).enter().append('text')
                 .attr('class','title')
