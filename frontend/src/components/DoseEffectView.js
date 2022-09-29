@@ -80,7 +80,7 @@ export default function DoseEffectView(props){
             <DropdownButton
                 // drop={'up'}
                 className={'controlDropdownButton'}
-                title={'Color: ' + colorMetric}
+                title={Utils.getVarDisplayName(colorMetric)}
             >{mOptions}</DropdownButton>
         )
     }
@@ -102,11 +102,12 @@ export default function DoseEffectView(props){
                 >{t}</Dropdown.Item>
             )
         });
+        const title = ' >=' + (props.additiveClusterThreshold);
         return (
             <DropdownButton
                 // drop={'up'}
                 className={'controlDropdownButton'}
-                title={'Target Threshold: ' + props.additiveClusterThreshold}
+                title={title}
             >{tholds}</DropdownButton>
         )
     }
@@ -156,15 +157,13 @@ export default function DoseEffectView(props){
                     title={'all'}
                     variant = {useAll? 'dark':'outline-secondary'}
                     disabled={useAll}
-                    style={{'width':'50%','height':'2em'}}
                     onClick={()=>props.setAdditiveCluster(true)}
-                >{'All'}</Button>
+                >{'All Clusters'}</Button>
                 <Button
                     variant = {useAll? 'outline-secondary':'dark'}
                     disabled={!useAll}
-                    style={{'width':'50%','height':'2em'}}
                     onClick={()=>props.setAdditiveCluster(false)}
-                >{"Clust " + (props.nDoseClusters-1)}</Button>
+                >{"Cluster " + (props.nDoseClusters-1)}</Button>
             </span>
         )
     }
@@ -197,30 +196,49 @@ export default function DoseEffectView(props){
         }
     }
 
+    function makeSymptomDropdown(){
+        if(props.symptomsOfInterest == undefined){ return; }
+        let sOpts = props.symptomsOfInterest.map((s,i) => {
+            return (<Dropdown.Item
+                    key={i}
+                    value={s}
+                    eventKey={s}
+                    onClick={ 
+                        (e)=>{
+                            if(s!==props.mainSymptom){ props.setMainSymptom(s); } 
+                        } 
+                    }
+                >{s}</Dropdown.Item>)
+        });
+        return (
+            <DropdownButton
+                className={'controlDropdownButton'}
+                value = {props.mainSymptom}
+                title = {Utils.getVarDisplayName(props.mainSymptom)}
+            >{sOpts}</DropdownButton>
+        )
+    }
+
     return (
         <div ref={ref} className={'noGutter fillSpace'}>
             <Row md={12} className={'noGutter fillSpace'}>
-                <Col md={2} className={'noGutter'}>
-                    <Row md={12} style={{'height': 'auto'}}>
-                        {makeThresholdDropdown()}
-                        {makeMetricDropdown()}
-                        {makeToggleCluster()}
-                        {/* {makeWindowToggle(props.additiveClusterResults.organ)} */}
-                    </Row>
-                    <Row md={12} style={{'height': '40%'}}>
-                        <EffectViewLegendD3
-                            colorMetric={colorMetric}
-                            extents={extents}
-                            linearInterpolator={linearInterpolator}
-                            divergentInterpolator={divergentInterpolator}
-                            useChange={useChange}
-                        ></EffectViewLegendD3>
-                    </Row>
-                </Col>
                 <Col md={10} className={'noGutter shadow fillHeight'}>
+                    <Row md={12} className={'inline noGutter fillWidth centerText viewTitle'}
+                        style={{'height':'2.2em','width':'100%'}}
+                    >
+                        <span>
+                        {'Effect of Adding/Removing Organs on '}
+                        {makeMetricDropdown()}
+                        {' Of '}
+                        {makeToggleCluster()}
+                        {' For Predicting '}
+                        {makeSymptomDropdown()}
+                        {makeThresholdDropdown()}
+                        </span>
+                    </Row>
                     <Row md={12} 
                         className={'noGutter fillWidth'}
-                        style={{'height': 'calc(95% - 8vh - 1em)'}}
+                        style={{'height': 'calc(95% - 8vh - 2.5em)'}}
                     >
                         <DoseEffectViewD3
                             doseData={props.doseData}
@@ -248,7 +266,7 @@ export default function DoseEffectView(props){
                         ></DoseEffectViewD3>
                     </Row>
                     {makeTitle('Effect of Adding/Removing Features')}
-                    <Row md={12} className={'noGutter fillWidth'} style={{'height': 'calc(8vh - 1em)'}}>
+                    <Row md={12} className={'noGutter fillWidth'} style={{'height': 'calc(8vh - 2.5em)'}}>
                         <FeatureEffectViewD3
                             doseData={props.doseData}
                             clusterData={props.clusterData}
@@ -270,7 +288,17 @@ export default function DoseEffectView(props){
                         ></FeatureEffectViewD3>
                     </Row>
                 </Col>
-                
+                <Col md={2} className={'noGutter'}>
+                    <Row md={12} style={{'height': '50%','minHeight':'8em','maxHeight':'15em'}}>
+                        <EffectViewLegendD3
+                            colorMetric={colorMetric}
+                            extents={extents}
+                            linearInterpolator={linearInterpolator}
+                            divergentInterpolator={divergentInterpolator}
+                            useChange={useChange}
+                        ></EffectViewLegendD3>
+                    </Row>
+                </Col>
             </Row>
         </div>
     )

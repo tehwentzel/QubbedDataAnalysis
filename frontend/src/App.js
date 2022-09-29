@@ -337,6 +337,7 @@ function App() {
                 activeCluster={activeCluster}
                 symptomsOfInterest={symptomsOfInterest}
                 mainSymptom={mainSymptom}
+                setMainSymptom={setMainSymptom}
                 svgPaths={svgPaths}
                 additiveCluster={additiveCluster}
                 additiveClusterThreshold={additiveClusterThreshold}
@@ -547,6 +548,13 @@ function App() {
                 variant={''}
               >{'vs'}</Button>
               {makeDropdown('',yVar,setYVar,2,varOptions,'down')}
+              <select 
+                className={'btn btn-primary dropdown-toggle'}
+              value="4">
+                <option value="4">{'1'}</option>
+                <option value='b'>{"ur mom lol"}</option>
+                <option value='11'>{'c'}</option>
+              </select>
           </Row>
           <Row style={{'height':'calc(100% - 1.5em)'}} className={'noGutter'} md={12}>
                   {makeScatter()}

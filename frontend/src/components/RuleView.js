@@ -79,8 +79,7 @@ export default function RuleView(props){
         }
     },[props.activeCluster]);
     
-    
-    useEffect(function updateRules(){
+    function updateRules(){
         if(props.clusterData !== undefined & props.clusterData !== null & !props.clusterDataLoading){
             let rOrgans = [...props.clusterOrgans];
             if(ruleUseAllOrgans){
@@ -102,14 +101,22 @@ export default function RuleView(props){
             );
         
         }
+    }
+    
+    useEffect(() => {
+        updateRules();
     },[
-        props.clusterData,props.mainSymptom,
-        ruleThreshold,ruleCluster,
+        props.clusterData,
+        props.mainSymptom,
         props.clusterDataLoading,
-        ruleMaxDepth,maxRules,
-        ruleCriteria,ruleTargetCluster,
-        ruleUseAllOrgans,ruleMinInfo,
+        ruleTargetCluster,
         props.endpointDates,
+        // ruleUseAllOrgans,
+        // ruleMinInfo,
+        // ruleMaxDepth,maxRules,
+        // ruleCriteria,
+        // ruleThreshold,
+        // ruleCluster,
     ])
 
     const filterCluster = parseInt(ruleCluster) === parseInt(props.activeCluster)
@@ -125,8 +132,6 @@ export default function RuleView(props){
         }
         console.log('rule',rule)
         let title =  'Upper: ' + rule.upper_count
-            + ' (' + fix(100*rule.upper_count/(rule.upper_count+rule.lower_count)) + '%)'
-            + '|OR: ' + fix(rule.odds_ratio) 
             + ' |Info Gain: ' + fix(rule.info)   
             // + ' |ROC:' + fix(rule.roc_auc)
             // + ' |F1:' + fix(rule.f1) 
@@ -196,9 +201,7 @@ export default function RuleView(props){
         }
         const predictClusterActive = (ruleTargetCluster === props.activeCluster);
         return (
-            <div className={'center-block'}>
-            <Form.Label>{'Prediction'}</Form.Label>
-            <InputGroup>
+            <>
                 <Button
                     variant={(!filterCluster & !predictClusterActive)? 'dark':'outline-secondary'}
                     onClick={() => toggleFilter(false)}
@@ -213,9 +216,8 @@ export default function RuleView(props){
                     variant={predictClusterActive? 'dark':'outline-secondary'}
                     onClick={onSetTargetCluster}
                     disabled={predictClusterActive}
-                >{'Clust ' + props.activeCluster}</Button>
-            </InputGroup>
-            </div>
+                >{'Cluster ' + props.activeCluster}</Button>
+            </>
         )
     }
 
@@ -231,14 +233,10 @@ export default function RuleView(props){
             )
         }
         return (
-            <div className={'center-block'}>
-            <Form.Label>{'Criteria'}</Form.Label>
-            <InputGroup
-            >
+            <>
                 {makeButton('info')}
                 {makeButton('odds_ratio')}
-            </InputGroup>
-            </div>
+            </>
         )
     }
 
@@ -258,14 +256,10 @@ export default function RuleView(props){
             )
         }
         return (
-            <div className={'center-block'}>
-            <Form.Label>{'Organs'}</Form.Label>
-            <InputGroup
-            >
+            <>
                 {makeButton(true)}
                 {makeButton(false)}
-            </InputGroup>
-            </div>
+            </>
         )
     }
 
@@ -368,34 +362,6 @@ export default function RuleView(props){
         )
     }
 
-    function makeThresholdForm(){
-        let onKey = (e) => {
-            if(e.code === 'Enter'){
-                let val = e.target.value;
-                if(Number.isInteger(val) & parseInt(val) !== ruleThreshold){
-                    setRuleThreshold(parseInt(val))
-                }
-            }
-        }
-        return (
-            <>
-                <Form.Label>{'Symptom Threshold'}</Form.Label>
-                <InputGroup>
-                    <Button
-                        onClick={()=>{setRuleThreshold(ruleThreshold-1)}}
-                    >{'-'}</Button>
-                    <FormControl
-                        defaultValue={ruleThreshold}
-                        onKeyDown={onKey}
-                    />
-                    <Button
-                        onClick={()=>{setRuleThreshold(ruleThreshold+1)}}
-                    >{'+'}</Button>
-                </InputGroup>
-            </>
-        )
-    }
-
     useEffect(function plotStuff(){
         if(ruleData !== undefined & props.doseData !== undefined){
 
@@ -412,28 +378,43 @@ export default function RuleView(props){
         }
     },[ruleData,props.doseData,props.selectedPatientId])
 
+    
     return (
-        <div ref={ref} className={'noGutter fillSpace'}>
-            <Row md={12} className={'noGutter fillSpace'}>
-                
-                <Col md={2} className={'noGutter'}>
-                    <span className={'centerText controlPanelTitle'}>
-                        {'Rule Mining Params.'}
-                    </span>
+        <Container ref={ref} className={'noGutter fillSpace'}>
+            <Row md={12} className={'viewTitle inline centerText fillWidth noGutter'} 
+                style={{'height':'2em'}}>
+                <span>
+                    {'Thresholds for predicting '}
                     {makeFilterToggle()}
+                    {' based on '}
                     {makeCriteriaToggle()}
+                    {" using doses to "}
                     {makeOrganSetToggle()}
-                    {makeThresholdDropDown()}
-                    {makeMaxSplitsDropDown()}
-                    {makeMinInfoDropDown()}
-                    {makeMaxRulesDropDown()}
-                    {/* {makeThresholdForm()} */}
-                </Col>
-                <Col md={10} className={'noGutter scroll'} style={{'height':'45vh'}}>
-                    {vizComponents}
-                </Col>
+                    {' organs'}
+                </span>
             </Row>
-        </div>
+            <Row md={12} className={'controlPanelTitle inline centerText fillWidth noGutter'} 
+                style={{'height':'2em'}}>
+                {/* <Col md={9} style={{'height':'2em'}}> */}
+                    <span >
+                        {'Parameters: '}
+                        {makeThresholdDropDown()}
+                        {makeMaxSplitsDropDown()}
+                        {makeMinInfoDropDown()}
+                        {makeMaxRulesDropDown()}
+                        {'    |    '}
+                        <Button
+                            variant={'outline-secondary'}
+                            disabled={props.clusterDataLoading}
+                            onClick={updateRules}
+                            title={'Update'}
+                            style={{'minWidth':'20%'}}
+                        >{'Update'}</Button>
+                    </span>
+            </Row>
+            <Row md={12} className={'noGutter scroll'} style={{'height':'calc(100% - 4em)'}}>
+                    {vizComponents}
+            </Row>
+        </Container>
     )
 }
-

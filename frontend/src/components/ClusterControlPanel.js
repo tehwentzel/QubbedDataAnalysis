@@ -167,7 +167,7 @@ export default function ClusterControlPanel(props){
         let fButtons = features.map((f,i)=>{
             return (
                 <DropdownButton
-                    className={'controlDropdownButton compactButton'}
+                    // className={'controlDropdownButton compactButton'}
                     title={f}
                     value={f}
                     key={f+i}
@@ -243,7 +243,7 @@ export default function ClusterControlPanel(props){
         })
         setPlotVarButton(
             <DropdownButton
-                className={'controlDropdownButton'}
+                // className={'controlDropdownButton'}
                 value={props.plotVar}
                 title={''+props.plotVar}
             >{pVarOptions}</DropdownButton>
@@ -342,8 +342,8 @@ export default function ClusterControlPanel(props){
                             </span>   
                         </Row>
                     
-                        <Row md={12}  style={{'height':'1.7em'}}>
-                            <Col md={6} style={{'height':'1.7em'}}>
+                        <Row md={12}>
+                            <Col md={6} >
                                 {'# Clust:'}
                                 <DropdownButton
                                     className={'controlDropdownButton'}
@@ -353,7 +353,7 @@ export default function ClusterControlPanel(props){
                                     {nClustButtonOptions}
                                 </DropdownButton>
                             </Col>
-                            <Col md={6}  style={{'height':'1.7em'}}>
+                            <Col md={6}  >
                                 {'Method:'}
                                 <DropdownButton
                                     className={'controlDropdownButton'}
@@ -364,7 +364,7 @@ export default function ClusterControlPanel(props){
                                 </DropdownButton>
                             </Col>
                         </Row>
-                        <Row md={12} className={'inline'} style={{'height':'1.7em'}}>
+                        <Row md={12} className={'inline'} >
                             <Col md={12} style={{'height':'1.7em'}}>
                             {'Clust Features: '}
                             {featureButtons}
@@ -386,8 +386,8 @@ export default function ClusterControlPanel(props){
                                 {'Outcome Parameters'}
                             </span>   
                         </Row>
-                        <Row md={12} style={{'height':'1.7em'}}>
-                            <Col md={6} className={'noGutter'} style={{'height':'1.7em'}}>
+                        <Row md={12} >
+                            <Col md={6} className={'noGutter'}>
                                 {'Symptom:'}
                                 <DropdownButton
                                     className={'controlDropdownButton'}
@@ -395,7 +395,7 @@ export default function ClusterControlPanel(props){
                                     title = {props.mainSymptom}
                                 >{mainSymptomButtonOptions}</DropdownButton>
                             </Col>
-                            <Col md={6} className={'noGutter'} style={{'height':'1.7em'}}>
+                            <Col md={6} className={'noGutter'}>
                                 <span>{'Endpoints (wks): '}</span>
                                 {makeEndpointButtons()}
                                 <span>{'  '}</span>
@@ -408,7 +408,7 @@ export default function ClusterControlPanel(props){
                                     </Button>
                                 </span>
                             </Col>
-                            <Col md={12} style={{'height':'1.7em'}}>
+                            <Col md={12}>
                                 {'Confounders: '}
                                 {confounderButtons}
                             </Col>
