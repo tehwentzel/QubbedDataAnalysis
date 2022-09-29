@@ -7,12 +7,13 @@ body{
   --ll-height: calc(50vh - 75px - .25em);
   --ur-height: calc(55vh - 75px - .25em);
   --lr-height: calc(45vh - 75px - .25em);
-  --cluster-width: 45%;
+  --cluster-width: 95%;
   --cluster-height: 25vh;
   --patient-dose-height: 12vh;
   --patient-symptom-height: 10vh;
   overflow-x: hidden!important;
-  overflow-y: show;
+  overflow-y: visible;
+  position: relative;
 }
 
 .ul-view{
@@ -29,7 +30,7 @@ body{
 
 .lr-view{
   height: var(--lr-height)!important;
-  overflow-y: show!important;
+  overflow-y: visible!important;
 }
 
 .App {
@@ -40,14 +41,16 @@ body{
   overflow-x: hidden!important;
 }
 
-.row, .col, .col-md-4{
+.container > * {
+  overflow-y: visible;
+}
+
+.row, .col{
   /* width: 100%; */
   margin: 0px!important;
   padding: 0px!important;
   overflow-x: hidden!important;
-  /* overflow-y: hidden;
-  
-  /* height: 100%; */
+  overflow-y: visible!important;
 }
 
 .screenHeight{
@@ -61,21 +64,17 @@ body{
 #clusterControlPanelContainer{
   height: var(--control-panel-height);
   width: 100vw!important;
-  overflow-y: show!important;
-  /* position: absolute; */
+  overflow-y: visible!important;
 }
 
 .borderRight{
   border-right: 1.5px solid grey !important;
-  /* border: 0px solid grey; */
 }
 
 #mainVis{
   height: calc(100vh - 1em - var(--control-panel-height));
   top: var(--control-panel-height);
   width: 100vw!important;
-  /* overflow-y: scroll; */
-  /* position: absolute; */
 }
 
 .d3-component{
@@ -86,7 +85,7 @@ body{
   padding: 0px;
   background-color: white;
   transform-origin: 0, 0;
-  overflow-y: show!important;
+  overflow-y: visible!important;
 }
 
 .shadow{
@@ -179,11 +178,12 @@ svg > path, svg > circle{
 
 .controlDropdownButton{
   width: auto;
-  height: auto;
+  /* height: auto; */
+  height: 1.5em!important;
   margin: 1px;
   margin-left: 2px;
+  font-size: 1em!important;
   display: inline-flex;
-  /* overflow: auto; */
   justify-content: space-evenly;
 }
 
@@ -213,7 +213,7 @@ svg > path, svg > circle{
   font-weight: bold;
   font-style: italic;
   font-family:Georgia;
-  overflow-y: show!important;
+  overflow-y: visible!important;
 }
 
 .fillHeight{
@@ -282,7 +282,7 @@ svg > path, svg > circle{
 
 
 .tooltip {	
-  position: absolute;
+  position: absolute!important;
   z-index: 10;
   opacity: 1!important;			
   text-align: center;			
@@ -308,7 +308,8 @@ svg > path, svg > circle{
 .dropdown-menu.show{
   max-height: 40vh;
   overflow-y: scroll!important;
-  /* z-index:100000!important; */
+  /* position: relative!important; */
+  z-index: 10000;
 }
 
 *::-webkit-scrollbar {
@@ -327,7 +328,17 @@ svg > path, svg > circle{
 }
 
 .dropDownButton{
-  height: auto;
   width: auto;
   padding: .01px!important;
 }
+
+/* .dropdown-toggle{
+  overflow-y: hidden!important;
+  height: 1em!important;
+} */
+
+.dropdown-item{
+  position: relative!important;
+  z-index: 1000!important;
+  overflow: visible!important;
+} 

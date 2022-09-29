@@ -203,17 +203,17 @@ export default function RuleView(props){
                     variant={(!filterCluster & !predictClusterActive)? 'dark':'outline-secondary'}
                     onClick={() => toggleFilter(false)}
                     disabled={!filterCluster & !predictClusterActive}
-                >{'cohort->outcome'}</Button>
-                <Button
+                >{Utils.getVarDisplayName(props.mainSymptom)}</Button>
+                {/* <Button
                     variant={(filterCluster & !predictClusterActive)? 'dark':'outline-secondary'}
                     onClick={()=>toggleFilter(true)}
                     disabled={filterCluster & !predictClusterActive}
-                >{'clst' + props.activeCluster + '->outcome'}</Button>
+                >{'clst' + props.activeCluster + '->outcome'}</Button> */}
                 <Button
                     variant={predictClusterActive? 'dark':'outline-secondary'}
                     onClick={onSetTargetCluster}
                     disabled={predictClusterActive}
-                >{'cohort->clst ' + props.activeCluster}</Button>
+                >{'Clust ' + props.activeCluster}</Button>
             </InputGroup>
             </div>
         )

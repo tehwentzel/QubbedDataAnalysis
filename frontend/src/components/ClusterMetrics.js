@@ -22,7 +22,7 @@ export default function ClusterMetrics(props){
     //I dont think I use this
     const [metricData,setMetricData] = useState(null);
 
-    const [metricThresholds,setMetricThresholds] = useState([0,5,-5]);
+    const [metricThresholds,setMetricThresholds] = useState([0,-1,5,-5]);
     const thresholdOptions = [-7,-5,-3,-1,0,3,5,7];
 
     var fetchMetrics = async(cData,dates,lrtConfounders,thresholds,symptoms)=>{
@@ -70,6 +70,7 @@ export default function ClusterMetrics(props){
                 <Button
                     variant={active? 'secondary':'outline-secondary'}
                     onClick={()=>toggleThreshold(t)}
+                    style={{'minWidth':'2em'}}
                     disabled={active & (metricThresholds.length <= 1)}
                 >{formatTButton(t)}</Button>
             )
@@ -113,18 +114,18 @@ export default function ClusterMetrics(props){
     return ( 
         <div ref={ref} className={'fillSpace noGutter'}>
             <Row md={12} className = {'noGutter fillSpace'}>
-                <Col md={12} className={'noGutter'} style={{'height':'1.6em'}}>
-                        {/* <Button
-                            style={{'width': '100%'}}
-                            variant={'light'}
-                        >{'Outcomes'}</Button> */}
-                        {makeThresholdButtons()}
-                    
-                </Col>
                 <Col md={12} style={{'height':'calc(100% - 1.6em)'}} className={'noGutter'}>
                     {vizComponents}     
                 </Col>
-                
+                <Col md={12} className={'noGutter'} style={{'height':'1.6em'}}>
+                        <Button
+                            style={{'width': 'auto'}}
+                            variant={''}
+                            className={"controlPanelButton"}
+                            title={"Thresholds: "}
+                        >{'Thresholds: '}</Button>
+                        {makeThresholdButtons()}
+                </Col>
             </Row>
         </div> 
         )

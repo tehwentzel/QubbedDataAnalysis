@@ -108,24 +108,10 @@ export default function ClusterControlPanel(props){
             let tempType = tempClusterType + '';
             props.setClusterType(tempType);
         }
-        // if(tempConfounders !== undefined & tempConfounders !== props.lrtConfounder){
-        //     let tempConf = tempConfounders.slice();
-        //     props.setLrtConfounders(tempConf);
-        // }
-        // if(tempSOIs !== undefined & tempSOIs.length > 0){
-        //     let tempSymptoms = tempSOIs.slice();
-        //     props.setSymptomsOfInterest(tempSymptoms);
-        // }
-        // if(tempEndpointDates !== undefined & tempEndpointDates.length > 0){
-        //     let tempEndpoints = tempEndpointDates.slice();
-        //     tempEndpoints.sort();
-        //     props.setEndpointDates(tempEndpoints);
-        // }
         props.updateClusterOrgans();
     }
 
     function handleUpdateOutcomes(){
-
         if(tempConfounders !== undefined & tempConfounders !== props.lrtConfounder){
             let tempConf = tempConfounders.slice();
             props.setLrtConfounders(tempConf);
@@ -346,7 +332,7 @@ export default function ClusterControlPanel(props){
     // }
     const disabled = props.clusterDataLoading;
     return (
-        <Row className={'clusterControlPanel noGutter'} fluid={'true'} md={12}>
+        <Row className={'clusterControlPanel noGutter'} fluid={'false'} md={12}>
             <Col  md={10}>
                 <Row  md={12}>
                     <Col className={'borderRight'} md={6} >
@@ -356,8 +342,8 @@ export default function ClusterControlPanel(props){
                             </span>   
                         </Row>
                     
-                        <Row md={12}>
-                            <Col>
+                        <Row md={12}  style={{'height':'1.7em'}}>
+                            <Col md={6} style={{'height':'1.7em'}}>
                                 {'# Clust:'}
                                 <DropdownButton
                                     className={'controlDropdownButton'}
@@ -367,7 +353,7 @@ export default function ClusterControlPanel(props){
                                     {nClustButtonOptions}
                                 </DropdownButton>
                             </Col>
-                            <Col>
+                            <Col md={6}  style={{'height':'1.7em'}}>
                                 {'Method:'}
                                 <DropdownButton
                                     className={'controlDropdownButton'}
@@ -378,8 +364,8 @@ export default function ClusterControlPanel(props){
                                 </DropdownButton>
                             </Col>
                         </Row>
-                        <Row md={12} className={'inline'} fluid={'true'}>
-                            <Col md={12}>
+                        <Row md={12} className={'inline'} style={{'height':'1.7em'}}>
+                            <Col md={12} style={{'height':'1.7em'}}>
                             {'Clust Features: '}
                             {featureButtons}
                             </Col>
@@ -400,8 +386,8 @@ export default function ClusterControlPanel(props){
                                 {'Outcome Parameters'}
                             </span>   
                         </Row>
-                        <Row md={12}>
-                            <Col md={6} className={'noGutter'}>
+                        <Row md={12} style={{'height':'1.7em'}}>
+                            <Col md={6} className={'noGutter'} style={{'height':'1.7em'}}>
                                 {'Symptom:'}
                                 <DropdownButton
                                     className={'controlDropdownButton'}
@@ -409,7 +395,7 @@ export default function ClusterControlPanel(props){
                                     title = {props.mainSymptom}
                                 >{mainSymptomButtonOptions}</DropdownButton>
                             </Col>
-                            <Col md={6} className={'noGutter'}>
+                            <Col md={6} className={'noGutter'} style={{'height':'1.7em'}}>
                                 <span>{'Endpoints (wks): '}</span>
                                 {makeEndpointButtons()}
                                 <span>{'  '}</span>
@@ -422,7 +408,7 @@ export default function ClusterControlPanel(props){
                                     </Button>
                                 </span>
                             </Col>
-                            <Col md={12}>
+                            <Col md={12} style={{'height':'1.7em'}}>
                                 {'Confounders: '}
                                 {confounderButtons}
                             </Col>

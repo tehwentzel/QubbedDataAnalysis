@@ -8,7 +8,7 @@ export default function ClusterMetricsD3(props){
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [rectsDrawn,setRectsDrawn] = useState(false);
     const yMarginTop = 10;
-    const yMarginBottom = 20;
+    const yMarginBottom = Math.min(40,height/10);
     const xMargin = 10;
     const barMargin = 2;
     const chartMargin = 10;
@@ -236,7 +236,7 @@ export default function ClusterMetricsD3(props){
                 .html(d=>formatNum(d.value));
 
             svg.selectAll('text').filter('.title').remove();
-            const titleSize = Math.max(10,Math.min(barWidth/2,yMarginBottom/3));
+            const titleSize = Math.max(10,Math.min(barWidth/2,yMarginBottom/2));
             
             let titleText = svg.selectAll('text').filter('.title')
                 .data(titleData).enter().append('text')

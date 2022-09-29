@@ -1,4 +1,17 @@
+
+
 import './App.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
+import Container from 'react-bootstrap/Container';
+import * as constants from './modules/Constants.js';
+import { Spinner } from 'react-bootstrap';
+import Dropdown from 'react-bootstrap/Dropdown';
+import DropdownButton from 'react-bootstrap/DropdownButton';
+import Button from 'react-bootstrap/Button';
+
+import * as d3 from 'd3';
 
 import React, {useEffect, useState} from 'react';
 import DataService from './modules/DataService';
@@ -8,14 +21,14 @@ import ClusterControlPanel from './components/ClusterControlPanel.js';
 import OverView from './components/OverView.js';
 import DoseEffectView from './components/DoseEffectView.js';
 import SymptomPlotD3 from './components/SymptomPlotD3.js';
+import PatientScatterPlotD3 from './components/PatientScatterPlotD3.js';
 
-import 'bootstrap/dist/css/bootstrap.min.css';
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
-import Container from 'react-bootstrap/Container';
-import * as constants from './modules/Constants.js';
-import { Spinner } from 'react-bootstrap';
-import * as d3 from 'd3';
+import PatientDoseView from './components/PatientDoseView.js';
+import ClusterMetrics from './components/ClusterMetrics.js';
+import RuleView from './components/RuleView.js';;
+
+
+
 
 function App() {
   var api = new DataService();
@@ -132,7 +145,9 @@ function App() {
   
   //hnc diagram svg patths
   const [svgPaths,setSvgPaths] = useState();
-
+  const [xVar,setXVar] = useState('cluster_organ_pca1');
+  const [yVar, setYVar] = useState('cluster_organ_pca2');
+  const [showTemporalSymptoms,setShowTemporalSymptoms] = useState(true);
 
   //this use to be d3.scaleOrdinal but it wasn't wokring for some reason
   //returns color based on index bascially
@@ -309,6 +324,237 @@ function App() {
     )
   }
 
+  function makeEffectPlot(){
+      if(clusterData != undefined & additiveClusterResults != undefined){
+          return (
+            <DoseEffectView
+                doseData={doseData}
+                clusterData={clusterData}
+                additiveClusterResults={additiveClusterResults}
+                clusterOrgans={clusterOrgans}
+                clusterOrganCue={clusterOrganCue}
+                setClusterOrganCue={setClusterOrganCue}
+                activeCluster={activeCluster}
+                symptomsOfInterest={symptomsOfInterest}
+                mainSymptom={mainSymptom}
+                svgPaths={svgPaths}
+                additiveCluster={additiveCluster}
+                additiveClusterThreshold={additiveClusterThreshold}
+                setAdditiveCluster={setAdditiveCluster}
+                setAdditiveClusterThreshold={setAdditiveClusterThreshold}
+                nDoseClusters={nDoseClusters}
+                clusterFeatures={clusterFeatures}
+                showOrganLabels={showOrganLabels}
+                setShowOrganLabels={setShowOrganLabels}
+                endpointDates={endpointDates}
+            ></DoseEffectView>
+          )
+      } else{
+          return (
+              <Spinner 
+                  as="span" 
+                  animation = "border"
+                  role='status'
+                  className={'spinner'}/>
+          )
+      }
+  }
+
+  function makeMetricPlot(){
+      if(clusterData != undefined & doseData != undefined){
+          return (
+              <Container className={'noGutter fillSpace'}>
+                  <ClusterMetrics
+                      doseData={doseData}
+                      api={api}
+                      clusterData={clusterData}
+                      selectedPatientId={selectedPatientId}
+                      setSelectedPatientId={setSelectedPatientId}
+                      plotVar={plotVar}
+                      clusterOrgans={clusterOrgans}
+                      activeCluster={activeCluster}
+                      setActiveCluster={setActiveCluster}
+                      symptomsOfInterest={symptomsOfInterest}
+                      mainSymptom={mainSymptom}
+                      categoricalColors={categoricalColors}
+                      endpointDates={endpointDates}
+                  ></ClusterMetrics>
+              </Container>
+          )
+      } else{
+          return (<Spinner 
+              as="span" 
+              animation = "border"
+              role='status'
+              className={'spinner'}/>
+          );
+      }
+  }
+
+  function makeSymptomPlot(){
+      //I'm maybe not doing this an putting it in the left hand side as a pernament view
+      if(clusterData != undefined & doseData != undefined){
+          return (
+              <Container className={'noGutter fillSpace'}>
+                  <SymptomPlotD3
+                      doseData={doseData}
+                      clusterData={clusterData}
+                      selectedPatientId={selectedPatientId}
+                      setSelectedPatientId={setSelectedPatientId}
+                      plotVar={plotVar}
+                      clusterOrgans={clusterOrgans}
+                      activeCluster={activeCluster}
+                      setActiveCluster={setActiveCluster}
+                      mainSymptom={mainSymptom}
+                      categoricalColors={categoricalColors}
+                  ></SymptomPlotD3>
+              </Container>
+          )
+      } else{
+          return (<Spinner 
+              as="span" 
+              animation = "border"
+              role='status'
+              className={'spinner'}/>
+          );
+      }
+  }
+
+  function makeOutcomeView(showSymptomView){
+    let outcomeView = showSymptomView? makeSymptomPlot: makeMetricPlot;
+    return (
+      <Row md={12} className={'noGutter fillSpace'}>
+        <Row md={12} className={'centerText'} style={{'height':'2em'}}>
+          <Col>
+            <Button 
+              title={'Symptom Trajectory'}
+              onClick={() => setShowTemporalSymptoms(true)}
+              disabled={showTemporalSymptoms}
+              variant={showTemporalSymptoms? 'dark':'outline-secondary'}
+            >{'Symptom Trajectory'}</Button>
+            <Button 
+              title={'Cluster-Outcome Correlations'}
+              onClick={() => setShowTemporalSymptoms(false)}
+              disabled={!showTemporalSymptoms}
+              variant={!showTemporalSymptoms? 'dark':'outline-secondary'}
+            >{'Cluster-Outcome Correlations'}</Button>
+          </Col>
+        </Row>
+        <Row md={12} style={{'height':'calc(100% - 2em)'}}>
+          {outcomeView()}
+        </Row>
+      </Row>
+    )
+  }
+
+  function makeRulePlot(){
+    // if(props.ruleData != undefined & props.doseData != undefined){
+      return (
+          <RuleView
+              api={api}
+              clusterDataLoading={clusterDataLoading}
+              doseData={doseData}
+              svgPaths={svgPaths}
+              mainSymptom={mainSymptom}
+              clusterData={clusterData}
+              activeCluster={activeCluster}
+              clusterOrgans={clusterOrgans}
+              selectedPatientId={selectedPatientId}
+              setSelectedPatientId={setSelectedPatientId}
+              categoricalColors={categoricalColors}
+              endpointDates={endpointDates}
+          ></RuleView>
+      )
+  }
+
+  function makeDropdown(title,active,onclickFunc,key,options,dropDir,showState=true){
+      let buttonOptions = options.map((d,i)=>{
+          return (
+              <Dropdown.Item
+                  key={i+key}
+                  value={d}
+                  eventKey={d}
+                  onClick={() => onclickFunc(d)}
+              >{d}</Dropdown.Item>
+          )
+      })
+      let name = active + '';
+      if(title !== ''){
+        name = showState? title + ': ' + active: title;
+      } 
+      return (
+          <DropdownButton
+          className={'controlDropdownButton'}
+          style={{'width':'auto'}}
+          drop={dropDir}
+          title={name}
+          value={active}
+          key={key}
+          variant={'primary'}
+          >{buttonOptions}</DropdownButton>
+      )
+  }
+
+  function makeScatter(){
+      if(clusterData != undefined & doseData != undefined){
+          return (
+              <>
+                  <PatientScatterPlotD3
+                      doseData={doseData}
+                      clusterData={clusterData}
+                      selectedPatientId={selectedPatientId}
+                      setSelectedPatientId={setSelectedPatientId}
+                      plotVar={plotVar}
+                      clusterOrgans={activeCluster}
+                      setActiveCluster={setActiveCluster}
+                      xVar={xVar}
+                      yVar={yVar}
+                      sizeVar={mainSymptom}
+                      categoricalColors={categoricalColors}
+                      svgPaths={svgPaths}
+                      symptomsOfInterest={allSymptoms}
+                      endpointDates={endpointDates}
+                  ></PatientScatterPlotD3>
+              </>
+          )
+      } else{
+          return (<Spinner 
+              as="span" 
+              animation = "border"
+              role='status'
+              className={'spinner'}/>
+          );
+      }
+  }
+
+  function makeScatterPlot(){
+    const varOptions = [
+      'cluster_organ_pca1','cluster_organ_pca2','cluster_organ_pca3',
+      'dose_pca1','dose_pca2','dose_pca3',
+      'symptom_all_pca1','symptom_all_pca2','symptom_all_pca3',
+      'symptom_post_pca1','symptom_post_pca2','symptom_post_pca3',
+      'symptom_treatment_pca1','symptom_treatment_pca2','symptom_treatment_pca3',
+      'totalDose','tstage','nstage',
+    ].concat(allSymptoms);
+    return (
+      <Container md={12} className={'noGutter fillSpace'}>
+          <Row style={{'height':'1.5em'}} className={'noGutter centerText'} md={12}>
+              {makeDropdown('',xVar,setXVar,1,varOptions,'down')}
+              <Button
+                title={'vs'}
+                className={'controlPanelTitle'}
+                style={{'width':'auto'}}
+                variant={''}
+              >{'vs'}</Button>
+              {makeDropdown('',yVar,setYVar,2,varOptions,'down')}
+          </Row>
+          <Row style={{'height':'calc(100% - 1.5em)'}} className={'noGutter'} md={12}>
+                  {makeScatter()}
+          </Row>
+      </Container>
+    ) 
+  }
+
   return (
     <div className="App">
 
@@ -345,12 +591,16 @@ function App() {
           </Row>
           <Row id={'mainVis'} className={'noGutter'} lg={12}>   
             <Col fluid={'true'} className={'fillHeight noGutter'} lg={5}>
-                {makeOverview('effect',false,'overviewContainer ul-view')}
-                {makeOverview('rules',false,'overviewContainer ll-view')}
+              <Row className={'ul-view'}>
+                {makeEffectPlot()}
+              </Row>
+              <Row className={'ll-view'}>
+                {makeRulePlot()}
+              </Row>
             </Col>  
-            <Col className={'noGutter'} lg={7}>
-              <Row className={'clusterContainer ur-view vizComponent noGutter'} lg={12}>
-                <DoseView
+            <Col className={'noGutter'} lg={3} 
+            style={{'height':'100%'}}>
+              <DoseView
                     doseData={doseData}
                     clusterData={clusterData}
                     clusterOrgans={clusterOrgans}
@@ -374,15 +624,13 @@ function App() {
                     maxDose={maxDose}
                     setMaxDose={setMaxDose}
                 ></DoseView>
+            </Col>
+            <Col className={'noGutter'} lg={4}>
+              <Row className={'clusterContainer ur-view vizComponent noGutter'} lg={12}>
+                {makeScatterPlot()}
               </Row>
-              <Row className={'clusterContainer noGutter'} lg={12}>
-                <Col md={3}>
-                  {makeOverview('metric',false,'overviewContainer lr-view')}
-                </Col>
-                <Col md={9}>
-                  {makeOverview('symptom',true,'overviewContainer lr-view')}
-                </Col>
-                
+              <Row className={'clusterContainer lr-view vizComponent noGutter'} lg={12}>
+                {makeOutcomeView(showTemporalSymptoms)}
               </Row>
             </Col>
           </Row>
