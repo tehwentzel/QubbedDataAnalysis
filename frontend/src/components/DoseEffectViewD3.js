@@ -152,9 +152,12 @@ export default function DoseEffectViewD3(props){
             };
 
             const getStrokeColor = d => {
-                if(props.clusterOrgans.indexOf(d.organ) >= 0){ return 'red';}
-                if(props.clusterOrganCue.indexOf(d.organ) >= 0){ return 'black';}
-                return 0
+                let inFeatures = props.clusterOrgans.indexOf(d.organ) >= 0;
+                let inCue = props.clusterOrganCue.indexOf(d.organ) >= 0;
+                if(inFeatures & inCue){ return props.parameterColors.both; } 
+                if(inFeatures){ return props.parameterColors.current; }
+                if(inCue){ return props.parameterColors.cue; }
+                return props.parameterColors.none;
             };
 
             const organShapes = organGroup

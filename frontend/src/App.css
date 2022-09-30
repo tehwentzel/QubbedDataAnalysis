@@ -1,12 +1,12 @@
 body{
-  --control-panel-height: 125px;
+  --control-panel-height: 6.5em;
   --right-panel-width: 49vw;
   --left-panel-width: 49vw;
   --section-height: calc((95vh - 4em - 150px)/2);
-  --ul-height: calc(50vh - 75px - .25em);
-  --ll-height: calc(50vh - 75px - .25em);
-  --ur-height: calc(55vh - 75px - .25em);
-  --lr-height: calc(45vh - 75px - .25em);
+  --ul-height: calc(50vh - 3.5em);
+  --ll-height: calc(50vh - 3.5em);
+  --ur-height: calc(55vh - 3.5em);
+  --lr-height: calc(45vh - 3.5em);
   --cluster-width: 95%;
   --cluster-height: 25vh;
   --patient-dose-height: 12vh;
@@ -46,11 +46,10 @@ body{
 }
 
 .row, .col{
-  /* width: 100%; */
-  margin: 0px!important;
-  padding: 0px!important;
-  overflow-x: hidden!important;
-  overflow-y: visible!important;
+  margin: 2px!important;
+  padding: 2px!important;
+  /* overflow-x: hidden!important; */
+  /* overflow-y: visible!important; */
 }
 
 .screenHeight{
@@ -95,7 +94,7 @@ body{
 .clusterContainer{
   /* height: var(--section-height)!important;
   min-height: var(--section-height)!important; */
-  justify-content: start;
+  justify-content: middle;
 }
 
 
@@ -130,11 +129,12 @@ svg > path, svg > circle{
   height: var(--cluster-height)!important;
   /* height: 20em!important; */
   margin: 0em!important;
+  margin-left: calc((100% - var(--cluster-width))/2)!important;
   padding: 0em!important;
   padding-left: .1em!important;
   padding-right: .1em!important;
   width: var(--cluster-width)!important;
-  justify-content: left!important;
+  justify-content: center!important;
 }
 
 .clusterDoseContainer{
@@ -176,8 +176,9 @@ svg > path, svg > circle{
 }
 
 .btn, .btn > *{
-  padding: 0em!important;
+  padding: .04em!important;
   font-size: .9em!important;
+  font-family: Calibri;
 }
 
 .compactButton, .compactButton > *{
@@ -190,6 +191,29 @@ svg > path, svg > circle{
   padding: .2em!important;
   font-size: 1em!important;
 }
+
+.dropdown{
+  display: inline-block!important;
+}
+
+.dropdown-toggle{
+  position: relative!important;
+  z-index: 1000!important;
+}
+
+.dropdown-menu.show{
+  max-height: 40vh;
+  overflow-y: scroll!important;
+  z-index: 10000;
+  /* display: flex;
+  position: absolute!important; */
+}
+
+.dropdown-item{
+  z-index: 1000!important;
+  display: absolute;
+  overflow: visible!important;
+} 
 
 .controlPanelTitle{
   font-size: .9em;
@@ -293,24 +317,8 @@ svg > path, svg > circle{
   margin-bottom: 10px;
 }
 
-.dropdown-toggle{
-  position: relative!important;
-  z-index: 1000!important;
-}
 
-.dropdown-menu.show{
-  max-height: 40vh;
-  overflow-y: scroll!important;
-  z-index: 10000;
-  display: flex;
-  position: absolute!important;
-}
 
-.dropdown-item{
-  z-index: 1000!important;
-  display: absolute;
-  overflow: visible!important;
-} 
 
 *::-webkit-scrollbar {
   width: 2px;
@@ -325,41 +333,4 @@ svg > path, svg > circle{
 *::-webkit-scrollbar-thumb {
   border-radius: 1px;
   -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5); 
-}
-
-.buttonGeneral{
-  font-size: 1em;
-  font-family: Tahoma;
-  width: auto;
-  justify-content: center!important;
-  text-align: center!important;
-  height: 100%;
-  padding: .05em;
-  margin: .01em;
-  border-radius: .02em;
-}
-
-.toggleButton{
-  background-color: white;
-  border: 3px solid grey;
-  color: black;
-}
-
-.toggleButton:active{
-  background-color: grey!important;
-  border: 2px solid grey;
-}
-
-.clickButton{
-  background-color: teal;
-  color: black;
-}
-
-.clickButton:disabled{
-  background-color: #999999;
-  color: grey!important;
-}
-
-.dropdownButton{
-  background-color: plum;
 }

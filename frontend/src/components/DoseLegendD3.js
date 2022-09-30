@@ -16,6 +16,7 @@ export default function DoseLegendD3(props){
             svg.selectAll('.legendRect').remove();
             svg.selectAll('.legendText').remove();
 
+            
             if(props.vertical){
                 const barHeight = (height - 2*yMargin)/(steps.length + 1);
                 const fontSize = barHeight/2;

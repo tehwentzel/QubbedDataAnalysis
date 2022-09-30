@@ -130,7 +130,7 @@ export default function RuleView(props){
                 return val.toFixed(3)
             }
         }
-        console.log('rule',rule)
+        // console.log('rule',rule)
         let title =  'Upper: ' + rule.upper_count
             + ' |Info Gain: ' + fix(rule.info)   
             // + ' |ROC:' + fix(rule.roc_auc)
@@ -332,7 +332,7 @@ export default function RuleView(props){
         });
         return (
             <DropdownButton
-                drop={'up'}
+                // drop={'up'}
                 className={'controlDropdownButton'}
                 title={'Max Rules ' + maxRules}
             >{dItems}</DropdownButton>
@@ -380,7 +380,7 @@ export default function RuleView(props){
 
     
     return (
-        <Container ref={ref} className={'noGutter fillSpace'}>
+        <Container ref={ref} className={'fillSpace'}>
             <Row md={12} className={'viewTitle inline centerText fillWidth noGutter'} 
                 style={{'height':'2em'}}>
                 <span>
@@ -395,8 +395,7 @@ export default function RuleView(props){
             </Row>
             <Row md={12} className={'controlPanelTitle inline centerText fillWidth noGutter'} 
                 style={{'height':'2em'}}>
-                {/* <Col md={9} style={{'height':'2em'}}> */}
-                    <span >
+                    <span style={{'width':'100%'}}>
                         {'Parameters: '}
                         {makeThresholdDropDown()}
                         {makeMaxSplitsDropDown()}
@@ -404,11 +403,11 @@ export default function RuleView(props){
                         {makeMaxRulesDropDown()}
                         {'    |    '}
                         <Button
-                            variant={'outline-secondary'}
+                            variant={'outline-primary'}
                             disabled={props.clusterDataLoading}
                             onClick={updateRules}
                             title={'Update'}
-                            style={{'minWidth':'20%'}}
+                            style={{'display':'inline-block','minWidth':'20%'}}
                         >{'Update'}</Button>
                     </span>
             </Row>

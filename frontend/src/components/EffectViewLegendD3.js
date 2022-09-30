@@ -10,12 +10,16 @@ export default function EffectViewLegendD3(props){
     const yMargin = 10;
     const barMargin = 2;
     const useChange = props.useChange;
-    const titleSize = 20;
+    const titleSize = Math.max(12,width/8);
 
     useEffect(function draw(){
         if(svg !== undefined & props.extents !== undefined){
             const data = props.effectData;
             
+            const chartHeight = Math.min(height, 200);
+            const chartWidth = Math.min(chartHeight/3, width);
+            const topOffset = (height - chartHeight)/4;
+
             const metric = props.colorMetric;
             var metricTransform = x => -x;
             if(metric.includes('pval')){
@@ -42,15 +46,15 @@ export default function EffectViewLegendD3(props){
                 return interp(colorScale(val))
             }
 
-            const barHeight = (height - 2*yMargin)/(steps.length + 1);
-            const barWidth = Math.min(barHeight, width/2);
-            var currY = yMargin + 2*barMargin + titleSize;
+            const barHeight = (chartHeight - 2*yMargin)/(steps.length + 1);
+            const barWidth = Math.min(barHeight, chartWidth/2);
+            var currY = topOffset + yMargin + 2*barMargin + titleSize;
             var title = Utils.getVarDisplayName(props.colorMetric)
             title = title.replace('diff','penalty'); // make bic diff => bic penalty to convey lower bic is good
             if(props.useChange){
                 title = 'Δ' + title;
             }
-            var legendData = [{y: yMargin, color: 'white', text: title,isTitle:true}];
+            var legendData = [{y: topOffset + yMargin - titleSize, color: 'white', text: title,isTitle:true}];
             for(let i in steps){
                 let v = steps[i]
                 //inverse trnasform of the value and truncate

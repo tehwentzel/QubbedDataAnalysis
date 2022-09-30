@@ -75,7 +75,7 @@ export default function DoseView(props){
                 let dotColor = props.categoricalColors(parseInt(d.clusterId));
                 return (
                         <Row 
-                            className={'clusterPlotCol'} 
+                            className={'shadow clusterPlotCol'} 
                             md={6} 
                             key={i+'doses'+props.plotVar+props.showContralateral}
                         >
@@ -95,7 +95,7 @@ export default function DoseView(props){
                                 </Button>
                             </Col>
                             <Col md={12}
-                                className={'clusterDoseContainer shadow'}
+                                className={'clusterDoseContainer'}
                             >
                                 <Dose2dCenterViewD3
                                     data={d}
@@ -111,6 +111,7 @@ export default function DoseView(props){
                                     doseColor={props.doseColor}
                                     maxDose={props.maxDose}
                                     setMaxDose={props.setMaxDose}
+                                    parameterColors={props.parameterColors}
                                 ></Dose2dCenterViewD3>
                             </Col>
                             
@@ -148,9 +149,9 @@ export default function DoseView(props){
         >
             <Row md={12} className={"centerText viewTitle"}>
                 <span>
-                    {'Dose (Gy) Of '}
+                    {'Intra-cluster '}
                     {plotVarDropDown()}
-                    {' to Each Organ Within Each Cluster'}
+                    {' Distribution'}
                 </span>
             </Row>
             <Row md={12} className={'scroll'} style={{'height':'calc(100% - 6em)'}}>
@@ -167,20 +168,3 @@ export default function DoseView(props){
         </div> 
         )
 }
-
-//<Col md={2} 
-//     style={{'justifyContent':'center'}} 
-//     fluid={true} className={'noGutter fillHeight'}
-// >
-//     <Row style={{'maxHeight': '8em','minHeight':'5em'}} 
-//         className={'fillSpace noGutter'}
-//     >
-//         <span className={'controlPanelTitle'} >{'Dose (Gy)'}</span>
-//         <DoseLegendD3
-//             plotVar={props.plotVar}
-//             doseColor={props.doseColor}
-//             maxDose={props.maxDose}
-//         />
-//     </Row>
-    
-// </Col>

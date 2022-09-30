@@ -89,7 +89,21 @@ export default function FeatureEffectViewD3(props){
                 xPos = xPos + entry.width + barMargin;
             }
 
-            const getStroke = d => (props.clusterFeatures.indexOf(d.name) >= 0)? barMargin:.01;
+            const getStrokeColor = d => {
+                let inFeatures = props.clusterFeatures.indexOf(d.name) >= 0;
+                let inCue = props.tempClusterFeatures.indexOf(d.name) >= 0;
+                if(inFeatures & inCue){ return props.parameterColors.both; } 
+                if(inFeatures){ return props.parameterColors.current; }
+                if(inCue){ return props.parameterColors.cue; }
+                return props.parameterColors.none;
+            }
+
+            const getStroke = d => {
+                let inFeatures = props.clusterFeatures.indexOf(d.name) >= 0;
+                let inCue = props.tempClusterFeatures.indexOf(d.name) >= 0;
+                if(inFeatures | inCue){ return barMargin; }
+                return .01;
+            }
 
             svg.selectAll('rect').filter('.dvhRect').remove();
             svg.selectAll('rect').filter('.dvhRect')
@@ -100,7 +114,7 @@ export default function FeatureEffectViewD3(props){
                 .attr('height',d=>d.height)
                 .attr('width',d=>d.width)
                 .attr('fill',d=>d.color)
-                .attr('stroke', 'black')
+                .attr('stroke', getStrokeColor)
                 .attr('stroke-width',getStroke)
                 .on('mouseover',function(e){
                     let d = d3.select(this).datum();
@@ -115,7 +129,14 @@ export default function FeatureEffectViewD3(props){
                     Utils.moveTTipEvent(tTip,e);
                 }).on('mouseout', function(e){
                     Utils.hideTTip(tTip);
-                });;
+                }).on('contextmenu', function(e){
+                    let d = d3.select(this).datum();
+                    e.stopPropagation();
+                    if(d !== undefined){
+                        props.toggleClusterFeature(d.name);
+                        Utils.hideTTip(tTip);
+                    }
+                });
 
             const fontsize = Math.min(maxWidth/3,maxHeight/2)
             svg.selectAll('text').filter('.dvhText').remove();
@@ -125,7 +146,13 @@ export default function FeatureEffectViewD3(props){
                 .attr('x',d=>d.x + (fontsize/2))
                 .attr('y',d=>d.y+(d.height/2))
                 .attr('font-size',fontsize)
-                .html(d=>d.name);
+                .style('pointer-events','none')
+                .html(d=>d.name)
+                .on('contextmenu',function(e){
+                    e.stopPropogation();
+                });
+
+            svg.style('cursor','pointer')
         }
     },[svg,props])
     

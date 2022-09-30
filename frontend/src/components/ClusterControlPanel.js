@@ -35,7 +35,7 @@ export default function ClusterControlPanel(props){
     // const [symptomsButtons,setSymptomButtons] = useState(<></>);
     const [mainSymptomButtonOptions,setMainSymptomButtonOptions] = useState(<></>);
     const [nClustButtonOptions, setNClustButtonOptions] = useState(<Dropdown.Item value={0}>{0}</Dropdown.Item>);
-    const [tempClusterFeatures,setTempClusterFeatures] = useState();
+    // const [tempClusterFeatures,setTempClusterFeatures] = useState();
     const [tempNClusters, setTempNClusters] = useState(1);
     const [tempConfounders,setTempConfounders] = useState();
     const [tempClusterType,setTempClusterType] = useState();
@@ -45,11 +45,11 @@ export default function ClusterControlPanel(props){
     const removeKey = 'None'
 
 
-    useEffect(()=>{
-        let features = [];
-        for(let f of props.clusterFeatures){ features.push(f);}
-        setTempClusterFeatures(features);
-    },[props.clusterFeatures])
+    // useEffect(()=>{
+    //     let features = [];
+    //     for(let f of props.clusterFeatures){ features.push(f);}
+    //     props.setTempClusterFeatures(features);
+    // },[props.clusterFeatures])
 
 
     useEffect(()=>{
@@ -96,8 +96,8 @@ export default function ClusterControlPanel(props){
         //in case this is a future issue.
         //also tis doesnt work if one of these becomes asynce for some reason
         props.setClusterDataLoading(true);
-        if(tempClusterFeatures !== undefined & tempClusterFeatures.length > 0){
-            let tempF = tempClusterFeatures.slice();
+        if(props.tempClusterFeatures !== undefined & props.tempClusterFeatures.length > 0){
+            let tempF = props.tempClusterFeatures.slice();
             props.setClusterFeatures(tempF)
         }
         if(tempNClusters !== undefined & tempNClusters > 1){
@@ -182,10 +182,10 @@ export default function ClusterControlPanel(props){
     }
 
     useEffect(function showClusterFeatures(){
-        if(tempClusterFeatures === undefined){ return; }
-        let fb = makeDropDownList(tempClusterFeatures,plotVarOptions,setTempClusterFeatures)//,handleChangeClusterFeatures)
+        if(props.tempClusterFeatures === undefined){ return; }
+        let fb = makeDropDownList(props.tempClusterFeatures,plotVarOptions,props.setTempClusterFeatures)//,handleChangeClusterFeatures)
         setFeatureButtons(fb)
-    },[tempClusterFeatures]);
+    },[props.tempClusterFeatures]);
 
     useEffect(function showConfounders(){
         if(tempConfounders === undefined){ return; }
@@ -333,17 +333,17 @@ export default function ClusterControlPanel(props){
     const disabled = props.clusterDataLoading;
     return (
         <Row className={'clusterControlPanel noGutter'} fluid={'false'} md={12}>
-            <Col  md={10}>
-                <Row  md={12}>
+            {/* <Col  md={10}> */}
+                <Row  md={12} className={'noGutter'}>
                     <Col className={'borderRight'} md={6} >
-                        <Row md={12}>
+                        <Row md={12} className={'noGutter'}>
                             <span className={'viewTitle'}>
                                 {'Cluster Parameters'}
                             </span>   
                         </Row>
                     
-                        <Row md={12}>
-                            <Col md={6} >
+                        <Row md={12} className={'noGutter'}>
+                            <Col md={4} className={'noGutter'}>
                                 {'# Clust:'}
                                 <DropdownButton
                                     className={'controlDropdownButton'}
@@ -353,7 +353,7 @@ export default function ClusterControlPanel(props){
                                     {nClustButtonOptions}
                                 </DropdownButton>
                             </Col>
-                            <Col md={6}  >
+                            <Col md={4}  className={'noGutter'}>
                                 {'Method:'}
                                 <DropdownButton
                                     className={'controlDropdownButton'}
@@ -363,30 +363,33 @@ export default function ClusterControlPanel(props){
                                     {clusterTypeButtonOptions}
                                 </DropdownButton>
                             </Col>
+                            <Col md={4} className={'noGutter'}>
+                                {makeToggleLabelsButton()}
+                            </Col>
                         </Row>
-                        <Row md={12} className={'inline'} >
-                            <Col md={12} style={{'height':'1.7em'}}>
+                        <Row md={12} className={'noGutter'} >
+                            <Col md={12}>
                             {'Clust Features: '}
                             {featureButtons}
                             </Col>
                         </Row>
-                        <Row style={{'marginTop': '.5em'}} className={'controlPanelTitle'} md={12}>
+                        <Row style={{'margin':'0px','marginTop': '1em'}} className={'controlPanelTitle'} md={12}>
                             <Button
                                 onClick={handleUpdateClusters}
                                 disabled={disabled}
-                                variant={!disabled? "outline-secondary":'dark'}
+                                variant={!disabled? "outline-primary":'dark'}
                             >
                                 {'Run Clustering'}
                             </Button>
                         </Row>
                     </Col>
                     <Col className={'borderRight'} md={6}>
-                        <Row md={12}>
+                        <Row md={12} className={'noGutter'}>
                             <span className={'viewTitle'}>
                                 {'Outcome Parameters'}
                             </span>   
                         </Row>
-                        <Row md={12} >
+                        <Row md={12} className={'noGutter'}>
                             <Col md={6} className={'noGutter'}>
                                 {'Symptom:'}
                                 <DropdownButton
@@ -401,23 +404,23 @@ export default function ClusterControlPanel(props){
                                 <span>{'  '}</span>
                                 <span>
                                     <Button
-                                        variant={'outline-secondary'}
+                                        variant={'outline-primary'}
                                         onClick={updateEndpoints}
                                     >
                                         {' Set '}
                                     </Button>
                                 </span>
                             </Col>
-                            <Col md={12}>
+                            <Col md={12} className={'noGutter'}>
                                 {'Confounders: '}
                                 {confounderButtons}
                             </Col>
                         </Row>
-                        <Row style={{'marginTop': '.5em'}} className={'controlPanelTitle'} md={12}>
+                        <Row style={{'margin':'0px','marginTop': '1em'}} className={'controlPanelTitle'} md={12}>
                             <Button
                                 onClick={handleUpdateOutcomes}
                                 // disabled={disabled}
-                                variant={"outline-secondary"}
+                                variant={"outline-primary"}
                             >
                                 {'Update Outcomes'}
                             </Button>
@@ -425,8 +428,8 @@ export default function ClusterControlPanel(props){
                     </Col>
                 </Row>
                 
-            </Col>
-            <Col sm={2}>
+            {/* </Col> */}
+            {/* <Col sm={2}>
                 <Row md={12}>
                     <span className={'viewTitle'}>
                         {"Plot Parameters"}
@@ -444,7 +447,7 @@ export default function ClusterControlPanel(props){
                     </Col>
                 
                 </Row>
-            </Col>
+            </Col> */}
             
         </Row>
     )

@@ -20,13 +20,27 @@ export default function DoseEffectView(props){
     // const [colorScale,setColorScale] = useState(v=>v);
 
     const linearInterpolator = d3.interpolateBlues;
-    const divergentInterpolator = d3.scaleDiverging().domain([0,.5,1]).range(['pink','white','rgb(100,149,237)']);
+    const divergentInterpolator = d3.scaleDiverging()
+        .domain([0,.5,1])
+        .range(['gray','#f7f7f7','#4d9221'])
+        // .range(['#de77ae','#f7f7f7','#4d9221'])
+        // .range(['pink','white','rgb(100,149,237)']);
     const [extents,setExtents] = useState();
 
     const metricOptions = ['aic_diff','bic_diff','lrt_pval'];
     const fPosOptions = [-1,0,1];
     
     const [useChange,setUseChange] =  useState(true); //this encodes color as a change from baseline
+
+    function toggleClusterFeature(f){
+        let cfeatures = [...props.tempClusterFeatures];
+        if(cfeatures.indexOf(f) < 0){
+            cfeatures.push(f);
+        } else{
+            cfeatures = cfeatures.filter(x => x !== f);            
+        }
+        props.setTempClusterFeatures(cfeatures);
+    }
 
     useEffect(()=>{
         //get data extents to share between things
@@ -220,25 +234,25 @@ export default function DoseEffectView(props){
     }
 
     return (
-        <div ref={ref} className={'noGutter fillSpace'}>
-            <Row md={12} className={'noGutter fillSpace'}>
-                <Col md={10} className={'noGutter shadow fillHeight'}>
-                    <Row md={12} className={'inline noGutter fillWidth centerText viewTitle'}
-                        style={{'height':'2.2em','width':'100%'}}
-                    >
-                        <span>
-                        {'Effect of Adding/Removing Organs on '}
-                        {makeMetricDropdown()}
-                        {' Of '}
-                        {makeToggleCluster()}
-                        {' For Predicting '}
-                        {makeSymptomDropdown()}
-                        {makeThresholdDropdown()}
-                        </span>
-                    </Row>
+        <div ref={ref} className={'fillSpace'}>
+            <Row md={12} className={'inline fillWidth centerText viewTitle'}
+                style={{'height':'2em','width':'100%','marginBottom':'1em'}}
+            >
+                <span>
+                {'Effect of +/- Organs on '}
+                {makeMetricDropdown()}
+                {' Of '}
+                {makeToggleCluster()}
+                {' For Pred. '}
+                {makeSymptomDropdown()}
+                {makeThresholdDropdown()}
+                </span>
+            </Row>
+            <Row md={12} className={'fillWidth'} style={{'height': 'calc(95% - 3em)'}}>
+                <Col md={10} className={'fillHeight'}>
                     <Row md={12} 
-                        className={'noGutter fillWidth'}
-                        style={{'height': 'calc(95% - 8vh - 2.5em)'}}
+                        className={'fillWidth'}
+                        style={{'height':'calc(100% - 3em)'}}
                     >
                         <DoseEffectViewD3
                             doseData={props.doseData}
@@ -257,7 +271,7 @@ export default function DoseEffectView(props){
                             setAdditiveClusterThreshold={props.setAdditiveClusterThreshold}
                             colorMetric={colorMetric}
                             fPos={fPos}
-
+                            parameterColors={props.parameterColors}
                             extents={extents}
                             linearInterpolator={linearInterpolator}
                             divergentInterpolator={divergentInterpolator}
@@ -266,7 +280,7 @@ export default function DoseEffectView(props){
                         ></DoseEffectViewD3>
                     </Row>
                     {makeTitle('Effect of Adding/Removing Features')}
-                    <Row md={12} className={'noGutter fillWidth'} style={{'height': 'calc(8vh - 2.5em)'}}>
+                    <Row md={12} className={'fillWidth'} style={{'height': '3em'}}>
                         <FeatureEffectViewD3
                             doseData={props.doseData}
                             clusterData={props.clusterData}
@@ -280,16 +294,18 @@ export default function DoseEffectView(props){
                             setAdditiveClusterThreshold={props.setAdditiveClusterThreshold}
                             colorMetric={colorMetric}
                             clusterFeatures={props.clusterFeatures}
-
+                            tempClusterFeatures={props.tempClusterFeatures}
+                            toggleClusterFeature={toggleClusterFeature}
                             extents={extents}
                             linearInterpolator={linearInterpolator}
                             divergentInterpolator={divergentInterpolator}
                             useChange={useChange}
+                            parameterColors={props.parameterColors}
                         ></FeatureEffectViewD3>
                     </Row>
                 </Col>
-                <Col md={2} className={'noGutter'}>
-                    <Row md={12} style={{'height': '50%','minHeight':'8em','maxHeight':'15em'}}>
+                <Col md={2}>
+                    <Row md={12} className={'fillSpace'}>
                         <EffectViewLegendD3
                             colorMetric={colorMetric}
                             extents={extents}

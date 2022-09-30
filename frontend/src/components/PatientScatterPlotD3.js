@@ -16,6 +16,9 @@ export default function PatientScatterPlotD3(props){
     
     const tipChartSize = [150,80];
     const tipSymptomChartSize = [160,15];//height is for each symptom here
+    const legendHeight = 80;
+    const legendWidth = 60;
+    const legendMargin = 30;
 
     function rScale(val){
         return maxR*(val**.25);
@@ -76,7 +79,6 @@ export default function PatientScatterPlotD3(props){
     function getMaxSymptoms(pEntry,symptom,dates){
         if(dates == undefined){
             dates = props.endpointDates;
-            console.log('scatterplot dates',dates)
         }
         let val = pEntry['symptoms_'+symptom];
         if(val === undefined | pEntry.dates === undefined){
@@ -193,7 +195,6 @@ export default function PatientScatterPlotD3(props){
             return entry
         });
         
-        // console.log('dots',xScale(sVals[0]['6W']))
         
         var plotDots = function(xKey,color){
             let cString = '.TipCircle'+xKey;
@@ -290,7 +291,6 @@ export default function PatientScatterPlotD3(props){
         
                 // let dateSliceStart = d.dates.indexOf(13);
                 // let dateSliceStop = d.dates.indexOf(33);
-                // console.log('symptoms',props.symptomsOfInterest)
                 for(let sympt of props.symptomsOfInterest){
                     // let svals = d['symptoms_'+sympt].slice(dateSliceStart,dateSliceStop+1)
                     // newD[sympt] = Math.max(...svals)/10;
@@ -431,11 +431,11 @@ export default function PatientScatterPlotD3(props){
     
                 forceSimulation(newData)
                     .force('collide',forceCollide().radius(getR))
-                    .alphaMin(.2)
+                    .alphaMin(.3)
                     .on('tick',ticked)
                     .on('end',function(){
                         //for some reason this doesn't work on the first go still
-                        drawHull(newData);
+                        // drawHull(newData);
                         setDotsDrawn(true);
 
                     })
@@ -479,12 +479,8 @@ export default function PatientScatterPlotD3(props){
             //fill in pinwheel shape after simulation is done for layout
             svg.selectAll('.scatterPoint')
                 .attr('d',getShape);
-
             //stuff for drawing the legend
             //figure out the corner that it's best to draw in
-            const legendHeight = 60;
-            const legendWidth = 60;
-            const legendMargin = 20;
 
             //get clostest point to each corner
             let ltDist = 10000;
@@ -494,6 +490,7 @@ export default function PatientScatterPlotD3(props){
             let distSquared = (d,x0,y0) => {
                 //distance squared is faster than just distanc
                 let vect = (d.x - x0)**2 + (d.y -y0)**2;
+                console.log(d)
                 return vect
             }
             let minDist = (d,x0,y0,currMin) =>{
@@ -510,14 +507,14 @@ export default function PatientScatterPlotD3(props){
                 rbDist = minDist(d,width,height,rbDist);
             });
             //calibrate start position baseed on the corner
-            var legendTop = legendMargin;
+            var legendTop = height - legendHeight;
             var legendLeft = legendMargin;
             const minCorner = Math.max(ltDist,rtDist,lbDist,rbDist);
             if(rtDist === minCorner | rbDist === minCorner){
                 legendLeft = width - legendWidth;
             }
-            if(lbDist === minCorner | rbDist === minCorner){
-                legendTop = height - legendHeight;
+            if(ltDist === minCorner | rtDist === minCorner){
+                legendTop = legendMargin;
             }
             //values = 0 is special case for the legend title
             //other values are the ones included in the legend
@@ -563,7 +560,7 @@ export default function PatientScatterPlotD3(props){
                 .attr('font-weight',d=>d.fontWeight)
                 .text(d=> d.text)
         }
-    },[svg,props.clusterData,formattedData,dotsDrawn,props.sizeVar]);
+    },[svg,props.clusterData,formattedData,dotsDrawn,props.sizeVar,props.xVar,props.yVar]);
 
     useEffect(function brush(){
         if(formattedData !==undefined & dotsDrawn){

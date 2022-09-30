@@ -50,6 +50,7 @@ function App() {
   const [nDoseClusters,setNDoseClusters] = useState(3);
   //which dose features we use for each organ
   const [clusterFeatures,setClusterFeatures] = useState(['V25','V30','V35','V40','V45','V50','V55','V60']);
+  const [tempClusterFeatures,setTempClusterFeatures] = useState();
   //used to determine the confounders used in the models for determining p-values
   const [lrtConfounders,setLrtConfounders] = useState([
     't_severe',
@@ -159,6 +160,14 @@ function App() {
     }
     return colors[ii];
   }
+
+  const parameterColors = {
+    current: 'grey',
+    cue: 'navy',
+    both: 'black',
+    none: 'white',
+  }
+
   function resetSelections(){
     setActiveCluster(nDoseClusters-1);
     setSelectedPatientId(-1);
@@ -193,6 +202,13 @@ function App() {
       }
     }
   }
+
+  useEffect(()=>{
+      let features = [];
+      for(let f of clusterFeatures){ features.push(f);}
+      setTempClusterFeatures(features);
+  },[clusterFeatures]);
+
 
   useEffect(()=>{
       fetch('organ_svgs/organ_svg_paths.json').then((newPaths)=>{
@@ -259,7 +275,9 @@ function App() {
       // console.log('cluster organ query', clusterOrgans)
       fetchDoseClusters(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,lrtConfounders,symptomsOfInterest,endpointDates);
     }
-  },[clusterOrgans,nDoseClusters,clusterFeatures,clusterType])
+  },[clusterOrgans,nDoseClusters,
+    clusterFeatures,
+    clusterType])
 
   useEffect(function updateDoses(){
     if(!clusterDataLoading & clusterData !== undefined){
@@ -277,63 +295,20 @@ function App() {
     }
   },[clusterDataLoading,clusterData,mainSymptom,clusterDataLoading,lrtConfounders,additiveClusterThreshold,additiveCluster,endpointDates])
 
-  function makeOverview(state,showToggle=true,className){
-    return (
-      <Row style={{'height': 'var(section-height)','overflowY':'hidden'}} 
-        className={'noGutter'} 
-        lg={12}
-      >
-        <OverView
-            api={api}
-            doseData={doseData}
-            defaultState={state}
-            clusterData={clusterData}
-            showToggle={showToggle}
-            clusterDataLoading={clusterDataLoading}
-            selectedPatientId={selectedPatientId}
-            setSelectedPatientId={setSelectedPatientId}
-            plotVar={plotVar}
-            clusterOrgans={clusterOrgans}
-            clusterOrganCue={clusterOrganCue}
-            setClusterOrganCue={setClusterOrganCue}
-            activeCluster={activeCluster}
-            svgPaths={svgPaths}
-            mainSymptom={mainSymptom}
-            setMainSymptom={setMainSymptom}
-            setActiveCluster={setActiveCluster}
-            clusterFeatures={clusterFeatures}
-            symptomsOfInterest={symptomsOfInterest}
-            allSymptoms={allSymptoms}
-            additiveClusterResults={additiveClusterResults}
-            categoricalColors={categoricalColors}
-            lrtConfounders={lrtConfounders}
-            nDoseClusters={nDoseClusters}
-            additiveCluster={additiveCluster}
-            additiveClusterThreshold={additiveClusterThreshold}
-            setAdditiveCluster={setAdditiveCluster}
-            setAdditiveClusterThreshold={setAdditiveClusterThreshold}
-            nDoseCluster={nDoseClusters}
-            showOrganLabels={showOrganLabels}
-            setShowOrganLabels={setShowOrganLabels}
-            doseColor={doseColor}
-            endpointDates={endpointDates}
-            setEndpointDates={setEndpointDates}
-            className={className}
-        ></OverView>
-    </Row>
-    )
-  }
-
   function makeEffectPlot(){
       if(clusterData != undefined & additiveClusterResults != undefined){
           return (
             <DoseEffectView
                 doseData={doseData}
                 clusterData={clusterData}
+                tempClusterFeatures={tempClusterFeatures}
+                setTempClusterFeatures={setTempClusterFeatures}
                 additiveClusterResults={additiveClusterResults}
                 clusterOrgans={clusterOrgans}
                 clusterOrganCue={clusterOrganCue}
                 setClusterOrganCue={setClusterOrganCue}
+                clusterFeatures={clusterFeatures}
+                setClusterFeatures={setClusterFeatures}
                 activeCluster={activeCluster}
                 symptomsOfInterest={symptomsOfInterest}
                 mainSymptom={mainSymptom}
@@ -344,10 +319,10 @@ function App() {
                 setAdditiveCluster={setAdditiveCluster}
                 setAdditiveClusterThreshold={setAdditiveClusterThreshold}
                 nDoseClusters={nDoseClusters}
-                clusterFeatures={clusterFeatures}
                 showOrganLabels={showOrganLabels}
                 setShowOrganLabels={setShowOrganLabels}
                 endpointDates={endpointDates}
+                parameterColors={parameterColors}
             ></DoseEffectView>
           )
       } else{
@@ -364,23 +339,21 @@ function App() {
   function makeMetricPlot(){
       if(clusterData != undefined & doseData != undefined){
           return (
-              <Container className={'noGutter fillSpace'}>
-                  <ClusterMetrics
-                      doseData={doseData}
-                      api={api}
-                      clusterData={clusterData}
-                      selectedPatientId={selectedPatientId}
-                      setSelectedPatientId={setSelectedPatientId}
-                      plotVar={plotVar}
-                      clusterOrgans={clusterOrgans}
-                      activeCluster={activeCluster}
-                      setActiveCluster={setActiveCluster}
-                      symptomsOfInterest={symptomsOfInterest}
-                      mainSymptom={mainSymptom}
-                      categoricalColors={categoricalColors}
-                      endpointDates={endpointDates}
-                  ></ClusterMetrics>
-              </Container>
+              <ClusterMetrics
+                  doseData={doseData}
+                  api={api}
+                  clusterData={clusterData}
+                  selectedPatientId={selectedPatientId}
+                  setSelectedPatientId={setSelectedPatientId}
+                  plotVar={plotVar}
+                  clusterOrgans={clusterOrgans}
+                  activeCluster={activeCluster}
+                  setActiveCluster={setActiveCluster}
+                  symptomsOfInterest={symptomsOfInterest}
+                  mainSymptom={mainSymptom}
+                  categoricalColors={categoricalColors}
+                  endpointDates={endpointDates}
+              ></ClusterMetrics>
           )
       } else{
           return (<Spinner 
@@ -396,7 +369,6 @@ function App() {
       //I'm maybe not doing this an putting it in the left hand side as a pernament view
       if(clusterData != undefined & doseData != undefined){
           return (
-              <Container className={'noGutter fillSpace'}>
                   <SymptomPlotD3
                       doseData={doseData}
                       clusterData={clusterData}
@@ -409,7 +381,6 @@ function App() {
                       mainSymptom={mainSymptom}
                       categoricalColors={categoricalColors}
                   ></SymptomPlotD3>
-              </Container>
           )
       } else{
           return (<Spinner 
@@ -424,7 +395,7 @@ function App() {
   function makeOutcomeView(showSymptomView){
     let outcomeView = showSymptomView? makeSymptomPlot: makeMetricPlot;
     return (
-      <Row md={12} className={'noGutter fillSpace'}>
+      <Row md={12} className={'fillSpace'}>
         <Row md={12} className={'centerText'} style={{'height':'2em'}}>
           <Col>
             <Button 
@@ -441,8 +412,10 @@ function App() {
             >{'Cluster-Outcome Correlations'}</Button>
           </Col>
         </Row>
-        <Row md={12} style={{'height':'calc(100% - 2em)'}}>
+        <Row md={12} className={'fillWidth'} style={{'height':'calc(100% - 2em)'}}>
+          <div style={{'width':'100%','height':'100%','padding':'1.2em','left':'-1em'}}>
           {outcomeView()}
+          </div>
         </Row>
       </Row>
     )
@@ -473,13 +446,13 @@ function App() {
           return (
               <Dropdown.Item
                   key={i+key}
-                  value={d}
+                  value={Utils.getVarDisplayName(d)}
                   eventKey={d}
                   onClick={() => onclickFunc(d)}
-              >{d}</Dropdown.Item>
+              >{Utils.getVarDisplayName(d)}</Dropdown.Item>
           )
       })
-      let name = active + '';
+      let name = Utils.getVarDisplayName(active + '');
       if(title !== ''){
         name = showState? title + ': ' + active: title;
       } 
@@ -538,25 +511,18 @@ function App() {
       'totalDose','tstage','nstage',
     ].concat(allSymptoms);
     return (
-      <Container md={12} className={'noGutter fillSpace'}>
-          <Row style={{'height':'1.5em'}} className={'noGutter centerText'} md={12}>
+      <Container md={12} className={'fillSpace'}>
+          <Row style={{'height':'1.5em'}} className={'viewTitle centerText'} md={12}>
+            <span>
+              {"Scatterplot of "}
               {makeDropdown('',xVar,setXVar,1,varOptions,'down')}
-              <Button
-                title={'vs'}
-                className={'controlPanelTitle'}
-                style={{'width':'auto'}}
-                variant={''}
-              >{'vs'}</Button>
+              {' vs '}
               {makeDropdown('',yVar,setYVar,2,varOptions,'down')}
-              <select 
-                className={'btn btn-primary dropdown-toggle'}
-              value="4">
-                <option value="4">{'1'}</option>
-                <option value='b'>{"ur mom lol"}</option>
-                <option value='11'>{'c'}</option>
-              </select>
+              </span>
           </Row>
-          <Row style={{'height':'calc(100% - 1.5em)'}} className={'noGutter'} md={12}>
+          <Row style={{'height':'calc(100% - 1.5em)'}} 
+          // className={'noGutter'} 
+          md={12}>
                   {makeScatter()}
           </Row>
       </Container>
@@ -573,6 +539,8 @@ function App() {
                   setNDoseClusters={setNDoseClusters}
                   clusterFeatures={clusterFeatures}
                   setClusterFeatures={setClusterFeatures}
+                  tempClusterFeatures={tempClusterFeatures}
+                  setTempClusterFeatures={setTempClusterFeatures}
                   clusterDataLoading={clusterDataLoading}
                   setClusterDataLoading={setClusterDataLoading}
                   updateClusterOrgans={updateClusterOrgans}
@@ -598,7 +566,7 @@ function App() {
                 ></ClusterControlPanel>
           </Row>
           <Row id={'mainVis'} className={'noGutter'} lg={12}>   
-            <Col fluid={'true'} className={'fillHeight noGutter'} lg={5}>
+            <Col fluid={'true'} className={'fillHeight'} lg={5}>
               <Row className={'ul-view'}>
                 {makeEffectPlot()}
               </Row>
@@ -606,7 +574,7 @@ function App() {
                 {makeRulePlot()}
               </Row>
             </Col>  
-            <Col className={'noGutter'} lg={3} 
+            <Col lg={3} 
             style={{'height':'100%'}}>
               <DoseView
                     doseData={doseData}
@@ -631,13 +599,14 @@ function App() {
                     setEndpointDates={setEndpointDates}
                     maxDose={maxDose}
                     setMaxDose={setMaxDose}
+                    parameterColors={parameterColors}
                 ></DoseView>
             </Col>
-            <Col className={'noGutter'} lg={4}>
-              <Row className={'clusterContainer ur-view vizComponent noGutter'} lg={12}>
+            <Col  lg={4}>
+              <Row className={'clusterContainer ur-view'} lg={12}>
                 {makeScatterPlot()}
               </Row>
-              <Row className={'clusterContainer lr-view vizComponent noGutter'} lg={12}>
+              <Row className={'clusterContainer lr-view'} lg={12}>
                 {makeOutcomeView(showTemporalSymptoms)}
               </Row>
             </Col>

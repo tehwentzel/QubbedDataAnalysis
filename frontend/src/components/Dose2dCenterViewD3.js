@@ -353,11 +353,12 @@ export default function Dose2dCenterViewD3(props){
                 } 
                 return 0
             }
+
             function getStrokeColor(d){
-                if(isActive(d) & inCue(d)){ return 'black';}
-                if(isActive(d)){ return 'blue'; }
-                if(inCue(d)){ return '#525252'; }
-                return '#969696';
+                if(isActive(d) & inCue(d)){ return props.parameterColors.both;}
+                if(isActive(d)){ return props.parameterColors.current; }
+                if(inCue(d)){ return props.parameterColors.cue; }
+                return props.parameterColors.none;
             }
             svg.selectAll('.organPath')
                 .attr('stroke-width',getStrokeWidth)
