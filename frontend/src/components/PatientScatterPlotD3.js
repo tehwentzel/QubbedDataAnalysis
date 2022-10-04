@@ -490,7 +490,6 @@ export default function PatientScatterPlotD3(props){
             let distSquared = (d,x0,y0) => {
                 //distance squared is faster than just distanc
                 let vect = (d.x - x0)**2 + (d.y -y0)**2;
-                console.log(d)
                 return vect
             }
             let minDist = (d,x0,y0,currMin) =>{

@@ -20,6 +20,7 @@ export default function RuleView(props){
 
     //data for query looking at boolean splits in the 'rule' view
     const [ruleData,setRuleData] = useState(undefined);
+    const [tempRuleData,setTempRuleData] = useState(undefined);
     //threshold for symptoms to use as the target class
     const [ruleThreshold,setRuleThreshold] = useState(5);
     //the cluster we should use for the rule mining when predicing symptoms.  default undefined means using the whole cohort
@@ -43,6 +44,7 @@ export default function RuleView(props){
             className={'spinner'}/>
     )
 
+
     var fetchClusterRules = async(cData,organs,
         symptoms,clusterFeatures,
         threshold,cluster,
@@ -51,7 +53,8 @@ export default function RuleView(props){
         dates,
         )=>{
         if(cData !== undefined & !props.clusterDataLoading){
-            setRuleData(undefined);
+            setTempRuleData(undefined);
+
             props.api.getClusterRules(cData,organs,
                 symptoms,clusterFeatures,
                 threshold,cluster,
@@ -59,10 +62,10 @@ export default function RuleView(props){
                 rCriteria,targetCluster,
                 mInfo,dates,
             ).then(response=>{
-                // console.log('rule data main',response);
-                setRuleData(response);
+                console.log('rule data main',response);
+                setTempRuleData(response);
             }).catch(error=>{
-            console.log('rule data error',error);
+                console.log('rule data error',error);
             })
         }
     }
@@ -85,6 +88,7 @@ export default function RuleView(props){
             if(ruleUseAllOrgans){
                 rOrgans = [...constants.ORGANS_TO_SHOW];
             }
+            setRuleData(undefined);
             fetchClusterRules(
                 props.clusterData,
                 rOrgans,
@@ -118,6 +122,27 @@ export default function RuleView(props){
         // ruleThreshold,
         // ruleCluster,
     ])
+
+    useEffect(()=>{
+        //rule updates are stored temporarily
+        //because i don't know how to cancel when I change multiple parameters
+        //so this this validates if the updated data we get is actually the right set
+        if(tempRuleData === undefined){ return; }
+        const params = tempRuleData.postData;
+        if(params === undefined){ return }
+        function validate(p){
+            if(parseInt(p.predictCluster) !== ruleTargetCluster){return false;}
+            if(p.max_depth !== ruleMaxDepth){ return false;}
+            if(p.threshold !== ruleThreshold){ return false;}
+            if(p.symptoms[0] !== props.mainSymptom){ return false;}
+            return true;
+        }
+        if(validate(params)){
+            const rd = [...tempRuleData.data]
+            console.log('rd',rd)
+            setRuleData(rd);
+        } 
+    },[tempRuleData])
 
     const filterCluster = parseInt(ruleCluster) === parseInt(props.activeCluster)
     const parseString = v => v+'';

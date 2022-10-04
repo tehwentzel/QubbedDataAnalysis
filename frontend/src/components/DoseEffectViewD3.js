@@ -17,6 +17,7 @@ export default function DoseEffectViewD3(props){
 
             svg.selectAll('g').remove();
             svg.selectAll('path').remove();
+            svg.selectAll('text').filter('.positionLabels').remove();
             setPathsDrawn(false);
 
             var metricTransform = x => -x;
@@ -132,7 +133,7 @@ export default function DoseEffectViewD3(props){
                     if(props.clusterOrgans.indexOf(d.organ) >= 0){
                         return 'red';
                     } else{
-                        return 'grey';
+                        return '#d1d1d1d1'
                     }
                 }
                 return interp(colorScale(value));
@@ -206,9 +207,11 @@ export default function DoseEffectViewD3(props){
         }
     },[svg,props.svgPaths,props.effectData,props.clusterOrgans,props.colorMetric,props.fPos,props.clusterOrganCue,props.extents,props.useChange])
 
+
+
     useEffect(()=>{
         if(svg === undefined){ return; }
-        if(box !== undefined & props.showOrganLabels){
+        if(box !== undefined){
             let labelData = [];
             let getTransform = (y) => {
                 let tform = 'translate(0, ' + -((box.y + box.height/2) - y) +') ' ;
@@ -216,31 +219,71 @@ export default function DoseEffectViewD3(props){
                 tform += 'translate(0,' + ((box.y + box.height/2) - y) + ')';
                 return tform;
             }
+
+            if(props.showOrganLabels){
+                svg.selectAll('.organPath').each((d,i,j) => {
+                    if(!d.organ.toLowerCase().includes('side')){
+                        let bbox = j[i].getBBox();
+                        let organ = d.organ;
+                        //trial and error tweaking names so they are small but readable ish
+                        let name = Utils.truncateOrganNames(organ);
+                        let fSize =  1.5*(bbox.width/name.length);
+                        fSize = Math.min(5, Math.max(2.5,fSize))
+                        let entry = {
+                            x: bbox.x + bbox.width/2,
+                            y: bbox.y + (bbox.height/2),
+                            text: name,
+                            fontSize: fSize,
+                            textWidth: bbox.width*.8,
+                            oData: d,
+                            isOrgan: true,
+                        }
+                        //just trial and error making submandibular gland and digastric not collide
+                        entry = Utils.adjustOrganSpacing(organ,entry);
+                        entry.transform = getTransform(entry.y);
+                        labelData.push(entry);
+                    }
+                    
+                })
+            }
+            
+            //this part draws 'contralateral' and 'ipsilateral' directly over the lateral pterygoids on each side
+            var rLabel = false;
+            var lLabel = false;
             svg.selectAll('.organPath').each((d,i,j) => {
-                if(!d.organ.toLowerCase().includes('side')){
-                    let bbox = j[i].getBBox();
-                    let organ = d.organ;
+                let organ = d.organ;
+                if(organ.includes('Lateral_Pterygoid')){ 
                     //trial and error tweaking names so they are small but readable ish
-                    let name = Utils.truncateOrganNames(organ);
-                    let fSize =  1.5*(bbox.width/name.length);
-                    fSize = Math.min(5, Math.max(2.5,fSize))
-                    let entry = {
-                        x: bbox.x + bbox.width/2,
-                        y: bbox.y + (bbox.height/2),
-                        text: name,
-                        fontSize: fSize,
-                        textWidth: bbox.width*.8,
-                        oData: d,
+                    const isLeft = organ.includes('Lt_');
+                    if((isLeft & !lLabel) | (!isLeft & !rLabel)){
+                        let bbox = j[i].getBBox();
+                        let text = isLeft? 'Ipsilateral':'Contralateral'
+                        let fSize =  2.2*(bbox.width/text.length);
+                        fSize = Math.min(10, Math.max(2.5,fSize))
+                        let entry = {
+                            x: bbox.x + bbox.width/2,
+                            y: bbox.y + (bbox.height/2) + fSize*2.5,
+                            text: text,
+                            fontSize: 1.25*fSize,
+                            textWidth: bbox.width*1.5,
+                            oData: d,
+                            isOrgan: false,
+                        }
+                        entry.transform = getTransform(entry.y);
+                        labelData.push(entry);
+                        if(isLeft){ 
+                            lLabel = true; 
+                        } else{ 
+                            rLabel = true;
+                        }
+
                     }
                     //just trial and error making submandibular gland and digastric not collide
-                    entry = Utils.adjustOrganSpacing(organ,entry);
-                    entry.transform = getTransform(entry.y);
-                    labelData.push(entry);
                 }
-                
             })
-            // svg.selectAll('.organLabel').remove()
+
             let organGroup = svg.select('g').filter('.organGroup');
+            organGroup.selectAll('.organLabel').remove();
             let labels = organGroup.selectAll('.organLabel')
                 .data(labelData).enter()
                 .append('text').attr('class','organLabel')
@@ -250,10 +293,12 @@ export default function DoseEffectViewD3(props){
                 .attr('text-anchor','middle')
                 .attr('dominant-baseline','central')
                 .attr('font-weight','bold')
+                .attr('font-style',d=>d.isOrgan? '':'italic')
                 .attr('transform',d=>d.transform)
-                .attr('stroke','white')
-                .attr('stroke-width',d=>.01*d.fontSize)
+                .attr('stroke',d => d.isOrgan? 'white':'')
+                .attr('stroke-width',d=> d.isOrgan? .01*d.fontSize : 0)
                 .attr('pointer-events','none')
+                .attr('text-decoration',d=> d.isOrgan? '':'underline')
                 .text(d=>d.text);
         } else{
              let labels = svg.selectAll('.organLabel')

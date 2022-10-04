@@ -107,9 +107,10 @@ export default class DataService {
             return undefined
         }
         try{
-            const response = await this.api.post('/rules', goodPostData);
-            // console.log('rules response',response.data);
-            return response.data;
+            var response = await this.api.post('/rules', goodPostData);
+            response.postData = postData;
+            console.log('rules response',response);
+            return response;
         } catch(error){
             console.log(error);
         }

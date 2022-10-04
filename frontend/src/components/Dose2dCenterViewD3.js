@@ -206,12 +206,15 @@ export default function Dose2dCenterViewD3(props){
             .attr('font-size',legendBlockSize + 2)
             .html(d=>d.text);
 
+
     }
+
 
     useEffect(function draw(){
         var nQuants = 0;
         // var maxDVal = 70;
         if(svg !== undefined & props.svgPaths !== undefined & props.data != undefined & height > 0 & width > 0 & props.doseColor !== undefined){
+            svg.selectAll().remove()
             svg.selectAll('g').remove();
             svg.selectAll('path').remove();
             setPathsDrawn(false);
@@ -274,6 +277,7 @@ export default function Dose2dCenterViewD3(props){
                 maxDVal = props.maxDose;
             }
             svg.selectAll('g').filter('.organGroup').remove();
+            svg.selectAll('text').filter('.positionLabels').remove();
             const organGroup = svg.append('g')
                 .attr('class','organGroup');
             
@@ -377,6 +381,7 @@ export default function Dose2dCenterViewD3(props){
 
     useEffect(()=>{
         if(svg !== undefined & pathsDrawn){
+            svg.selectAll('.organLabel').remove();
             let box = svg.node().getBBox();
             let translate = 'translate(' + (-box.x)*(width/box.width)  + ',' + (-box.y)*(height/box.height) + ')'
             let scale = 'scale(' + width/box.width + ',' + (-height/box.height) + ')';
@@ -388,7 +393,7 @@ export default function Dose2dCenterViewD3(props){
 
     useEffect(()=>{
         if(svg === undefined){ return; }
-        if(box !== undefined & props.showOrganLabels){
+        if(box !== undefined){
             let labelData = [];
             let getTransform = (y) => {
                 let tform = 'translate(0, ' + -((box.y + box.height/2) - y) +') ' ;
@@ -396,46 +401,92 @@ export default function Dose2dCenterViewD3(props){
                 tform += 'translate(0,' + ((box.y + box.height/2) - y) + ')';
                 return tform;
             }
-            svg.selectAll('.organPath').each((d,i,j) => {
-                if(d.organ_name === d.path_name){ 
-                    let bbox = j[i].getBBox();
-                    let organ = d.organ_name;
-                    //trial and error tweaking names so they are small but readable ish
-                    let name = Utils.truncateOrganNames(organ);
-                    let fSize =  1.5*(bbox.width/name.length);
-                    fSize = Math.min(5, Math.max(2.5,fSize))
-                    let entry = {
-                        x: bbox.x + bbox.width/2,
-                        y: bbox.y + (bbox.height/2),
-                        text: name,
-                        fontSize: fSize,
-                        textWidth: bbox.width*.8,
-                        oData: d,
+            if(props.showOrganLabels){
+                svg.selectAll('.organPath').each((d,i,j) => {
+                    if(d.organ_name === d.path_name){ 
+                        let bbox = j[i].getBBox();
+                        let organ = d.organ_name;
+                        //trial and error tweaking names so they are small but readable ish
+                        let name = Utils.truncateOrganNames(organ);
+                        let fSize =  1.5*(bbox.width/name.length);
+                        fSize = Math.min(5, Math.max(2.5,fSize))
+                        let entry = {
+                            x: bbox.x + bbox.width/2,
+                            y: bbox.y + (bbox.height/2),
+                            text: name,
+                            fontSize: fSize,
+                            textWidth: bbox.width*.8,
+                            oData: d,
+                            isOrgan: true,
+                        }
+                        //just trial and error making submandibular gland and digastric not collide
+                        entry = Utils.adjustOrganSpacing(organ,entry);
+                        entry.transform = getTransform(entry.y);
+                        labelData.push(entry);
                     }
-                    //just trial and error making submandibular gland and digastric not collide
-                    entry = Utils.adjustOrganSpacing(organ,entry);
-                    entry.transform = getTransform(entry.y);
-                    labelData.push(entry);
-                }
-            })
-            // svg.selectAll('.organLabel').remove()
-            let organGroup = svg.select('g').filter('.organGroup');
-            let labels = organGroup.selectAll('.organLabel')
-                .data(labelData).enter()
-                .append('text').attr('class','organLabel')
-                .attr('x',d=>d.x)
-                .attr('y',d=>d.y)
-                .attr('font-size',d=>d.fontSize)
-                .attr('text-anchor','middle')
-                .attr('dominant-baseline','central')
-                .attr('font-weight','bold')
-                .attr('transform',d=>d.transform)
-                .attr('stroke','white')
-                .attr('stroke-width',d=>.01*d.fontSize)
-                .attr('pointer-events','none')
-                .text(d=>d.text);
-        } else{
-             let labels = svg.selectAll('.organLabel')
+                })
+            } 
+
+            const sideLabelsDrawn = !svg.selectAll('.organLabel').empty();
+            if(!sideLabelsDrawn){
+                //this part draws 'contralateral' and 'ipsilateral' directly over the lateral pterygoids on each side
+                var rLabel = false;
+                var lLabel = false;
+                svg.selectAll('.organPath').each((d,i,j) => {
+                    if(d.organ_name.includes('Lateral_Pterygoid')){ 
+                        let organ = d.organ_name;
+                        //trial and error tweaking names so they are small but readable ish
+                        const isLeft = organ.includes('Lt_');
+                        if((isLeft & !lLabel) | (!isLeft & !rLabel)){
+                            let bbox = j[i].getBBox();
+                            let text = isLeft? 'Ipsilateral':'Contralateral'
+                            let fSize =  2.2*(bbox.width/text.length);
+                            fSize = Math.min(10, Math.max(2.5,fSize))
+                            let entry = {
+                                x: bbox.x + bbox.width/2,
+                                y: bbox.y + (bbox.height/2) + fSize*2.5,
+                                text: text,
+                                fontSize: 1.25*fSize,
+                                textWidth: bbox.width,
+                                oData: d,
+                                isOrgan: false,
+                            }
+                            entry.transform = getTransform(entry.y);
+                            labelData.push(entry);
+                            if(isLeft){ 
+                                lLabel = true; 
+                            } else{ 
+                                rLabel = true;
+                            }
+
+                        }
+                        //just trial and error making submandibular gland and digastric not collide
+                    }
+                })
+            }
+
+            if(labelData.length > 1){
+                svg.selectAll('.organLabel').remove();
+                let organGroup = svg.select('g').filter('.organGroup');
+                let labels = organGroup.selectAll('.organLabel')
+                    .data(labelData).enter()
+                    .append('text').attr('class','organLabel')
+                    .attr('x',d=>d.x)
+                    .attr('y',d=>d.y)
+                    .attr('font-size',d=>d.fontSize)
+                    .attr('text-anchor','middle')
+                    .attr('dominant-baseline','central')
+                    .attr('font-weight','bold')
+                    .attr('font-style',d=>d.isOrgan? '':'italic')
+                    .attr('transform',d=>d.transform)
+                    .attr('stroke',d => d.isOrgan? 'white':'')
+                    .attr('stroke-width',d=> d.isOrgan? .01*d.fontSize : 0)
+                    .attr('pointer-events','none')
+                    .attr('text-decoration',d=> d.isOrgan? '':'underline')
+                    .text(d=>d.text);
+            }
+        } else if(!props.showOrganLabels){
+             let labels = svg.selectAll('.organLabel');
              if(labels !== undefined){ labels.remove();}
         }
     },[svg,box, props.showOrganLabels])

@@ -60,7 +60,7 @@ export default function DoseLegendD3(props){
             } else{
                 const fontSize = Math.max(height/4,15);
                 const barHeight = (height- 2*yMargin - 2*fontSize);
-                const barWidth = (width - 2*xMargin)/(steps.length);
+                const barWidth = (width - 2*xMargin)/(steps.length) - barMargin;
 
                 var currX = xMargin;
                 // var title = props.plotVar + ' (Gy)'

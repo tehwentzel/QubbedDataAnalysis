@@ -253,8 +253,9 @@ export default class Utils {
     }
 
     static truncateOrganNames(organ_name){
-        let name = organ_name.replace('Lt_','I_').replace('Rt_','C_')
-                        .replace("Sternocleidomastoid",'SCM')
+        let name = organ_name.replace('Lt_','')
+                        .replace('Rt_','')
+                        .replace("Sternocleidomastoid_M",'SCM')
                         .replace('Gland','Glnd')
                         .replace('Upper','Up')
                         .replace('Lower','Lw')
@@ -266,9 +267,13 @@ export default class Utils {
                         .replace('Medial','Med')
                         .replace('Anterior','Ant')
                         .replace('Extended_','')
-                        .replace('o','')
-                        .replace('u','')
-                        .replace('i','');
+                        .replace('id_M','id')
+                        .replace('ter_M','ter')
+                        .replace('ic_M','ic')
+                        .replace('sus_M','sus');//amogus
+                        // .replace('o','')
+                        // .replace('u','')
+                        // .replace('i','');
         return this.getVarDisplayName(name);
     }
 

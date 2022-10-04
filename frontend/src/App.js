@@ -18,15 +18,14 @@ import DataService from './modules/DataService';
 import Utils from './modules/Utils';
 import DoseView from './components/DoseView.js';
 import ClusterControlPanel from './components/ClusterControlPanel.js';
-import OverView from './components/OverView.js';
 import DoseEffectView from './components/DoseEffectView.js';
 import SymptomPlotD3 from './components/SymptomPlotD3.js';
 import PatientScatterPlotD3 from './components/PatientScatterPlotD3.js';
 
-import PatientDoseView from './components/PatientDoseView.js';
 import ClusterMetrics from './components/ClusterMetrics.js';
-import RuleView from './components/RuleView.js';;
+import RuleView from './components/RuleView.js';
 
+import HelpButton from './modules/HelpButton.js';
 
 
 
@@ -138,12 +137,17 @@ function App() {
   
   //this is theoreticall better than static 100 in case it goes really high?
   const [maxDose, setMaxDose] = useState(100);
-  const doseColor = d3.interpolateReds;
-  // function doseColor(v){
-  //   return d3.interpolateReds(v/100);
-  // }
-  // const [doseColor,setDoseColor] = useState(() => getDoseColor);
-  
+
+  const doseScale = d3.scaleLinear()
+    .domain([0,maxDose/2,maxDose])
+    .range([0,.5,1]);
+    
+  const doseColor = d3.scaleLinear()
+    .domain([0,.5,1])
+    .range(['white','#bf4d7c','#8a063d'])
+  // const doseColor = d3.interpolateReds;
+
+
   //hnc diagram svg patths
   const [svgPaths,setSvgPaths] = useState();
   const [xVar,setXVar] = useState('cluster_organ_pca1');
@@ -162,8 +166,8 @@ function App() {
   }
 
   const parameterColors = {
-    current: 'grey',
-    cue: 'navy',
+    current: 'brown',
+    cue: 'blue',
     both: 'black',
     none: 'white',
   }
@@ -503,6 +507,7 @@ function App() {
 
   function makeScatterPlot(){
     const varOptions = [
+
       'cluster_organ_pca1','cluster_organ_pca2','cluster_organ_pca3',
       'dose_pca1','dose_pca2','dose_pca3',
       'symptom_all_pca1','symptom_all_pca2','symptom_all_pca3',
@@ -584,6 +589,7 @@ function App() {
                     clusterOrganCue={clusterOrganCue}
                     nDoseClusters={nDoseClusters}
                     plotVar={plotVar}
+                    setPlotVar={setPlotVar}
                     svgPaths={svgPaths}
                     activeCluster={activeCluster}
                     setActiveCluster={setActiveCluster}

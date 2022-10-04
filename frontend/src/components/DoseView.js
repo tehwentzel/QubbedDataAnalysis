@@ -64,14 +64,14 @@ export default function DoseView(props){
                 if(isClusterActive(b)){ return 1; }
                 return parseInt(a.clusterId) - parseInt(b.clusterId)
             })
-            console.log(sortedClusters.map(d=>d.clusterId))
             let newComponents = sortedClusters.map((d,i) => 
             {
                 // let topmargin = '3em';// (i == 0)? '1em': '2em';
                 let clusterText = 'Cluster: ' + d.clusterId + ' (n=' + d.cluster_size + ')';
                 let onTitleClick = (e) => props.setActiveCluster(parseInt(d.clusterId));
                 let clickableTitle = (parseInt(props.activeCluster) !== parseInt(d.clusterId));
-                let variant = clickableTitle? 'outline-secondary': 'dark';
+                let bColor = clickableTitle? 'white': '##1f1f1f';
+                let textColor = clickableTitle? 'black':'white'
                 let dotColor = props.categoricalColors(parseInt(d.clusterId));
                 return (
                         <Row 
@@ -80,14 +80,16 @@ export default function DoseView(props){
                             key={i+'doses'+props.plotVar+props.showContralateral}
                         >
                             <Col md={12}
-                                style={{'height': '2em!important'}}
+                                style={{'height': '1.8em!important','background-color':dotColor,'cursor':'pointer'}}
                                 className={'controlPanelTitle'}
+                                onClick={onTitleClick}
                             >
                                 <Button
                                     title={clusterText}
                                     value={d}
                                     onClick={onTitleClick}
-                                    variant={variant}
+                                    variant={'outline-secondary'}
+                                    style={{'height':'100%','background-color':bColor,'color':textColor,'fontWeight':'bold'}}
                                     disabled={!clickableTitle}
                                 >
                                     {clusterText}
@@ -157,7 +159,7 @@ export default function DoseView(props){
             <Row md={12} className={'scroll'} style={{'height':'calc(100% - 6em)'}}>
                 {clusterVizComponents}
             </Row>
-            <Row md={12} style={{'height':'4em','width':'100%'}}>
+            <Row md={12} style={{'height':'4em','width':'calc(100% - 2em)','margin':'1em','left':'-2em!important'}}>
                 <DoseLegendD3
                     plotVar={props.plotVar}
                     doseColor={props.doseColor}

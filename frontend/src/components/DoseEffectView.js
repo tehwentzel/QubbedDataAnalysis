@@ -11,6 +11,7 @@ import Col from 'react-bootstrap/Col';
 import DoseEffectViewD3 from './DoseEffectViewD3.js';
 import FeatureEffectViewD3 from './FeatureEffectViewD3.js';
 import EffectViewLegendD3 from './EffectViewLegendD3.js';
+import QueLegend from './QueLegend.js';
 
 export default function DoseEffectView(props){
     const ref = useRef(null)
@@ -22,7 +23,7 @@ export default function DoseEffectView(props){
     const linearInterpolator = d3.interpolateBlues;
     const divergentInterpolator = d3.scaleDiverging()
         .domain([0,.5,1])
-        .range(['gray','#f7f7f7','#4d9221'])
+        .range(['tan','#f7f7f7','magenta'])
         // .range(['#de77ae','#f7f7f7','#4d9221'])
         // .range(['pink','white','rgb(100,149,237)']);
     const [extents,setExtents] = useState();
@@ -304,8 +305,8 @@ export default function DoseEffectView(props){
                         ></FeatureEffectViewD3>
                     </Row>
                 </Col>
-                <Col md={2}>
-                    <Row md={12} className={'fillSpace'}>
+                <Col md={2} style={{'height':'100%'}}>
+                    <Row md={12} className={'fillWidth'} style={{'height':'50%'}}>
                         <EffectViewLegendD3
                             colorMetric={colorMetric}
                             extents={extents}
@@ -313,6 +314,11 @@ export default function DoseEffectView(props){
                             divergentInterpolator={divergentInterpolator}
                             useChange={useChange}
                         ></EffectViewLegendD3>
+                    </Row>
+                    <Row md={12} className={'fillWidth'} style={{'height':'50%'}}>
+                        <QueLegend
+                            parameterColors={props.parameterColors}
+                        ></QueLegend>
                     </Row>
                 </Col>
             </Row>
