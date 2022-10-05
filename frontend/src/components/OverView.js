@@ -272,14 +272,6 @@ export default function OverView(props){
                 endpointDates={props.endpointDates}
             ></RuleView>
         )
-        // } else{
-        //     return (<Spinner 
-        //         as="span" 
-        //         animation = "border"
-        //         role='status'
-        //         className={'spinner'}/>
-        //     );
-        // }
     }
 
     function switchView(view){

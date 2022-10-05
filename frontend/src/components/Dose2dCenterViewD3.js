@@ -214,8 +214,8 @@ export default function Dose2dCenterViewD3(props){
         var nQuants = 0;
         // var maxDVal = 70;
         if(svg !== undefined & props.svgPaths !== undefined & props.data != undefined & height > 0 & width > 0 & props.doseColor !== undefined){
-            svg.selectAll().remove()
-            svg.selectAll('g').remove();
+            svg.selectAll('text').remove()
+            svg.selectAll('g').selectAll('path').remove();
             svg.selectAll('path').remove();
             setPathsDrawn(false);
             let orient = props.orient;
@@ -226,7 +226,7 @@ export default function Dose2dCenterViewD3(props){
             let organList = Object.keys(paths)
             let pathData = [];
             let maxDVal = 0;
-            for(let organ of organList){
+            for(const organ of organList){
                 if(!props.showContralateral & organ.includes('Rt_')){
                     continue;
                 }
@@ -278,6 +278,7 @@ export default function Dose2dCenterViewD3(props){
             }
             svg.selectAll('g').filter('.organGroup').remove();
             svg.selectAll('text').filter('.positionLabels').remove();
+            
             const organGroup = svg.append('g')
                 .attr('class','organGroup');
             
@@ -316,6 +317,7 @@ export default function Dose2dCenterViewD3(props){
                 .attr('d',x=>x.path)
                 .attr('fill', x=>getColor(x.dVal) )
                 .attr('stroke','black')
+                .attr('stroke-width','0')
                 .on('mouseover',function(e){
                     let d = d3.select(this).datum();
                     let tipText = d.organ_name + ' (' + d.path_name + ')' + '</br>' 
@@ -331,8 +333,22 @@ export default function Dose2dCenterViewD3(props){
                 }).on('mouseout', function(e){
                     Utils.hideTTip(tTip);
                     tTip.selectAll().remove();
+                }).on('contextmenu',function(e){
+                    e.preventDefault();
+                    let d = d3.select(this).datum();
+                    let organ = d.organ_name;
+                    props.addOrganToCue(organ);
                 });
 
+            //this used to be a seperate hook but was bad
+            //transforms stuff after it was udpated
+            svg.selectAll('.organLabel').remove();
+            let box = svg.node().getBBox();
+            let translate = 'translate(' + (-box.x)*(width/box.width)  + ',' + (-box.y)*(height/box.height) + ')'
+            let scale = 'scale(' + width/box.width + ',' + (-height/box.height) + ')';
+            let transform = translate + ' ' + scale
+            svg.selectAll('g').attr('transform',transform);
+            setBox(box);
 
             setPathsDrawn(true)
         }
@@ -340,6 +356,7 @@ export default function Dose2dCenterViewD3(props){
 
 
     useEffect(function brushSelected(){
+
         if(svg !== undefined & pathsDrawn){
             //doing this the easy way with classes makes the positions wronge for some reason
             var isActive = d => (props.clusterOrgans.indexOf(d.organ_name) > -1);
@@ -379,17 +396,6 @@ export default function Dose2dCenterViewD3(props){
         }
     },[props.data,svg,pathsDrawn,props.clusterOrgans,props.clusterOrganCue])
 
-    useEffect(()=>{
-        if(svg !== undefined & pathsDrawn){
-            svg.selectAll('.organLabel').remove();
-            let box = svg.node().getBBox();
-            let translate = 'translate(' + (-box.x)*(width/box.width)  + ',' + (-box.y)*(height/box.height) + ')'
-            let scale = 'scale(' + width/box.width + ',' + (-height/box.height) + ')';
-            let transform = translate + ' ' + scale
-            svg.selectAll('g').attr('transform',transform);
-            setBox(box);
-        }
-    },[props.data,svg,pathsDrawn]);
 
     useEffect(()=>{
         if(svg === undefined){ return; }
@@ -427,7 +433,7 @@ export default function Dose2dCenterViewD3(props){
                 })
             } 
 
-            const sideLabelsDrawn = !svg.selectAll('.organLabel').empty();
+            const sideLabelsDrawn = !svg.selectAll('.organTitle').empty();
             if(!sideLabelsDrawn){
                 //this part draws 'contralateral' and 'ipsilateral' directly over the lateral pterygoids on each side
                 var rLabel = false;
@@ -467,10 +473,11 @@ export default function Dose2dCenterViewD3(props){
 
             if(labelData.length > 1){
                 svg.selectAll('.organLabel').remove();
+                // svg.selectAll('.organTitle').remove();
                 let organGroup = svg.select('g').filter('.organGroup');
                 let labels = organGroup.selectAll('.organLabel')
                     .data(labelData).enter()
-                    .append('text').attr('class','organLabel')
+                    .append('text').attr('class',d=> d.isOrgan? 'organLabel': 'organTitle')
                     .attr('x',d=>d.x)
                     .attr('y',d=>d.y)
                     .attr('font-size',d=>d.fontSize)

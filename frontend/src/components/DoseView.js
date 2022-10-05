@@ -59,11 +59,11 @@ export default function DoseView(props){
             //if I fix that later I should remove that in the key
             const isClusterActive = (d) => parseInt(d.clusterId) === parseInt(props.activeCluster);
             var sortedClusters = [...props.clusterData]
-            sortedClusters.sort((a,b) => {
-                if(isClusterActive(a)){ return -1; }
-                if(isClusterActive(b)){ return 1; }
-                return parseInt(a.clusterId) - parseInt(b.clusterId)
-            })
+            // sortedClusters.sort((a,b) => {
+            //     if(isClusterActive(a)){ return -1; }
+            //     if(isClusterActive(b)){ return 1; }
+            //     return parseInt(a.clusterId) - parseInt(b.clusterId)
+            // })
             let newComponents = sortedClusters.map((d,i) => 
             {
                 // let topmargin = '3em';// (i == 0)? '1em': '2em';
