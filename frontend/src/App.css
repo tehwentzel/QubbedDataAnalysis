@@ -3,11 +3,11 @@ body{
   --right-panel-width: 49vw;
   --left-panel-width: 49vw;
   --section-height: calc((95vh - 4em - 150px)/2);
-  --ul-height: calc(50vh - 3.5em);
-  --ll-height: calc(50vh - 3.5em);
+  --ul-height: calc(30vh - 3.5em);
+  --ll-height: calc(70vh - 3.5em);
   --ur-height: calc(55vh - 3.5em);
   --lr-height: calc(45vh - 3.5em);
-  --cluster-width: 95%;
+  --cluster-width: calc(33% - 2em);
   --cluster-height: 25vh;
   --patient-dose-height: 12vh;
   --patient-symptom-height: 10vh;
@@ -46,8 +46,10 @@ body{
 }
 
 .row, .col{
-  margin: 2px!important;
-  padding: 2px!important;
+  margin: .25rem!important;
+  padding: .25rem!important;
+  margin-top: .5rem!important;
+  margin-bottom: .5rem!important
   /* overflow-x: hidden!important; */
   /* overflow-y: visible!important; */
 }
@@ -129,11 +131,14 @@ svg > path, svg > circle{
   height: var(--cluster-height)!important;
   /* height: 20em!important; */
   margin: 0em!important;
-  margin-left: calc((100% - var(--cluster-width))/2)!important;
+  margin-bottom:1em!important;
+  margin-left: 1em!important;
+  /* margin-left: calc((100% - var(--cluster-width))/2)!important; */
   padding: 0em!important;
   padding-left: .1em!important;
   padding-right: .1em!important;
   width: var(--cluster-width)!important;
+  max-width: calc(var(--cluster-height) * 2)!important;
   justify-content: center!important;
 }
 

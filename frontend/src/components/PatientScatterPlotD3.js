@@ -10,8 +10,8 @@ export default function PatientScatterPlotD3(props){
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [formattedData,setFormattedData] = useState();
     const [dotsDrawn,setDotsDrawn] = useState(false);
-    const margin = 40;
     const maxR = .015*Math.min(width,height);
+    const margin = Math.min(80,4*maxR);
     const curveMargin = 3;
     
     const tipChartSize = [150,80];

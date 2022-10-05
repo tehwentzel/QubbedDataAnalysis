@@ -67,20 +67,29 @@ export default function DoseView(props){
             let newComponents = sortedClusters.map((d,i) => 
             {
                 // let topmargin = '3em';// (i == 0)? '1em': '2em';
-                let clusterText = 'Cluster: ' + d.clusterId + ' (n=' + d.cluster_size + ')';
-                let onTitleClick = (e) => props.setActiveCluster(parseInt(d.clusterId));
-                let clickableTitle = (parseInt(props.activeCluster) !== parseInt(d.clusterId));
-                let bColor = clickableTitle? 'white': '##1f1f1f';
-                let textColor = clickableTitle? 'black':'white'
-                let dotColor = props.categoricalColors(parseInt(d.clusterId));
+                const clusterText = 'Cluster: ' + d.clusterId + ' (n=' + d.cluster_size + ')';
+                const onTitleClick = (e) => props.setActiveCluster(parseInt(d.clusterId));
+                const clickableTitle = (parseInt(props.activeCluster) !== parseInt(d.clusterId));
+                // let bColor = clickableTitle? 'white': '##1f1f1f';
+                const bColor = 'white';
+                // const textColor = clickableTitle? 'black':'white';
+                const textColor = 'black';
+                const dotColor = props.categoricalColors(parseInt(d.clusterId));
+                const defaultStyle = {'borderRadius':'.5em'}
+                let style = clickableTitle? {'border':'0px'}: {'border': '.3rem solid ' + dotColor};
+                style = Object.assign(style,defaultStyle)
+
                 return (
                         <Row 
                             className={'shadow clusterPlotCol'} 
                             md={6} 
+                            style={style}
                             key={i+'doses'+props.plotVar+props.showContralateral}
                         >
                             <Col md={12}
-                                style={{'height': '1.8em!important','background-color':dotColor,'cursor':'pointer'}}
+                                style={{'height': '1.8em!important',
+                                // 'background-color':dotColor,
+                                'cursor':'pointer'}}
                                 className={'controlPanelTitle'}
                                 onClick={onTitleClick}
                             >
@@ -89,7 +98,14 @@ export default function DoseView(props){
                                     value={d}
                                     onClick={onTitleClick}
                                     variant={'outline-secondary'}
-                                    style={{'height':'100%','background-color':bColor,'color':textColor,'fontWeight':'bold'}}
+                                    style={{
+                                        'height':'100%',
+                                        'background-color':bColor,
+                                        'color':textColor,
+                                        'width':'50%',
+                                        'minWidth':'3em',
+                                        'fontWeight':'bold'
+                                    }}
                                     disabled={!clickableTitle}
                                 >
                                     {clusterText}
@@ -149,17 +165,20 @@ export default function DoseView(props){
         <div ref={ref} className={'fillSpace overviewContainer'}
             style={{'margin':'1em'}} 
         >
-            <Row md={12} className={"centerText viewTitle"}>
+            <Row md={12} className={"centerText viewTitle"} style={{'height':'2em'}}>
                 <span>
                     {'Intra-cluster '}
                     {plotVarDropDown()}
                     {' Distribution'}
                 </span>
             </Row>
-            <Row md={12} className={'scroll'} style={{'height':'calc(100% - 6em)'}}>
+            <Row md={12} className={'scroll fillWidth'} style={{'height':'calc(100% - 5em)'}}>
                 {clusterVizComponents}
             </Row>
-            <Row md={12} style={{'height':'4em','width':'calc(100% - 2em)','margin':'1em','left':'-2em!important'}}>
+            <Row md={12} 
+                className={'noGutter'}
+                style={{'height':'3em','width':'calc(100% - 2em)','left':'-2em!important'}}
+            >
                 <DoseLegendD3
                     plotVar={props.plotVar}
                     doseColor={props.doseColor}

@@ -20,7 +20,8 @@ export default function SymptomPlotD3(props){
     ];
     const symptomBins = [
         [0],
-        [1,2,3,4],
+        [1,2],
+        [3,4],
         [5,6,7],
         [8,9,10],
     ]
@@ -40,14 +41,14 @@ export default function SymptomPlotD3(props){
 
     const xMarginRight = 10;
     const xMarginLeft = 15;//bigger for x Axis
-    const yMargin = 25;
+    const yMargin = 30;
     const legendFontSize = 14;
     const maxSymptomValue = 10;
     const barWidth = (width-xMarginLeft - xMarginRight)/(treatmentDates.length + 2);
     const barHeight = (height- 2*yMargin - legendFontSize - 10)/(symptomBins.length + 2);
-    const maxR = Math.min(barWidth,barHeight)/2;
+    const maxR = Math.min(barWidth,barHeight)/3;
     const legendWidth = Math.max(70, width*.15);
-
+    const showTransitions = false;
     const xScale = d3.scaleLinear()
         .domain([0, treatmentDates.length-1])
         .range([xMarginLeft + barWidth/2,width-xMarginRight-barWidth/2-legendWidth]);
@@ -180,7 +181,10 @@ export default function SymptomPlotD3(props){
                 return lines;
             }
             let activeClusterSize = patientData.filter(d=>isActive(d)).length;
-            makeLines(patientData,'patientLine',1/(activeClusterSize**.75),3,false,false);
+            if(showTransitions){
+                makeLines(patientData,'patientLine',1/(activeClusterSize**.75),3,false,false);
+            }
+            
             makeLines(clusterData,'clusterLine',.9,9,true,true);
         }
     },[svg,height,width,patientData,clusterData,props.activeCluster]);

@@ -180,14 +180,20 @@ export default function RuleView(props){
             <Row 
                 key={keyName} 
                 className={'shadow'}
-                style={{'display':'inline-block','width':'95%','height': '20em','marginBottom':'1em'}}
-            >
-                <span  style={{'fontSize':'.7em'}}>
+                style={{
+                    'display':'inline-block',
+                    'width':'95%',
+                    'height':'50%',
+                    'minHeight': '20em',
+                    'margin':'1em!important',
+                    'borderRadius':'1em',
+            }}>
+                <span  style={{'fontSize':'1em','height':'1.25em'}}>
                 {title}
                 </span>
                 <Row  
                     className={'noGutter fillWidth'} 
-                    style={{'height': '18em'}}
+                    style={{'height': 'calc(100% - 2em)'}}
                 >
                     <RuleViewD3
                         rule={rule}
@@ -418,7 +424,7 @@ export default function RuleView(props){
                     {' organs'}
                 </span>
             </Row>
-            <Row md={12} className={'controlPanelTitle inline centerText fillWidth noGutter'} 
+            <Row md={12} className={'controlPanelTitle inline centerText fillWidth'} 
                 style={{'height':'2em'}}>
                     <span style={{'width':'100%'}}>
                         {'Parameters: '}
@@ -436,7 +442,7 @@ export default function RuleView(props){
                         >{'Update'}</Button>
                     </span>
             </Row>
-            <Row md={12} className={'noGutter scroll'} style={{'height':'calc(100% - 4em)'}}>
+            <Row md={12} className={'scroll'} style={{'height':'calc(100% - 4em)'}}>
                     {vizComponents}
             </Row>
         </Container>

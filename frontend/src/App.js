@@ -142,10 +142,10 @@ function App() {
     .domain([0,maxDose/2,maxDose])
     .range([0,.5,1]);
     
-  const doseColor = d3.scaleLinear()
-    .domain([0,.5,1])
-    .range(['white','#bf4d7c','#8a063d'])
-  // const doseColor = d3.interpolateReds;
+  // const doseColor = d3.scaleLinear()
+  //   .domain([0,.5,1])
+  //   .range(['white','#bf4d7c','#8a063d'])
+  const doseColor = d3.interpolateReds;
 
 
   //hnc diagram svg patths
@@ -157,7 +157,16 @@ function App() {
   //this use to be d3.scaleOrdinal but it wasn't wokring for some reason
   //returns color based on index bascially
   const categoricalColors = (i) => {
-    let colors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#e6ab02','#999999','#666666'];
+    let colors = [
+    '#d95f02',
+    '#7570b3',
+    '#1ecbe1',
+    '#1b9e77',
+    // '#e7298a',
+    '#e6ab02',
+    '#999999',
+    '#666666'
+  ];
     let ii = Math.round(i);
     if(ii < 0 | ii > colors.length - 1){
       return 'black';
@@ -300,8 +309,7 @@ function App() {
   },[clusterDataLoading,clusterData,mainSymptom,clusterDataLoading,lrtConfounders,additiveClusterThreshold,additiveCluster,endpointDates])
 
   function makeEffectPlot(){
-      if(clusterData != undefined & additiveClusterResults != undefined){
-          return (
+    return (
             <DoseEffectView
                 doseData={doseData}
                 clusterData={clusterData}
@@ -329,15 +337,6 @@ function App() {
                 parameterColors={parameterColors}
             ></DoseEffectView>
           )
-      } else{
-          return (
-              <Spinner 
-                  as="span" 
-                  animation = "border"
-                  role='status'
-                  className={'spinner'}/>
-          )
-      }
   }
 
   function makeMetricPlot(){
@@ -534,6 +533,35 @@ function App() {
     ) 
   }
 
+  function makeClusterDosePlot(){
+    return(<DoseView
+        doseData={doseData}
+        clusterData={clusterData}
+        clusterOrgans={clusterOrgans}
+        addOrganToCue={addOrganToCue.bind(this)}
+        clusterOrganCue={clusterOrganCue}
+        nDoseClusters={nDoseClusters}
+        plotVar={plotVar}
+        setPlotVar={setPlotVar}
+        svgPaths={svgPaths}
+        activeCluster={activeCluster}
+        setActiveCluster={setActiveCluster}
+        symptomsOfInterest={symptomsOfInterest}
+        showContralateral={showContralateral}
+        categoricalColors={categoricalColors}
+        mainSymptom={mainSymptom}
+        setMainSymptom={setMainSymptom}
+        showOrganLabels={showOrganLabels}
+        setShowOrganLabels={setShowOrganLabels}
+        doseColor={doseColor}
+        endpointDates={endpointDates}
+        setEndpointDates={setEndpointDates}
+        maxDose={maxDose}
+        setMaxDose={setMaxDose}
+        parameterColors={parameterColors}
+    ></DoseView>)
+  }
+
   return (
     <div className="App">
 
@@ -571,7 +599,43 @@ function App() {
                 ></ClusterControlPanel>
           </Row>
           <Row id={'mainVis'} className={'noGutter'} lg={12}>   
-            <Col fluid={'true'} className={'fillHeight'} lg={5}>
+            <Row lg={12} style={{
+              'width':'100%',
+              'height':'calc(var(--cluster-height) + 6em)'
+              }}>
+              <Col md={4} style={{'height':'100%'}}>
+                {makeEffectPlot()}
+              </Col>
+              <Col md={8} style={{'height':'100%'}} md={8}>
+                {makeClusterDosePlot()}
+              </Col>
+            </Row>
+            <Row lg={12} style={{
+              'marginTop':'3em',
+              'width':'100%',
+              'height':'calc(95% - var(--cluster-height) - 6em - 3em - 1em)',
+              }}>
+              <Col style={{
+                'height':'100%',
+                'width': 'calc(100% - 25vw - 20vw - 2em)',
+              }}>
+                {makeOutcomeView(showTemporalSymptoms)}
+              </Col>
+              <Col 
+                style={{
+                  'height':'100%',
+                  'width': '25vw',
+              }}>
+                {makeScatterPlot()}
+              </Col>
+              <Col style={{
+                'height':'100%',
+                'width': '20vw',
+              }}>
+                {makeRulePlot()}
+              </Col>
+            </Row>
+            {/* <Col fluid={'true'} className={'fillHeight'} lg={4}>
               <Row className={'ul-view'}>
                 {makeEffectPlot()}
               </Row>
@@ -581,41 +645,16 @@ function App() {
             </Col>  
             <Col lg={3} 
             style={{'height':'100%'}}>
-              <DoseView
-                    doseData={doseData}
-                    clusterData={clusterData}
-                    clusterOrgans={clusterOrgans}
-                    addOrganToCue={addOrganToCue.bind(this)}
-                    clusterOrganCue={clusterOrganCue}
-                    nDoseClusters={nDoseClusters}
-                    plotVar={plotVar}
-                    setPlotVar={setPlotVar}
-                    svgPaths={svgPaths}
-                    activeCluster={activeCluster}
-                    setActiveCluster={setActiveCluster}
-                    symptomsOfInterest={symptomsOfInterest}
-                    showContralateral={showContralateral}
-                    categoricalColors={categoricalColors}
-                    mainSymptom={mainSymptom}
-                    setMainSymptom={setMainSymptom}
-                    showOrganLabels={showOrganLabels}
-                    setShowOrganLabels={setShowOrganLabels}
-                    doseColor={doseColor}
-                    endpointDates={endpointDates}
-                    setEndpointDates={setEndpointDates}
-                    maxDose={maxDose}
-                    setMaxDose={setMaxDose}
-                    parameterColors={parameterColors}
-                ></DoseView>
+              {makeClusterDosePlot()}
             </Col>
-            <Col  lg={4}>
+            <Col  lg={5}>
               <Row className={'clusterContainer ur-view'} lg={12}>
                 {makeScatterPlot()}
               </Row>
               <Row className={'clusterContainer lr-view'} lg={12}>
                 {makeOutcomeView(showTemporalSymptoms)}
               </Row>
-            </Col>
+            </Col> */}
           </Row>
       </Container>
     </div>

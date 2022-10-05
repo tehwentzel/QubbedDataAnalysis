@@ -7,11 +7,14 @@ import Dropdown from 'react-bootstrap/Dropdown';
 import DropdownButton from 'react-bootstrap/DropdownButton';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import { Spinner } from 'react-bootstrap';
+
 
 import DoseEffectViewD3 from './DoseEffectViewD3.js';
 import FeatureEffectViewD3 from './FeatureEffectViewD3.js';
 import EffectViewLegendD3 from './EffectViewLegendD3.js';
 import QueLegend from './QueLegend.js';
+
 
 export default function DoseEffectView(props){
     const ref = useRef(null)
@@ -23,7 +26,7 @@ export default function DoseEffectView(props){
     const linearInterpolator = d3.interpolateBlues;
     const divergentInterpolator = d3.scaleDiverging()
         .domain([0,.5,1])
-        .range(['tan','#f7f7f7','magenta'])
+        .range(['tan','#f7f7f7','teal'])
         // .range(['#de77ae','#f7f7f7','#4d9221'])
         // .range(['pink','white','rgb(100,149,237)']);
     const [extents,setExtents] = useState();
@@ -46,7 +49,7 @@ export default function DoseEffectView(props){
     useEffect(()=>{
         //get data extents to share between things
         //I tried making this a constant getcolor thing but it doesn't work for some reason
-        if(props.additiveClusterResults !== undefined){
+        if(props.additiveClusterResults !== undefined & props.additiveClusterResults !== null){
             const metric = colorMetric;
             const data = props.additiveClusterResults.organ;
             
@@ -234,6 +237,104 @@ export default function DoseEffectView(props){
         )
     }
 
+    function dataReady(){
+        return (props.clusterData !== undefined) & (props.additiveClusterResults !== undefined) & (props.additiveClusterResults !== null);
+    }
+
+    function getOrganEffectView(){
+        if(dataReady()){
+            return (
+                <DoseEffectViewD3
+                    doseData={props.doseData}
+                    clusterData={props.clusterData}
+                    effectData={props.additiveClusterResults.organ}
+                    clusterOrgans={props.clusterOrgans}
+                    activeCluster={props.activeCluster}
+                    clusterOrganCue={props.clusterOrganCue}
+                    addOrganToCue={addOrganToCue}
+                    symptomsOfInterest={props.symptomsOfInterest}
+                    mainSymptom={props.mainSymptom}
+                    svgPaths={props.svgPaths}
+                    additiveCluster={props.additiveCluster}
+                    additiveClusterThreshold={props.additiveClusterThreshold}
+                    setAdditiveCluster={props.setAdditiveCluster}
+                    setAdditiveClusterThreshold={props.setAdditiveClusterThreshold}
+                    colorMetric={colorMetric}
+                    fPos={fPos}
+                    parameterColors={props.parameterColors}
+                    extents={extents}
+                    linearInterpolator={linearInterpolator}
+                    divergentInterpolator={divergentInterpolator}
+                    useChange={useChange}
+                    showOrganLabels={props.showOrganLabels}
+                ></DoseEffectViewD3>
+            )
+        } else{
+            return (<Spinner 
+                as="span" 
+                animation = "border"
+                role='status'
+                className={'spinner'}/>
+            );
+        }
+    }
+
+    function getFeatureEffectView(){
+        if(dataReady()){
+            return (
+                <FeatureEffectViewD3
+                    doseData={props.doseData}
+                    clusterData={props.clusterData}
+                    effectData={props.additiveClusterResults.features}
+                    clusterOrgans={props.clusterOrgans}
+                    activeCluster={props.activeCluster}
+                    symptomsOfInterest={props.symptomsOfInterest}
+                    additiveCluster={props.additiveCluster}
+                    additiveClusterThreshold={props.additiveClusterThreshold}
+                    setAdditiveCluster={props.setAdditiveCluster}
+                    setAdditiveClusterThreshold={props.setAdditiveClusterThreshold}
+                    colorMetric={colorMetric}
+                    clusterFeatures={props.clusterFeatures}
+                    tempClusterFeatures={props.tempClusterFeatures}
+                    toggleClusterFeature={toggleClusterFeature}
+                    extents={extents}
+                    linearInterpolator={linearInterpolator}
+                    divergentInterpolator={divergentInterpolator}
+                    useChange={useChange}
+                    parameterColors={props.parameterColors}
+                ></FeatureEffectViewD3>
+            )
+        } else{
+            return (<Spinner 
+                as="span" 
+                animation = "border"
+                role='status'
+                className={'spinner'}/>
+            );
+        }
+    }
+
+    function getEffectLegend(){
+        if(extents !== undefined & linearInterpolator !== undefined & divergentInterpolator !== undefined){
+            return (
+            <EffectViewLegendD3
+                colorMetric={colorMetric}
+                extents={extents}
+                linearInterpolator={linearInterpolator}
+                divergentInterpolator={divergentInterpolator}
+                useChange={useChange}
+            ></EffectViewLegendD3>
+            )
+        } else{
+            return (<Spinner 
+                as="span" 
+                animation = "border"
+                role='status'
+                className={'spinner'}/>
+            );
+        }
+    }
+
     return (
         <div ref={ref} className={'fillSpace'}>
             <Row md={12} className={'inline fillWidth centerText viewTitle'}
@@ -255,65 +356,16 @@ export default function DoseEffectView(props){
                         className={'fillWidth'}
                         style={{'height':'calc(100% - 3em)'}}
                     >
-                        <DoseEffectViewD3
-                            doseData={props.doseData}
-                            clusterData={props.clusterData}
-                            effectData={props.additiveClusterResults.organ}
-                            clusterOrgans={props.clusterOrgans}
-                            activeCluster={props.activeCluster}
-                            clusterOrganCue={props.clusterOrganCue}
-                            addOrganToCue={addOrganToCue}
-                            symptomsOfInterest={props.symptomsOfInterest}
-                            mainSymptom={props.mainSymptom}
-                            svgPaths={props.svgPaths}
-                            additiveCluster={props.additiveCluster}
-                            additiveClusterThreshold={props.additiveClusterThreshold}
-                            setAdditiveCluster={props.setAdditiveCluster}
-                            setAdditiveClusterThreshold={props.setAdditiveClusterThreshold}
-                            colorMetric={colorMetric}
-                            fPos={fPos}
-                            parameterColors={props.parameterColors}
-                            extents={extents}
-                            linearInterpolator={linearInterpolator}
-                            divergentInterpolator={divergentInterpolator}
-                            useChange={useChange}
-                            showOrganLabels={props.showOrganLabels}
-                        ></DoseEffectViewD3>
+                        {getOrganEffectView()}
                     </Row>
                     {makeTitle('Effect of Adding/Removing Features')}
                     <Row md={12} className={'fillWidth'} style={{'height': '3em'}}>
-                        <FeatureEffectViewD3
-                            doseData={props.doseData}
-                            clusterData={props.clusterData}
-                            effectData={props.additiveClusterResults.features}
-                            clusterOrgans={props.clusterOrgans}
-                            activeCluster={props.activeCluster}
-                            symptomsOfInterest={props.symptomsOfInterest}
-                            additiveCluster={props.additiveCluster}
-                            additiveClusterThreshold={props.additiveClusterThreshold}
-                            setAdditiveCluster={props.setAdditiveCluster}
-                            setAdditiveClusterThreshold={props.setAdditiveClusterThreshold}
-                            colorMetric={colorMetric}
-                            clusterFeatures={props.clusterFeatures}
-                            tempClusterFeatures={props.tempClusterFeatures}
-                            toggleClusterFeature={toggleClusterFeature}
-                            extents={extents}
-                            linearInterpolator={linearInterpolator}
-                            divergentInterpolator={divergentInterpolator}
-                            useChange={useChange}
-                            parameterColors={props.parameterColors}
-                        ></FeatureEffectViewD3>
+                        {getFeatureEffectView()}
                     </Row>
                 </Col>
                 <Col md={2} style={{'height':'100%'}}>
                     <Row md={12} className={'fillWidth'} style={{'height':'50%'}}>
-                        <EffectViewLegendD3
-                            colorMetric={colorMetric}
-                            extents={extents}
-                            linearInterpolator={linearInterpolator}
-                            divergentInterpolator={divergentInterpolator}
-                            useChange={useChange}
-                        ></EffectViewLegendD3>
+                        {getEffectLegend()}
                     </Row>
                     <Row md={12} className={'fillWidth'} style={{'height':'50%'}}>
                         <QueLegend

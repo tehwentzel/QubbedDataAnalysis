@@ -475,9 +475,9 @@ export default function Dose2dCenterViewD3(props){
                 svg.selectAll('.organLabel').remove();
                 // svg.selectAll('.organTitle').remove();
                 let organGroup = svg.select('g').filter('.organGroup');
-                let labels = organGroup.selectAll('.organLabel')
+                let labels = organGroup.selectAll('.organText')
                     .data(labelData).enter()
-                    .append('text').attr('class',d=> d.isOrgan? 'organLabel': 'organTitle')
+                    .append('text').attr('class',d=> d.isOrgan? 'orangText organLabel': 'oragnText organTitle')
                     .attr('x',d=>d.x)
                     .attr('y',d=>d.y)
                     .attr('font-size',d=>d.fontSize)
@@ -492,7 +492,8 @@ export default function Dose2dCenterViewD3(props){
                     .attr('text-decoration',d=> d.isOrgan? '':'underline')
                     .text(d=>d.text);
             }
-        } else if(!props.showOrganLabels){
+        } 
+        if(!props.showOrganLabels){
              let labels = svg.selectAll('.organLabel');
              if(labels !== undefined){ labels.remove();}
         }

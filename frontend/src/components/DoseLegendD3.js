@@ -7,12 +7,12 @@ export default function DoseLegendD3(props){
     const d3Container = useRef(null);
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const xMargin = 15;
-    const yMargin = 3;
+    const yMargin = 10;
     const barMargin = 5;
 
     useEffect(function draw(){
         if(svg !== undefined & props.plotVar !== undefined & props.doseColor !== undefined){
-            const steps = [1,props.maxDose*.33,props.maxDose*.66,props.maxDose];
+            const steps = [1,props.maxDose*.25,props.maxDose*.5,props.maxDose*.75,props.maxDose];
             svg.selectAll('.legendRect').remove();
             svg.selectAll('.legendText').remove();
 
@@ -58,8 +58,8 @@ export default function DoseLegendD3(props){
                     .attr('font-weight','bold')
                     .text(d=>d.text);
             } else{
-                const fontSize = Math.max(height/4,15);
-                const barHeight = (height- 2*yMargin - 2*fontSize);
+                const fontSize = Math.max(height/2.5,15);
+                const barHeight = (height- 2*yMargin);
                 const barWidth = (width - 2*xMargin)/(steps.length) - barMargin;
 
                 var currX = xMargin;
@@ -69,7 +69,8 @@ export default function DoseLegendD3(props){
                     let entry = {
                         x: currX,
                         color: props.doseColor(v/props.maxDose),
-                        text: props.plotVar + ' = ' + v.toFixed(0) + ' (Gy)',
+                        text: props.plotVar + ' = ' + v.toFixed(0),
+                        isDark: v/props.maxDose > .7,
                     }
                     legendData.push(entry);
                     currX += barWidth + barMargin;
@@ -90,12 +91,15 @@ export default function DoseLegendD3(props){
                 svg.selectAll('.legendText')
                     .data(legendData).enter()
                     .append('text').attr('class','legendText')
-                    .attr('x',d => d.x + barWidth/6)
-                    .attr('y',barHeight + yMargin + fontSize)
+                    .attr('x',d => d.x + barWidth/4)
+                    .attr('y',barHeight/2 + yMargin)
                     .attr('text-align','start')
                     .attr('alignment-baseline','middle')
                     .attr('font-size',fontSize)
                     .attr('font-weight','bold')
+                    .attr('fill', 'black')
+                    .attr('stroke','white')
+                    .attr('stroke-width',d=>d.isDark? .2:.1)
                     .text(d=>d.text);
             }
             }   
