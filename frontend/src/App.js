@@ -399,7 +399,7 @@ function App() {
     let outcomeView = showSymptomView? makeSymptomPlot: makeMetricPlot;
     return (
       <Row md={12} className={'fillSpace'}>
-        <Row md={12} className={'centerText'} style={{'height':'2em'}}>
+        <Row md={12} className={'centerText noGutter'} style={{'height':'1.5em'}}>
           <Col>
             <Button 
               title={'Symptom Trajectory'}
@@ -524,7 +524,7 @@ function App() {
               {makeDropdown('',yVar,setYVar,2,varOptions,'down')}
               </span>
           </Row>
-          <Row style={{'height':'calc(100% - 1.5em)'}} 
+          <Row style={{'height':'calc(100% - 2em)'}} 
           // className={'noGutter'} 
           md={12}>
                   {makeScatter()}
@@ -603,32 +603,37 @@ function App() {
               'width':'100%',
               'height':'calc(var(--cluster-height) + 6em)'
               }}>
-              <Col md={4} style={{'height':'100%'}}>
+              <Col md={4} style={{'height':'100%','marginTop':'2em'}} className={'shadow'}>
                 {makeEffectPlot()}
               </Col>
               <Col md={8} style={{'height':'100%'}} md={8}>
                 {makeClusterDosePlot()}
               </Col>
             </Row>
-            <Row lg={12} style={{
+            <Row lg={12} 
+            style={{
               'marginTop':'3em',
               'width':'100%',
               'height':'calc(95% - var(--cluster-height) - 6em - 3em - 1em)',
               }}>
-              <Col style={{
+              <Col 
+              className={'shadow'}
+              style={{
                 'height':'100%',
                 'width': 'calc(100% - 25vw - 20vw - 2em)',
               }}>
                 {makeOutcomeView(showTemporalSymptoms)}
               </Col>
               <Col 
+                className={'shadow'}
                 style={{
                   'height':'100%',
                   'width': '25vw',
               }}>
                 {makeScatterPlot()}
               </Col>
-              <Col style={{
+              <Col 
+              style={{
                 'height':'100%',
                 'width': '20vw',
               }}>

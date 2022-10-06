@@ -354,7 +354,7 @@ export default function DoseEffectView(props){
                 <Col md={10} className={'fillHeight'}>
                     <Row md={12} 
                         className={'fillWidth'}
-                        style={{'height':'calc(100% - 3em)'}}
+                        style={{'height':'calc(100% - 3em - 1em)'}}
                     >
                         {getOrganEffectView()}
                     </Row>

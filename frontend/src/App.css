@@ -91,7 +91,9 @@ body{
 
 .shadow{
   box-shadow: 8px 8px 15px .25px rgba(0, 0, 0, 0.25);
+  border-radius: 1em!important;
 }
+
 
 .clusterContainer{
   /* height: var(--section-height)!important;
