@@ -44,6 +44,8 @@ export default function RuleView(props){
             className={'spinner'}/>
     )
 
+    const bigScreen = window.innerWidth > 1900;
+
 
     var fetchClusterRules = async(cData,organs,
         symptoms,clusterFeatures,
@@ -62,7 +64,7 @@ export default function RuleView(props){
                 rCriteria,targetCluster,
                 mInfo,dates,
             ).then(response=>{
-                console.log('rule data main',response);
+                // console.log('rule data main',response);
                 setTempRuleData(response);
             }).catch(error=>{
                 console.log('rule data error',error);
@@ -115,12 +117,6 @@ export default function RuleView(props){
         props.clusterDataLoading,
         ruleTargetCluster,
         props.endpointDates,
-        // ruleUseAllOrgans,
-        // ruleMinInfo,
-        // ruleMaxDepth,maxRules,
-        // ruleCriteria,
-        // ruleThreshold,
-        // ruleCluster,
     ])
 
     useEffect(()=>{
@@ -139,7 +135,7 @@ export default function RuleView(props){
         }
         if(validate(params)){
             const rd = [...tempRuleData.data]
-            console.log('rd',rd)
+            // console.log('rd',rd)
             setRuleData(rd);
         } 
     },[tempRuleData])
@@ -156,26 +152,30 @@ export default function RuleView(props){
             }
         }
         // console.log('rule',rule)
-        let title =  'Upper: ' + rule.upper_count
-            + ' |Info Gain: ' + fix(rule.info)   
-            // + ' |ROC:' + fix(rule.roc_auc)
-            // + ' |F1:' + fix(rule.f1) 
-            + ' |Prsn:' + fix(rule.precision) 
-            + ' |Rcl:' + fix(rule.recall);
-        // if (ruleTargetCluster >= 0){
+        let title =  '';
+        if(bigScreen){
+            title = 'Upper:' + rule.upper_count
+                + ' |Info: ' + fix(rule.info)   
+                + ' |ROC:' + fix(rule.roc_auc)
+                + ' |F1:' + fix(rule.f1) 
+                + ' |Prsn:' + fix(rule.precision) 
+                + ' |Rcl:' + fix(rule.recall);
             title += ' |Outcome ROC:' + fix(rule.roc_auc_symptom) 
-            + ' |Outcome F1:' + fix(rule.f1_symptom);
-        // }
-
-        // title += '' 
-        // for(let i in rule.features){
-        //     title += ' | '+ rule.features[i] + '>' + rule.thresholds[i];
-        // }
+                + ' |Outcp,e F1:' + fix(rule.f1_symptom);
+        } else{
+            title = ' Info: ' + fix(rule.info)   
+                + ' |Prsn:' + fix(rule.precision) 
+                + ' |Rcl:' + fix(rule.recall);
+            title += ' |Out ROC:' + fix(rule.roc_auc_symptom) 
+                + ' |Out F1:' + fix(rule.f1_symptom);
+        }
 
         const keyName = key + props.mainSymptom
             + parseString(ruleCluster)+parseString(ruleThreshold)
             +parseString(ruleTargetCluster)+parseString(ruleUseAllOrgans)
-            +parseString(ruleMaxDepth)
+            +parseString(ruleMaxDepth);
+
+
         return (
             <Row 
                 key={keyName} 
@@ -188,7 +188,7 @@ export default function RuleView(props){
                     'margin':'1em!important',
                     'borderRadius':'1em',
             }}>
-                <span  style={{'fontSize':'1em','height':'1.25em'}}>
+                <span  style={{'fontSize':'1rem','height':'1rem'}}>
                 {title}
                 </span>
                 <Row  
@@ -238,11 +238,6 @@ export default function RuleView(props){
                     onClick={() => toggleFilter(false)}
                     disabled={!filterCluster & !predictClusterActive}
                 >{Utils.getVarDisplayName(props.mainSymptom)}</Button>
-                {/* <Button
-                    variant={(filterCluster & !predictClusterActive)? 'dark':'outline-secondary'}
-                    onClick={()=>toggleFilter(true)}
-                    disabled={filterCluster & !predictClusterActive}
-                >{'clst' + props.activeCluster + '->outcome'}</Button> */}
                 <Button
                     variant={predictClusterActive? 'dark':'outline-secondary'}
                     onClick={onSetTargetCluster}
@@ -260,7 +255,7 @@ export default function RuleView(props){
                     variant={active? 'dark':'outline-secondary'}
                     onClick={()=>{setRuleCriteria(name)}}
                     disabled={active}
-                >{name}</Button>
+                >{Utils.getVarDisplayName(name).replace('ratio','')}</Button>
             )
         }
         return (
@@ -409,21 +404,44 @@ export default function RuleView(props){
         }
     },[ruleData,props.doseData,props.selectedPatientId])
 
+
+    function makeTitleRow(isBig){
+        if(isBig){
+            return (
+                <Row md={12} className={'viewTitle inline centerText fillWidth noGutter'} 
+                    style={{'height':'2em'}}>
+                    <span>
+                        {'Thresholds for '}
+                        {makeFilterToggle()}
+                        {' based on '}
+                        {makeCriteriaToggle()}
+                        {" with doses to "}
+                        {makeOrganSetToggle()}
+                        {' organs'}
+                    </span>
+                </Row>
+            )
+        } else{
+            return (
+                <Row md={12} className={'viewTitle inline centerText fillWidth noGutter'} 
+                    style={{'height':'2em'}}>
+                    <span>
+                        {'Rules: '}
+                        {makeFilterToggle()}
+                        {' using '}
+                        {makeCriteriaToggle()}
+                        {" w/ dose to "}
+                        {makeOrganSetToggle()}
+                        {' organs'}
+                    </span>
+                </Row>
+            )
+        }
+    }
     
     return (
-        <Container ref={ref} className={'fillSpace'}>
-            <Row md={12} className={'viewTitle inline centerText fillWidth noGutter'} 
-                style={{'height':'2em'}}>
-                <span>
-                    {'Thresholds for predicting '}
-                    {makeFilterToggle()}
-                    {' based on '}
-                    {makeCriteriaToggle()}
-                    {" using doses to "}
-                    {makeOrganSetToggle()}
-                    {' organs'}
-                </span>
-            </Row>
+        <Container ref={ref} className={'fillSpace noGutter'}>
+            {makeTitleRow(bigScreen)}
             <Row md={12} className={'controlPanelTitle inline centerText fillWidth'} 
                 style={{'height':'2em'}}>
                     <span style={{'width':'100%'}}>
@@ -438,7 +456,7 @@ export default function RuleView(props){
                             disabled={props.clusterDataLoading}
                             onClick={updateRules}
                             title={'Update'}
-                            style={{'display':'inline-block','minWidth':'20%'}}
+                            style={{'display':'inline-block'}}
                         >{'Update'}</Button>
                     </span>
             </Row>

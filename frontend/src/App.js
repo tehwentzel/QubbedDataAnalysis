@@ -153,7 +153,6 @@ function App() {
   const [xVar,setXVar] = useState('cluster_organ_pca1');
   const [yVar, setYVar] = useState('cluster_organ_pca2');
   const [showTemporalSymptoms,setShowTemporalSymptoms] = useState(true);
-
   //this use to be d3.scaleOrdinal but it wasn't wokring for some reason
   //returns color based on index bascially
   const categoricalColors = (i) => {
@@ -180,6 +179,8 @@ function App() {
     both: 'black',
     none: 'white',
   }
+
+  
 
   function resetSelections(){
     setActiveCluster(nDoseClusters-1);
@@ -398,8 +399,8 @@ function App() {
   function makeOutcomeView(showSymptomView){
     let outcomeView = showSymptomView? makeSymptomPlot: makeMetricPlot;
     return (
-      <Row md={12} className={'fillSpace'}>
-        <Row md={12} className={'centerText noGutter'} style={{'height':'1.5em'}}>
+      <Row md={12} className={'fillSpace noGutter'}>
+        <Row md={12} className={'centerText noGutter'} style={{'height':'1.2em'}}>
           <Col>
             <Button 
               title={'Symptom Trajectory'}
@@ -416,7 +417,7 @@ function App() {
           </Col>
         </Row>
         <Row md={12} className={'fillWidth'} style={{'height':'calc(100% - 2em)'}}>
-          <div style={{'width':'100%','height':'100%','padding':'1.2em','left':'-1em'}}>
+          <div style={{'width':'100%','height':'100%'}}>
           {outcomeView()}
           </div>
         </Row>
@@ -482,7 +483,8 @@ function App() {
                       selectedPatientId={selectedPatientId}
                       setSelectedPatientId={setSelectedPatientId}
                       plotVar={plotVar}
-                      clusterOrgans={activeCluster}
+                      clusterOrgans={clusterOrgans}
+                      activeCluster={activeCluster}
                       setActiveCluster={setActiveCluster}
                       xVar={xVar}
                       yVar={yVar}
@@ -515,8 +517,8 @@ function App() {
       'totalDose','tstage','nstage',
     ].concat(allSymptoms);
     return (
-      <Container md={12} className={'fillSpace'}>
-          <Row style={{'height':'1.5em'}} className={'viewTitle centerText'} md={12}>
+      <div className={'fillSpace noGutter'}>
+          <Row style={{'height':'1.5em'}} className={'viewTitle centerText noGutter'} md={12}>
             <span>
               {"Scatterplot of "}
               {makeDropdown('',xVar,setXVar,1,varOptions,'down')}
@@ -524,12 +526,12 @@ function App() {
               {makeDropdown('',yVar,setYVar,2,varOptions,'down')}
               </span>
           </Row>
-          <Row style={{'height':'calc(100% - 2em)'}} 
-          // className={'noGutter'} 
+          <Row style={{'height':'calc(100% - 2.5em)'}} 
+          className={'noGutter'} 
           md={12}>
                   {makeScatter()}
           </Row>
-      </Container>
+      </div>
     ) 
   }
 
@@ -566,7 +568,7 @@ function App() {
     <div className="App">
 
         <Container className={'fillSpace noGutter'} lg={12}>
-          <Row id={'clusterControlPanelContainer'} className={'noGutter'} lg={12}>
+          <Row id={'clusterControlPanelContainer'} lg={12}>
                 <ClusterControlPanel
                   nDoseCluster={nDoseClusters}
                   setNDoseClusters={setNDoseClusters}
@@ -612,15 +614,16 @@ function App() {
             </Row>
             <Row lg={12} 
             style={{
-              'marginTop':'3em',
+              'marginTop':'2em',
               'width':'100%',
-              'height':'calc(95% - var(--cluster-height) - 6em - 3em - 1em)',
+              'margin':'2vw!important',
+              'height':'calc(95% - var(--cluster-height) - 6em - 2em)',
               }}>
               <Col 
               className={'shadow'}
               style={{
                 'height':'100%',
-                'width': 'calc(100% - 25vw - 20vw - 2em)',
+                'width': 'calc(100% - 25vw - 20vw - 4vw)',
               }}>
                 {makeOutcomeView(showTemporalSymptoms)}
               </Col>
@@ -628,38 +631,18 @@ function App() {
                 className={'shadow'}
                 style={{
                   'height':'100%',
-                  'width': '25vw',
+                  'width': '23vw',
               }}>
                 {makeScatterPlot()}
               </Col>
               <Col 
               style={{
                 'height':'100%',
-                'width': '20vw',
+                'width': '22vw',
               }}>
                 {makeRulePlot()}
               </Col>
             </Row>
-            {/* <Col fluid={'true'} className={'fillHeight'} lg={4}>
-              <Row className={'ul-view'}>
-                {makeEffectPlot()}
-              </Row>
-              <Row className={'ll-view'}>
-                {makeRulePlot()}
-              </Row>
-            </Col>  
-            <Col lg={3} 
-            style={{'height':'100%'}}>
-              {makeClusterDosePlot()}
-            </Col>
-            <Col  lg={5}>
-              <Row className={'clusterContainer ur-view'} lg={12}>
-                {makeScatterPlot()}
-              </Row>
-              <Row className={'clusterContainer lr-view'} lg={12}>
-                {makeOutcomeView(showTemporalSymptoms)}
-              </Row>
-            </Col> */}
           </Row>
       </Container>
     </div>

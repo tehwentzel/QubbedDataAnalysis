@@ -8,8 +8,9 @@ export default function QueLegend(props){
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const xMargin = 10;
     const yMargin = 10;
-    const barMargin = 2;
-    const titleSize = Math.max(12,width/8);
+    const barMargin = 3;
+    const strokeWidth = 4;
+    const titleSize = Math.max(5,width/8);
 
     const legendMap = {
         current: 'current clust.',
@@ -26,11 +27,11 @@ export default function QueLegend(props){
     useEffect(function draw(){
         if(svg !== undefined & props.parameterColors !== undefined){
             const colors = props.parameterColors;
-            const chartHeight = 200// Math.min(height, 200);
-            const chartWidth = Math.min(chartHeight/3, width);
+            const chartHeight = height;
+            const chartWidth = Math.min(chartHeight/3, width/2);
 
 
-            const barHeight = (chartHeight - 2*yMargin)/(Object.values(colors).length + 1);
+            const barHeight = (chartHeight - 2*yMargin)/(Object.values(colors).length) - barMargin - strokeWidth;
             const barWidth = Math.min(barHeight, chartWidth/2);
             
             var currY = yMargin + 2*barMargin + titleSize;
@@ -50,7 +51,7 @@ export default function QueLegend(props){
                     isTitle: false,
                 }
                 legendData.push(entry);
-                currY += barHeight + barMargin;
+                currY += barHeight + barMargin + strokeWidth;
             }
 
             svg.selectAll('.legendRect').remove();
@@ -64,7 +65,7 @@ export default function QueLegend(props){
                 .attr('fill','none')
                 .attr('stroke',d=>d.color)
                 .attr('visibility',d=>d.isTitle? 'hidden':'visible')
-                .attr('stroke-width',5);
+                .attr('stroke-width',strokeWidth);
 
             svg.selectAll('.legendText').remove();
             svg.selectAll('.legendText')

@@ -57,7 +57,6 @@ export default function DoseView(props){
         if(props.clusterData != undefined & props.svgPaths != undefined){
             //the plot var in a key makes it redraw the whole thing or the plot transforms is messed up
             //if I fix that later I should remove that in the key
-            const isClusterActive = (d) => parseInt(d.clusterId) === parseInt(props.activeCluster);
             var sortedClusters = [...props.clusterData]
             // sortedClusters.sort((a,b) => {
             //     if(isClusterActive(a)){ return -1; }
@@ -66,16 +65,13 @@ export default function DoseView(props){
             // })
             let newComponents = sortedClusters.map((d,i) => 
             {
-                // let topmargin = '3em';// (i == 0)? '1em': '2em';
                 const clusterText = 'Cluster: ' + d.clusterId + ' (n=' + d.cluster_size + ')';
                 const onTitleClick = (e) => props.setActiveCluster(parseInt(d.clusterId));
                 const clickableTitle = (parseInt(props.activeCluster) !== parseInt(d.clusterId));
-                // let bColor = clickableTitle? 'white': '##1f1f1f';
                 const bColor = 'white';
-                // const textColor = clickableTitle? 'black':'white';
                 const textColor = 'black';
                 const dotColor = props.categoricalColors(parseInt(d.clusterId));
-                const defaultStyle = {'borderRadius':'.5em'}
+                const defaultStyle = {'borderRadius':'.3rem'}
                 let style = clickableTitle? {'border':'0px'}: {'border': '.3rem solid ' + dotColor};
                 style = Object.assign(style,defaultStyle)
 
@@ -87,8 +83,8 @@ export default function DoseView(props){
                             key={i+'doses'+props.plotVar+props.showContralateral}
                         >
                             <Col md={12}
-                                style={{'height': '1.8em!important',
-                                // 'background-color':dotColor,
+                                style={{'height': '1.5em!important',
+                                'borderRadius':'.3rem',
                                 'cursor':'pointer'}}
                                 className={'controlPanelTitle'}
                                 onClick={onTitleClick}
@@ -114,6 +110,7 @@ export default function DoseView(props){
                             </Col>
                             <Col md={12}
                                 className={'clusterDoseContainer'}
+                                style={{'borderRadius':'.3rem'}}
                             >
                                 <Dose2dCenterViewD3
                                     data={d}
@@ -165,7 +162,7 @@ export default function DoseView(props){
         <div ref={ref} className={'fillSpace overviewContainer'}
             style={{'margin':'1em'}} 
         >
-            <Row md={12} className={"centerText viewTitle"} style={{'height':'2em'}}>
+            <Row md={12} className={"centerText viewTitle"} style={{'height':'1.5em'}}>
                 <span>
                     {'Intra-cluster '}
                     {plotVarDropDown()}
@@ -176,8 +173,8 @@ export default function DoseView(props){
                 {clusterVizComponents}
             </Row>
             <Row md={12} 
-                className={'noGutter'}
-                style={{'height':'3em','width':'calc(100% - 2em)','left':'-2em!important'}}
+                className={'noGutter shadow'}
+                style={{'height':'2.5em','width':'calc(100% - 2em)','left':'-2em!important'}}
             >
                 <DoseLegendD3
                     plotVar={props.plotVar}

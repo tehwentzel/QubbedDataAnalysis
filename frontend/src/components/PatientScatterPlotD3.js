@@ -10,8 +10,9 @@ export default function PatientScatterPlotD3(props){
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [formattedData,setFormattedData] = useState();
     const [dotsDrawn,setDotsDrawn] = useState(false);
-    const maxR = .015*Math.min(width,height);
-    const margin = Math.min(80,4*maxR);
+    const maxR = 1.25*Math.log(Math.min(width,height)+1);
+    const margin = Math.min(80,2*maxR);
+    const leeway = Math.min(4*maxR,80);//space to give before the simulation aglroithm
     const curveMargin = 3;
     
     const tipChartSize = [150,80];
@@ -180,10 +181,10 @@ export default function PatientScatterPlotD3(props){
         tipSvg.attr('background','white')
         let xScale = d3.scaleLinear()
             .domain([0,10])
-            .range([margin+textWidth,w-margin])
+            .range([margin+textWidth+2*radius,w-margin-2*radius])
         let yScale = d3.scaleLinear()
             .domain([0,props.symptomsOfInterest.length-1])
-            .range([h-margin-radius*2,margin]);
+            .range([h-margin-radius*2,margin + 2*radius]);
         let sVals = props.symptomsOfInterest.map((s,i) => {
             let entry = {
                 'treatment': getMaxSymptoms(data,s, [0,2,3,4,5,6,7]),
@@ -325,7 +326,7 @@ export default function PatientScatterPlotD3(props){
     useEffect(function drawPoints(){
         if(svg !== undefined & formattedData !== undefined & height > 0 & width > 0 & props.xVar !== undefined & props.yVar !== undefined){
             setDotsDrawn(false);
-            svg.selectAll('.clusterOutline').attr('visibility','hidden')
+            svg.selectAll('.clusterOutline').remove();
             function getScale(varName, range){
                 let extents = d3.extent(formattedData.map((d) => d[varName]));
                 let scale = d3.scaleLinear()
@@ -333,8 +334,8 @@ export default function PatientScatterPlotD3(props){
                     .range(range)
                 return d => scale(d[varName])
             }
-            let getX = getScale(props.xVar,[margin,width-margin])
-            let getY = getScale(props.yVar, [height-margin,margin])
+            let getX = getScale(props.xVar,[margin + 2*maxR + leeway,width-margin - 2*maxR - leeway])
+            let getY = getScale(props.yVar, [height-margin-2*maxR-leeway,margin+2*maxR+leeway])
             // let getR = getScale(props.sizeVar, [1,5])//when i make it point scaled instead of shapes
             let newData = [];
             for(let e of formattedData){
@@ -380,28 +381,24 @@ export default function PatientScatterPlotD3(props){
                         let entry = {
                             'path': curveFunc(hull),
                             'color': props.categoricalColors(cid),
-                            'cluster': cid,
-                            'active': (cid === props.activeCluster),
+                            'cluster': parseInt(cid),
+                            'active': (parseInt(cid) === parseInt(props.activeCluster)),
                             'nItems': dpoints.length,
                         }
                         hullData.push(entry)
                     }
                 })
-
-                var clusterOutlines = svg.selectAll('.clusterOutline').data(hullData)
-                clusterOutlines.exit().remove();
-                clusterOutlines.enter()
+                
+                var clusterOutlines = svg.selectAll('.clusterOutline')
+                    .data(hullData).enter()
                     .append('path')
-                    // .merge(clusterOutlines)
                     .attr('class','clusterOutline')
-
-                clusterOutlines//.transition(t)
                     .attr('d',d=>d.path)
                     .attr('stroke',d=>d.color)
                     .attr('stroke-width',2)
                     .attr('fill','none')
                     .attr('stroke-opacity',1)
-                    .attr('visibility',d=>d.active? 'visible':'hidden');
+                    .attr('visibility',d=>d.active?'visible':'hidden');
 
                 clusterOutlines
                     .on('mouseover',function(e){
@@ -420,8 +417,8 @@ export default function PatientScatterPlotD3(props){
                     });
                 
             }
-            function boundX(d){return Math.max(maxR, Math.min(width-maxR, d.x))}
-            function boundY(d){return Math.max(maxR, Math.min(height-maxR, d.y))}
+            function boundX(d){return Math.max(maxR+margin, Math.min(width-maxR-margin, d.x))}
+            function boundY(d){return Math.max(maxR+margin, Math.min(height-maxR-margin, d.y))}
             function uncollide(){
                 var ticked = function(){
                     //bound to edges of svg
@@ -434,8 +431,7 @@ export default function PatientScatterPlotD3(props){
                     .alphaMin(.3)
                     .on('tick',ticked)
                     .on('end',function(){
-                        //for some reason this doesn't work on the first go still
-                        // drawHull(newData);
+                        drawHull(newData);
                         setDotsDrawn(true);
 
                     })
@@ -509,8 +505,10 @@ export default function PatientScatterPlotD3(props){
             var legendTop = height - legendHeight;
             var legendLeft = legendMargin;
             const minCorner = Math.max(ltDist,rtDist,lbDist,rbDist);
+            let titleLeft = true;
             if(rtDist === minCorner | rbDist === minCorner){
                 legendLeft = width - legendWidth;
+                titleLeft = false;
             }
             if(ltDist === minCorner | rtDist === minCorner){
                 legendTop = legendMargin;
@@ -521,14 +519,26 @@ export default function PatientScatterPlotD3(props){
             let currY = legendTop;
             var legendData = legendVals.map((v) => {
                 let shape = valToShape(v);
+                let textX = legendLeft + 2*maxR+1;
+                let fontSize = (v===0)? 2.2*maxR:2*maxR;
+                if(v === 0){
+                    if(titleLeft){
+                        textX += props.sizeVar.length*fontSize/5;
+                    }
+                    else{
+                        textX -= props.sizeVar.length*fontSize/5;
+                    }
+                } else{
+                    textX += 5;
+                }
                 let entry = {
                     y: currY,
                     shape: shape,
                     x: legendLeft + maxR,
                     isTitle: (v === 0),
-                    textX: (v===0)? legendLeft-(maxR*props.sizeVar.length/2):legendLeft + 2*maxR+1,
+                    textX: textX,
                     text: (v===0)? props.sizeVar : (10*v).toFixed(0),
-                    fontSize: (v===0)? 2.2*maxR:2*maxR,
+                    fontSize: fontSize,
                     fontWeight: (v===0)? 'bold':'',
                 }
                 currY += 2*maxR;
@@ -553,7 +563,7 @@ export default function PatientScatterPlotD3(props){
                 .attr('class','legendText')
                 .attr('x',d=>d.textX)
                 .attr('y',d=>d.y+1)
-                .attr('text-anchor','start')
+                .attr('text-anchor','middle')
                 .attr('alignment-baseline','middle')
                 .attr('font-size',d=>d.fontSize)
                 .attr('font-weight',d=>d.fontWeight)
@@ -566,8 +576,8 @@ export default function PatientScatterPlotD3(props){
             let scatterGroup = svg.selectAll('.scatterPoint').data(formattedData);
             scatterGroup.exit().remove();
             
-            let isActive = (d) => d.cluster == props.activeCluster;
-            let isSelected = (d) => (parseInt(d.id) == props.selectedPatientId);
+            let isActive = (d) => parseInt(d.cluster) === parseInt(props.activeCluster);
+            let isSelected = (d) => (parseInt(d.id) === props.selectedPatientId);
             scatterGroup
                 .enter()
                 .append('circle').attr('class','scatterPoint')

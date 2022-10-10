@@ -13,7 +13,7 @@ export default function RuleViewD3(props){
     const xMargin = 10;
     const yMargin = 10;
     
-    const xLabelSize = 9;
+    const xLabelSize = 13;
     const R = (props.rule === undefined)? 3.5: 6/(1+props.rule.features.length**.5);
     const yPadding = 20*R;
     const splitAxes = false;
@@ -28,9 +28,10 @@ export default function RuleViewD3(props){
     const outcomeStrokeWidth = .7*R;
     const strokeWidth = .1*R;
 
-    const legendWidth = 120 //Math.min(30, R*3 + width*.05);
+    const legendWidth = 100 //Math.min(30, R*3 + width*.05);
     const ruleWidth = width - legendWidth;
     
+    const perturbation = (x) => (Math.random() - .5)*x;
     
     function getSplitParts(fname){
         if(fname.includes('_limit')){
@@ -97,6 +98,7 @@ export default function RuleViewD3(props){
             const inTop = (d) => (props.rule.upper_ids.indexOf(d.id) >= 0);
             const inBottom = (d) => (props.rule.lower_ids.indexOf(d.id) >= 0);
             const inTargetClass = (d) => (props.rule.target_ids.indexOf(d.id) >= 0);
+            const [tRectW, tRectH] = [ruleWidth/(2+nFeatures),2]
             const validPatient = (d) => {
                 return (inTop(d) | inBottom(d))
             }
@@ -111,6 +113,7 @@ export default function RuleViewD3(props){
                 return x;
             }
             let splitData = [];
+            //iterates through the "x > y" style rules
             for(let i in rFeatures){
                 let fName = rFeatures[i];
                 let threshold = props.rule.thresholds[i];
@@ -126,6 +129,7 @@ export default function RuleViewD3(props){
                         [fX,yRange[0]+yPadding],
                         [fX,yRange[1]-yPadding],
                     ]
+                    //data about each feature
                     let splitEntry = {
                         'feature': feature,
                         'organ': organ,
@@ -138,28 +142,54 @@ export default function RuleViewD3(props){
                         'threshold': threshold,
                         'thresholdY': getY(threshold),
                         'path': lineFunc(axisPoints),
+                        'dasharray': '',
+                        'color':'#424242',
                     }
                     splitData.push(splitEntry);
                 }
                 
             }
 
+            //stuff for the final groups we get
             const finalYScale = d3.scaleLinear()
                 .domain([0,nFeatures])
                 .range([yRange[0]-(yPadding/4),yRange[1]+(yPadding/4)]);
 
             const finalX = getX('outcome');
+            const finalXOffset = -stepWidth/2;
             let finalSplitEntry = {
                 'feature': 'group',
-                'organ': 'split',
-                'name': 'split-group',
+                'organ': 'rule',
+                'name': 'group',
                 'x': finalX,
                 'threshold': nFeatures,
                 'thresholdY': finalYScale(nFeatures-.5),
-                'path': lineFunc([[finalX,yRange[0]+yPadding],[finalX,yRange[1]-yPadding]])
+                'path': lineFunc([[finalX+finalXOffset,yRange[0]+yPadding],[finalX+finalXOffset,yRange[1]-yPadding]]),
+                'dasharray':'10,10',
+                'color':'#911b17'
             }
             splitData.push(finalSplitEntry);
+
+            //sort rules
             splitData.sort((a,b) => a.x - b.x);
+
+            //adding on stuff for the last group split
+            let finalSplitLabels = [];
+            for(let n = 1; n <= nFeatures; n += 1){
+                let y = finalYScale(n - .5);
+                let pPoints = [
+                    [finalX-stepWidth/2,y],
+                    [finalX+stepWidth/2,y]
+                ]
+                let text = "strata " + n;
+                let entry = {
+                    path: lineFunc(pPoints),
+                    text: text,
+                }
+                finalSplitLabels.push(entry);
+            }
+
+            //go through our dose data to link patients to splits
             var patientDots = [];
             var patientPaths = [];
             let endGroups = {};
@@ -172,23 +202,20 @@ export default function RuleViewD3(props){
                 let numSplits = 0;
                 let sVal = getSymptomOutcome(p);
                 for(let split of splitData){
-                    if(!inGroup | split.name =='split-group'){ continue; }
+                    if(!inGroup | split.name =='group'){ continue; }
                     let pVal = split.accessor(p);
                     let x = split.x;
                     let aboveSThreshold = (sVal >= oThreshold);
-                    if(splitAxes & aboveSThreshold){
-                        x += 1*R;
-                    } else{
-                        x -= 1*R;
-                    }
+                    let xOffset = splitAxes? 2*R:0;
+                    if(!inTargetClass(p)){ xOffset *= -1; }
                     let y= split.getY(pVal);
                     // pathPoints.push([x,y]);
                     let dotEntry = {
-                        'x': x,
+                        'x': x + xOffset,//this is where it starts
                         'y': y,
                         'aboveSymptomThreshold':aboveSThreshold,
                         'inGroup':inGroup,
-                        'baseX': x,
+                        'baseX': x, //where the simulation pulls the x towards
                         'baseY': y,
                         'axisX': split.x,
                         'value': pVal,
@@ -198,6 +225,7 @@ export default function RuleViewD3(props){
                         'inTop': inTop(p),
                         'id': p.id,
                         'outcome':sVal,
+                        'final':false,
                     }
                     if(pVal >= split.threshold & inGroup){
                         numSplits += 1
@@ -208,12 +236,15 @@ export default function RuleViewD3(props){
                     // patientPaths.push(lineEntry);
                 }
 
-                let oX = getX('outcome');
-                let oY = finalYScale(numSplits)
+                const oX = getX('outcome');
+                let oY = finalYScale(numSplits);
+                const xOffSet = inTargetClass(p)? stepWidth/4:-stepWidth/4;
+                
+                //final location of each patient
                 let finalDot = {
-                    'x': oX,
+                    'x': oX+xOffSet,
                     'y': oY,
-                    'baseX': oX,
+                    'baseX': oX + xOffSet,
                     'baseY': oY,
                     'axisX': oX,
                     'value': numSplits,
@@ -225,9 +256,11 @@ export default function RuleViewD3(props){
                     'aboveSymptomThreshold': (sVal >= oThreshold),
                     'inGroup': inGroup,
                     'outcome': sVal,
+                    'final':true,
                 }
                 endGroups[p.id] = numSplits;
                 tempDots.push(finalDot);
+
                 //get paths for each line segment between lines
                 let startX = -1;
                 let startY = -1;
@@ -258,23 +291,29 @@ export default function RuleViewD3(props){
                 line.endGroup = endGroups[line.id];
             }
 
+            //draw everythin
             svg.selectAll('path').filter('.axisLine').remove();
             let axes = svg.selectAll('path').filter('.axisLine')
                 .data(splitData).enter()
                 .append('path').attr('class','axisLine')
                 .attr('d',d=>d.path)
-                .attr('stroke','black')
+                .attr('stroke',d=>d.color)
                 .attr('stroke-width',3)
-                .attr('stroke-opacity',.5);
+                .attr('stroke-dasharray',d=>d.dasharray)
+                .attr('stroke-opacity',.9);
 
             const makeLabel = (d) => {
                 let organ = d.organ + '';
+                if(organ.includes('rule')){
+                    return 'rule group';
+                }
                 organ = organ.replace('t_','').replace('_','');
                 organ = organ.substring(0,4);
                 let string = organ + '-' + d.feature.replace('_dose','')
                 string += ' >' + d.threshold;
                 return string;
             }
+            
             svg.selectAll('text').filter('.labelText').remove();
             svg.selectAll('text').filter('.labelText')
                 .data(splitData).enter()
@@ -285,16 +324,28 @@ export default function RuleViewD3(props){
                 .attr('font-size',xLabelSize)
                 .html(makeLabel);
 
-            const [tRectW, tRectH] = [ruleWidth/(2+nFeatures),2]
+            //show lines where the cutoffs are
+            //the filter removes the line for the final groups
+            
             svg.selectAll('rect').filter('.thresholdRect').remove();
             let rects = svg.selectAll('rect').filter('.thresholdRect')
-                .data(splitData).enter()
+                .data(splitData.filter(x=> !x.organ.includes('rule'))).enter()
                 .append('rect').attr('class','thresholdRect')
                 .attr('x',d=> d.x - tRectW/2)
                 .attr('y',d=> d.thresholdY - tRectH/2)
                 .attr('width',tRectW)
                 .attr('height',tRectH)
                 .attr('fill','black')
+
+            svg.selectAll('path').filter('.finalGroupLine').remove();
+            svg.selectAll('path').filter('.finalGroupLine')
+                .data(finalSplitLabels).enter()
+                .append('path').attr('class','finalGroupLine')
+                .attr('d',d=>d.path)
+                .attr('stroke','black')
+                .attr('stroke-width',2)
+                .attr('stroke-dasharray','5,5')
+                .attr('stroke-opacity',.9);
             
             setPointData(patientDots);
             if(patientPaths.length > 0){
@@ -322,9 +373,9 @@ export default function RuleViewD3(props){
             formatDots(dots);
 
             function boundX(d){
-                let bx = Math.max(R, Math.min(ruleWidth-R, d.x));
+                let bx = Math.max(R, Math.min(ruleWidth+legendWidth/2-R, d.x));
                 if(splitAxes){
-                    if(d.outcome >= oThreshold){
+                    if(d.targetClass){
                         bx = Math.max(d.axisX+R,bx);
                     } else{
                         bx = Math.min(d.axisX-R,bx);
@@ -338,10 +389,10 @@ export default function RuleViewD3(props){
                     .attr('cy',d=>boundY(d));
             }
             var simulation = forceSimulation(pointData)
-                .force('collide',forceCollide().radius(.1+R).strength(1.2))
-                .force('x',forceX(d=>d.baseX).strength(.03))
+                .force('collide',forceCollide().radius(R).strength(1.2))
+                .force('x',forceX(d=>d.baseX).strength(.05))
                 .force('y',forceY(d=>d.baseY).strength(.1))
-                .alphaMin(.1)
+                .alphaMin(.05)
                 .on('tick',ticked)
                 .on('end',()=>{
                     dots.on('mouseover',function(e){
@@ -362,17 +413,19 @@ export default function RuleViewD3(props){
 
             //legend
             let legendData = [];
+            const fontHeight = Math.max(3*R,12);
+            const increment = fontHeight + 2;
             const legendX = width - legendWidth;
-            let lCurrY = Math.min(height/2, 100);
+            let lCurrY = height- 4*increment - yMargin;
             for(let inTarget of [true,false]){
                 for(let aboveThreshold of [true,false]){
                     let title = '';
                     if(!targetIsCluster & (aboveThreshold !== inTarget)){ continue; }
                     if(targetIsCluster){
                         if(inTarget){ 
-                            title = 'clust. ' + props.ruleTargetCluster;
+                            title = 'clust ' + props.ruleTargetCluster + ',';
                          } else{
-                            title = 'other clust.';
+                            title = 'not c ' + props.ruleTargetCluster + ',';
                         } 
                     }
                     let compare = aboveThreshold? '>' + (props.ruleThreshold-1):'<' + props.ruleThreshold;
@@ -386,7 +439,7 @@ export default function RuleViewD3(props){
                         text: title,
                     }
                     legendData.push(entry);
-                    lCurrY += 5*R;
+                    lCurrY += increment;
                 }
             }
             svg.selectAll('.legendItem').remove()

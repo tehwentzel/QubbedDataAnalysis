@@ -36,6 +36,8 @@ export default function DoseEffectView(props){
     
     const [useChange,setUseChange] =  useState(true); //this encodes color as a change from baseline
 
+    const bigScreen = window.innerWidth > 1900;
+
     function toggleClusterFeature(f){
         let cfeatures = [...props.tempClusterFeatures];
         if(cfeatures.indexOf(f) < 0){
@@ -46,6 +48,16 @@ export default function DoseEffectView(props){
         props.setTempClusterFeatures(cfeatures);
     }
 
+    function formatButtonText(text){
+        if(text.includes('_diff')){
+            text = text.replace('_diff','')
+            return 'Δ' + text.toUpperCase();
+        }
+        if(text === 'lrt_pval'){
+            return 'p-val';
+        }
+        return Utils.getVarDisplayName(text);
+    }
     useEffect(()=>{
         //get data extents to share between things
         //I tried making this a constant getcolor thing but it doesn't work for some reason
@@ -98,7 +110,7 @@ export default function DoseEffectView(props){
             <DropdownButton
                 // drop={'up'}
                 className={'controlDropdownButton'}
-                title={Utils.getVarDisplayName(colorMetric)}
+                title={formatButtonText(colorMetric)}
             >{mOptions}</DropdownButton>
         )
     }
@@ -146,26 +158,6 @@ export default function DoseEffectView(props){
         )
     }
 
-    function makeWindowToggle(data){
-        var fNames = [...fPosOptions];
-        if(data !== undefined & data !== null){
-            fNames = fPosOptions.map(d => {
-                let vals = data.filter(x => parseInt(x.featurePos) == d);
-                if(vals !== undefined & vals.length > 0){
-                    return vals[0].features;
-                }
-                return d;
-            })
-        }
-        const tButtons = fPosOptions.map((d,i) => {
-            const fName = fNames[i];
-            return makeWindowToggleButton(d,fName);
-        })
-        return (
-            <Col md={12} className={'fillWidth'}
-            >{tButtons}</Col>
-        )
-    }
 
     function makeToggleCluster(){
         var useAll = props.additiveCluster;
@@ -176,19 +168,19 @@ export default function DoseEffectView(props){
                     variant = {useAll? 'dark':'outline-secondary'}
                     disabled={useAll}
                     onClick={()=>props.setAdditiveCluster(true)}
-                >{'All Clusters'}</Button>
+                >{'All Clust.'}</Button>
                 <Button
                     variant = {useAll? 'outline-secondary':'dark'}
                     disabled={!useAll}
                     onClick={()=>props.setAdditiveCluster(false)}
-                >{"Cluster " + (props.nDoseClusters-1)}</Button>
+                >{"Clust. " + (props.nDoseClusters-1)}</Button>
             </span>
         )
     }
 
     function makeTitle(text){
         return (
-            <Row md={12} className={'noGutter'} style={{'height': '1.5em'}}>
+            <Row md={12} className={'noGutter'} style={{'height': '1.3em'}}>
                 <span  className={'controlPanelTitle'}>
                     {text}
                 </span>
@@ -232,7 +224,7 @@ export default function DoseEffectView(props){
             <DropdownButton
                 className={'controlDropdownButton'}
                 value = {props.mainSymptom}
-                title = {Utils.getVarDisplayName(props.mainSymptom)}
+                title = {formatButtonText(props.mainSymptom)}
             >{sOpts}</DropdownButton>
         )
     }
@@ -335,23 +327,47 @@ export default function DoseEffectView(props){
         }
     }
 
+    function getTitleRow(isBig){
+        if(isBig){
+            return (
+                <Row md={12} className={'inline fillWidth centerText viewTitle'}
+                    style={{'height':'2em','width':'100%','marginBottom':'1em'}}
+                >
+                    <span>
+                    {'Effect of add/remove Organs on '}
+                    {makeMetricDropdown()}
+                    {' Of '}
+                    {makeToggleCluster()}
+                    {' For Predicting '}
+                    {makeSymptomDropdown()}
+                    {makeThresholdDropdown()}
+                    </span>
+                </Row>
+            )
+        } else {
+            return (
+                <Row md={12} className={'inline fillWidth centerText viewTitle'}
+                    style={{'height':'2em','width':'100%','marginBottom':'1em'}}
+                >
+                    <span>
+                    {'Effect +/- Organs on '}
+                    {makeMetricDropdown()}
+                    {' Of '}
+                    {makeToggleCluster()}
+                    {' For '}
+                    {makeSymptomDropdown()}
+                    {makeThresholdDropdown()}
+                    </span>
+                </Row>
+            )
+        }
+    }
+
     return (
-        <div ref={ref} className={'fillSpace'}>
-            <Row md={12} className={'inline fillWidth centerText viewTitle'}
-                style={{'height':'2em','width':'100%','marginBottom':'1em'}}
-            >
-                <span>
-                {'Effect of +/- Organs on '}
-                {makeMetricDropdown()}
-                {' Of '}
-                {makeToggleCluster()}
-                {' For Pred. '}
-                {makeSymptomDropdown()}
-                {makeThresholdDropdown()}
-                </span>
-            </Row>
-            <Row md={12} className={'fillWidth'} style={{'height': 'calc(95% - 3em)'}}>
-                <Col md={10} className={'fillHeight'}>
+        <div ref={ref} className={'fillSpace noGutter'}>
+            {getTitleRow(bigScreen)}
+            <Row md={12} className={'fillWidth'} style={{'height': 'calc(99% - 3em)'}}>
+                <Col md={10} className={'noGutter fillHeight'}>
                     <Row md={12} 
                         className={'fillWidth'}
                         style={{'height':'calc(100% - 3em - 1em)'}}
@@ -363,7 +379,7 @@ export default function DoseEffectView(props){
                         {getFeatureEffectView()}
                     </Row>
                 </Col>
-                <Col md={2} style={{'height':'100%'}}>
+                <Col md={2} className={'noGutter'} style={{'height':'100%'}}>
                     <Row md={12} className={'fillWidth'} style={{'height':'50%'}}>
                         {getEffectLegend()}
                     </Row>
