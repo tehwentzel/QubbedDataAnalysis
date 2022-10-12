@@ -54,6 +54,16 @@ body{
   /* overflow-y: visible!important; */
 }
 
+.dropdown-toggle, .dropdown-toggle:active, 
+.dropdown-toggle:visited, .dropdown-toggle:hover, 
+.dropdown-toggle > *{
+  /* background-color: #af7fc7!important;
+  border-color: #af7fc7!important; */
+  background-color: #c57fbf!important;
+  border-color: #915f8c!important;
+}
+
+
 .screenHeight{
   height: 100vh;
 }

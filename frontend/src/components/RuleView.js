@@ -163,7 +163,7 @@ export default function RuleView(props){
             title += ' |Outcome ROC:' + fix(rule.roc_auc_symptom) 
                 + ' |Outcp,e F1:' + fix(rule.f1_symptom);
         } else{
-            title = ' Info: ' + fix(rule.info)   
+            title = rule.upper_count + ' |Info: ' + fix(rule.info)   
                 + ' |Prsn:' + fix(rule.precision) 
                 + ' |Rcl:' + fix(rule.recall);
             title += ' |Out ROC:' + fix(rule.roc_auc_symptom) 

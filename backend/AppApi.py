@@ -1024,12 +1024,12 @@ def get_rule_stuff(df,post_results=None):
     symptoms = post_results.get('symptoms',['drymouth'])
     # organ_features = post_results.get('clusterFeatures',['V35','V40','V45','V55'])
     organ_features = ['V5','V10','V15','V20','V25','V30','V35','V40','V45','V50','V55','V60','V65','V70','V75','V80']
-    # organ_features.extend(['mean_dose','max_dose'])
-    s_dates = post_results.get('symptom_dates',[13,33])
+    organ_features.extend(['mean_dose','max_dose'])
+    s_dates = post_results.get('symptom_dates',[33])
     print('____________')
     print('rule dates',s_dates)
     print('_____________')
-    threshold = post_results.get('threshold',6)
+    threshold = post_results.get('threshold',5)
     cluster = post_results.get('cluster',None)
     maxdepth = post_results.get('max_depth',3)
     min_odds = post_results.get('min_odds',0)
@@ -1039,7 +1039,7 @@ def get_rule_stuff(df,post_results=None):
     max_frontier = post_results.get('max_frontier',20)
     granularity = post_results.get('granularity',1)
     predict_cluster = post_results.get('predictCluster',-1)
-    use_limits = post_results.get('useLimits',True)
+    use_limits = post_results.get('useLimits',False)
     
     if criteria not in ['odds_ratio','info']:
         criteria = 'odds_ratio'
