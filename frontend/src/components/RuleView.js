@@ -440,7 +440,7 @@ export default function RuleView(props){
     }
     
     return (
-        <Container ref={ref} className={'fillSpace noGutter'}>
+        <Container ref={ref} className={'fillSpace shadow noGutter'}>
             {makeTitleRow(bigScreen)}
             <Row md={12} className={'controlPanelTitle inline centerText fillWidth'} 
                 style={{'height':'2em'}}>

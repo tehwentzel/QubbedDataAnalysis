@@ -159,7 +159,7 @@ export default function DoseView(props){
     ])
 
     return ( 
-        <div ref={ref} className={'fillSpace overviewContainer'}
+        <div ref={ref} className={'fillSpace shadow overviewContainer'}
             style={{'margin':'1em'}} 
         >
             <Row md={12} className={"centerText viewTitle"} style={{'height':'1.5em'}}>
@@ -173,7 +173,7 @@ export default function DoseView(props){
                 {clusterVizComponents}
             </Row>
             <Row md={12} 
-                className={'noGutter shadow'}
+                className={'noGutter'}
                 style={{'height':'2.5em','width':'calc(100% - 2em)','left':'-2em!important'}}
             >
                 <DoseLegendD3
