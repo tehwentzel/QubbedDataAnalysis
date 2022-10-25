@@ -25,8 +25,9 @@ import PatientScatterPlotD3 from './components/PatientScatterPlotD3.js';
 import ClusterMetrics from './components/ClusterMetrics.js';
 import RuleView from './components/RuleView.js';
 
-import HelpButton from './modules/HelpButton.js';
+import { makeTipLrtChart, makeTipChart} from './modules/Tooltip.js';
 
+import HelpButton from './modules/HelpButton.js';
 
 
 function App() {
@@ -85,8 +86,8 @@ function App() {
   //which symptoms we're including in the plots
   const [symptomsOfInterest,setSymptomsOfInterest] = useState([
     'drymouth',
-    'salivary_mean',
-    'salivary_max',
+    // 'salivary_mean',
+    // 'salivary_max',
     'taste',
     'swallow',
     'voice',
@@ -95,16 +96,16 @@ function App() {
     'choke',
     'pain',
     'teeth',
-    'throat_mean',
-    'throat_max',
-    'mouth_max',
-    'mouth_mean',
-    'core_mean',
-    'core_max',
-    'interference_mean',
-    'interference_max',
-    'hnc_mean',
-    'hnc_max',
+    // 'throat_mean',
+    // 'throat_max',
+    // 'mouth_max',
+    // 'mouth_mean',
+    // 'core_mean',
+    // 'core_max',
+    // 'interference_mean',
+    // 'interference_max',
+    // 'hnc_mean',
+    // 'hnc_max',
   ]);
   //all possible symptoms I coded into the data
   const allSymptoms = [
@@ -181,7 +182,6 @@ function App() {
   }
 
   
-
   function resetSelections(){
     setActiveCluster(nDoseClusters-1);
     setSelectedPatientId(-1);
@@ -232,7 +232,12 @@ function App() {
       })
   },[])
 
+  const tipChartSize = [150,80];
+  const tipSymptomChartSize = [160,15];//height is for each symptom here
+  const makeTTipChart = (e,d,key) => makeTipChart(e,d,tipChartSize, svgPaths, plotVar, doseColor,doseScale, key);
+  const makeTTipLrtChart = (e,d) => makeTipLrtChart(e,d, tipSymptomChartSize, symptomsOfInterest);
   
+
   var fetchDoseData = async(orgs,cFeatures) => {
     const response = await api.getDoseJson(orgs,cFeatures);
     setDoseData(response.data);
@@ -308,6 +313,7 @@ function App() {
       fetchAdditiveEffects(clusterOrgans,nDoseClusters,clusterFeatures,clusterType,mainSymptom,lrtConfounders,[additiveClusterThreshold],additiveCluster,endpointDates);
     }
   },[clusterDataLoading,clusterData,mainSymptom,clusterDataLoading,lrtConfounders,additiveClusterThreshold,additiveCluster,endpointDates])
+
 
   function makeEffectPlot(){
     return (
@@ -441,6 +447,11 @@ function App() {
               setSelectedPatientId={setSelectedPatientId}
               categoricalColors={categoricalColors}
               endpointDates={endpointDates}
+
+              plotVar={plotVar}
+              symptomsOfInterest={symptomsOfInterest}
+              makeTTipChart={makeTTipChart}
+              makeTTipLrtChart={makeTTipLrtChart}
           ></RuleView>
       )
   }
@@ -479,10 +490,10 @@ function App() {
               <>
                   <PatientScatterPlotD3
                       doseData={doseData}
+                      doseColor={doseColor}
                       clusterData={clusterData}
                       selectedPatientId={selectedPatientId}
                       setSelectedPatientId={setSelectedPatientId}
-                      plotVar={plotVar}
                       clusterOrgans={clusterOrgans}
                       activeCluster={activeCluster}
                       setActiveCluster={setActiveCluster}
@@ -493,6 +504,8 @@ function App() {
                       svgPaths={svgPaths}
                       symptomsOfInterest={allSymptoms}
                       endpointDates={endpointDates}
+                      makeTTipChart={makeTTipChart}
+                      makeTTipLrtChart={makeTTipLrtChart}
                   ></PatientScatterPlotD3>
               </>
           )

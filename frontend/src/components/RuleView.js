@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef, Fragment} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import Utils from '../modules/Utils.js';
 import * as constants from "../modules/Constants.js"
 import * as d3 from 'd3';
@@ -209,6 +209,11 @@ export default function RuleView(props){
                         ruleTargetCluster={ruleTargetCluster}
                         categoricalColors={props.categoricalColors}
                         endpointDates={props.endpointDates}
+
+                        plotVar={props.plotVar}
+                        symptomsOfInterest={props.symptomsOfInterest}
+                        makeTTipChart={props.makeTTipChart}
+                        makeTTipLrtChart={props.makeTTipLrtChart}
                     ></RuleViewD3>
                 </Row>
             </Row>

@@ -2,7 +2,9 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import useSVGCanvas from './useSVGCanvas.js';
 import Utils from '../modules/Utils.js'
-import {forceSimulation,forceCollide,forceX,forceY, interpolatePiYG} from 'd3';
+import {forceSimulation,forceCollide,forceX,forceY} from 'd3';
+import { makeTipLrtChart, makeTipChart} from '../modules/Tooltip.js';
+
 export default function RuleViewD3(props){
     const d3Container = useRef(null);
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
@@ -83,6 +85,19 @@ export default function RuleViewD3(props){
             }
         }
         return parseInt(maxS);
+    }
+
+    function addToolTipInfo(dotEntry,pData){
+        let entries = props.symptomsOfInterest.map(s => 'symptoms_' + s);
+        entries.push(props.plotVar);
+        entries.push('organList');
+        entries.push('dates');
+        for(let key of entries){
+            if(key !== undefined){
+                dotEntry[key] = pData[key];
+            }
+        }
+        return dotEntry;
     }
 
 
@@ -227,6 +242,7 @@ export default function RuleViewD3(props){
                         'outcome':sVal,
                         'final':false,
                     }
+                    dotEntry = addToolTipInfo(dotEntry,p);
                     if(pVal >= split.threshold & inGroup){
                         numSplits += 1
                     } else{
@@ -258,6 +274,7 @@ export default function RuleViewD3(props){
                     'outcome': sVal,
                     'final':true,
                 }
+                finalDot = addToolTipInfo(finalDot,p);
                 endGroups[p.id] = numSplits;
                 tempDots.push(finalDot);
 
@@ -403,6 +420,8 @@ export default function RuleViewD3(props){
                             + 'in target group: ' + d.targetClass +'</br>';
                         tTip.html(tipText);
                         setBrushGroup(parseInt(d.endGroup));
+                        props.makeTTipChart(tTip,d);
+                        props.makeTTipLrtChart(tTip,d);
                     }).on('mousemove', function(e){
                         Utils.moveTTipEvent(tTip,e);
                     }).on('mouseout', function(e){

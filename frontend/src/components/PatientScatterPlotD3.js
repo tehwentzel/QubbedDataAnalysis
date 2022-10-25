@@ -15,12 +15,11 @@ export default function PatientScatterPlotD3(props){
     const leeway = Math.min(4*maxR,80);//space to give before the simulation aglroithm
     const curveMargin = 3;
     
-    const tipChartSize = [150,80];
-    const tipSymptomChartSize = [160,15];//height is for each symptom here
+    
     const legendHeight = 80;
     const legendWidth = 60;
     const legendMargin = 30;
-
+    
     function rScale(val){
         return maxR*(val**.25);
     }
@@ -92,171 +91,6 @@ export default function PatientScatterPlotD3(props){
         } else{
             return values[0];
         }
-    }
-
-    function makeTTipChart(element, data){
-        let [w,h] = tipChartSize;
-        
-        let doseSvg = Utils.addTTipCanvas(element,'tTipDoseCanvas',w,h)
-        
-        let paths = props.svgPaths['both'];
-        if(paths === undefined){
-            console.log('error getting svg paths for tooltip',props.svgPaths);
-            return;
-        }
-
-        let svgOrganList = Object.keys(paths);
-        let maxDVal = 70;
-        let minDVal = 0;
-        let plotVar = props.plotVar;
-        let values = data[plotVar];
-
-        let pathData = [];
-        for(let organ of svgOrganList){
-            let pos = data.organList.indexOf(organ);
-            if(pos < 0){ continue; }
-            let dVal = values[pos];
-            let path = paths[organ];
-            let entry = {
-                'dVal': dVal,
-                'organ_name': organ,
-                'plotVar': plotVar,
-                'path': path,
-            }
-            pathData.push(entry)
-            if(dVal > maxDVal){ maxDVal = dVal; }
-            if(dVal < minDVal){ minDVal = dVal; }
-        }
-
-        doseSvg.selectAll('g').filter('.organGroup').remove();
-        const organGroup = doseSvg.append('g')
-            .attr('class','organGroup');
-        
-        organGroup.selectAll('.organPath').remove();
-
-        var colorScale;
-        if(minDVal < 0){
-            let maxExtent = Math.max(Math.abs(minDVal),Math.abs(maxDVal))
-            colorScale = d3.scaleDiverging()
-                .domain([-maxExtent,0,maxExtent])
-                .range([1,.5,0])//inversing because the colorscale is green - white - blue but I want blue to be negative
-        } else{
-            colorScale = d3.scaleLinear()
-                .domain([0,maxDVal])
-                .range([0,1])
-        }
-
-        let getColor = d3.interpolateReds;
-        organGroup
-            .selectAll('path').filter('.organPath')
-            .data(pathData)
-            .enter().append('path')
-            .attr('class','organPath')
-            .attr('d',x=>x.path)
-            // .attr('transform',(d,i)=>transforms[i])
-            .attr('fill', x=>getColor(colorScale(x.dVal)))
-            .attr('stroke','black')
-            .attr('stroke-width','.1');
-
-        let box = doseSvg.node().getBBox();
-        let transform = 'translate(' + (-box.x)*(w/box.width)  + ',' + (-box.y)*(h/box.height) + ')';
-        transform += ' scale(' + w/box.width + ',' + (-h/box.height) + ')';
-        doseSvg.selectAll('g').attr('transform',transform);
-    }
-    
-    function makeTTipLrtChart(element, data){
-        if(props.symptomsOfInterest === undefined){ return; }
-        let [w,h] = tipSymptomChartSize
-        h = h*props.symptomsOfInterest.length
-        const margin = 5;
-        
-        const maxHeight = (.5*h/props.symptomsOfInterest.length) - 2;
-        const fontSize = Math.min(2*maxHeight, 10);
-        const textWidth = fontSize*7;
-
-        const maxWidth = (w-textWidth-2*margin)/20;
-        const radius = Math.min(maxHeight,maxWidth);
-        
-        let tipSvg = Utils.addTTipCanvas(element, 'scatterTipSvg',w+2*margin,h+2*margin);
-        tipSvg.attr('background','white')
-        let xScale = d3.scaleLinear()
-            .domain([0,10])
-            .range([margin+textWidth+2*radius,w-margin-2*radius])
-        let yScale = d3.scaleLinear()
-            .domain([0,props.symptomsOfInterest.length-1])
-            .range([h-margin-radius*2,margin + 2*radius]);
-        let sVals = props.symptomsOfInterest.map((s,i) => {
-            let entry = {
-                'treatment': getMaxSymptoms(data,s, [0,2,3,4,5,6,7]),
-                '6W': getMaxSymptoms(data,s,[13]),
-                '6M': getMaxSymptoms(data,s,[33]),
-                'name': s,
-                'y': yScale(i),
-            }
-            return entry
-        });
-        
-        
-        var plotDots = function(xKey,color){
-            let cString = '.TipCircle'+xKey;
-            // tipSvg.selectAll(cString).remove();
-            let dots = tipSvg.selectAll(cString)
-                .data(sVals)
-                .enter().append('circle')
-                .attr('class', 'TipCircle'+xKey)
-                .attr('cy',d=>d.y)
-                .attr('fill',color)
-                .attr('r',radius)
-                .attr('cx',d=> xScale(d[xKey]));
-            return dots;
-        }
-        // plotDots('treatment','green');
-        plotDots('6W','grey');
-        plotDots('6M','black');
-
-
-        tipSvg.selectAll('text').filter('.symptomText')
-            .data(sVals).enter()
-            .append('text').attr('class','symptomText')
-            .attr('x',1).attr('y',d=>d.y+(fontSize/2))
-            .attr('text-width',textWidth)
-            .attr('font-size',fontSize)
-            .html(d=>d.name+'|')
-
-        const lineFunc = d3.line();
-        let axisLines = [3,5].map(v=>{
-            let path = lineFunc([
-                [xScale(v),yScale(0)],
-                [xScale(v),yScale(props.symptomsOfInterest.length)]
-            ])
-            let name = '>= ' + v;
-            let entry = {
-                'path': path,
-                'value':v,
-                'x': xScale(v),
-                'name': name,
-            }
-            return entry
-        })
-        tipSvg.selectAll('path').filter('.axisLines').remove();
-        tipSvg.selectAll('path').filter('.axisLines')
-            .data(axisLines).enter()
-            .append('path')
-            .attr('class','axisLines')
-            .attr('d',d=>d.path)
-            .attr('stroke-width',1)
-            .attr('stroke','black')
-            .attr('stroke-opacity',.5)
-            .attr('fill','none');
-        tipSvg.selectAll('text').filter('.xAxisText')
-            .data(axisLines).enter()
-            .append('text').attr('class','xAxisText')
-            .attr('x',d=>d.x)
-            .attr('y',h-radius)
-            .attr('text-anchor','middle')
-            .attr('font-size',fontSize)
-            .attr('textWidth',textWidth)
-            .html(d=>d.name)
     }
 
     useEffect(function formatData(){
@@ -599,8 +433,8 @@ export default function PatientScatterPlotD3(props){
                             + props.sizeVar + ': ' + d[props.sizeVar].toFixed(1) + '</br>'
 
                         tTip.html(tipText);
-                        makeTTipChart(tTip,d);
-                        makeTTipLrtChart(tTip,d);
+                        props.makeTTipChart(tTip,d);
+                        props.makeTTipLrtChart(tTip,d);
                     }).on('mousemove', function(e){
                         Utils.moveTTipEvent(tTip,e);
                     }).on('mouseout', function(e){
@@ -620,7 +454,9 @@ export default function PatientScatterPlotD3(props){
                 svg.selectAll('.clusterOutline')
                     .attr('visibility',d=>isActive(d)?'visible':'hidden');
         }
-    },[props.clusterData,formattedData,dotsDrawn, props.selectedPatientId,props.activeCluster])
+    },[props.clusterData,formattedData,dotsDrawn, 
+        props.selectedPatientId,props.activeCluster,
+        props.makeTTipChart,props.makeTTipLrtChart]);
 
     return (
         <div
