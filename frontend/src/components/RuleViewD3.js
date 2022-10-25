@@ -156,7 +156,7 @@ export default function RuleViewD3(props){
                 .range([yRange[0]-(yPadding/4),yRange[1]+(yPadding/4)]);
 
             const finalX = getX('outcome');
-            const finalXOffset = -stepWidth/2;
+            const finalXLine = splitData[splitData.length-1].x + tRectW/2;
             let finalSplitEntry = {
                 'feature': 'group',
                 'organ': 'rule',
@@ -164,7 +164,7 @@ export default function RuleViewD3(props){
                 'x': finalX,
                 'threshold': nFeatures,
                 'thresholdY': finalYScale(nFeatures-.5),
-                'path': lineFunc([[finalX+finalXOffset,yRange[0]+yPadding],[finalX+finalXOffset,yRange[1]-yPadding]]),
+                'path': lineFunc([[finalXLine,yRange[0]+yPadding],[finalXLine,yRange[1]-yPadding]]),
                 'dasharray':'10,10',
                 'color':'#911b17'
             }
@@ -178,7 +178,7 @@ export default function RuleViewD3(props){
             for(let n = 1; n <= nFeatures; n += 1){
                 let y = finalYScale(n - .5);
                 let pPoints = [
-                    [finalX-stepWidth/2,y],
+                    [finalXLine,y],
                     [finalX+stepWidth/2,y]
                 ]
                 let text = "strata " + n;

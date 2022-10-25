@@ -107,9 +107,9 @@ body{
   border-radius: 1em!important;
 }
 
-.shadow, .shadow > *{
+/* .shadow, .shadow > *{
   background-color: rgb(255, 252, 247);
-}
+} */
 
 
 .clusterContainer{
