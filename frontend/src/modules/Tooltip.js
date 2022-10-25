@@ -121,9 +121,9 @@ export function makeTipLrtChart(element, data, size, symptoms){
     let axisLines = [3,5].map(v=>{
         let path = lineFunc([
             [xScale(v),yScale(0)],
-            [xScale(v),yScale(symptoms.length)]
+            [xScale(v),yScale(symptoms.length+.5)]
         ])
-        let name = '>= ' + v;
+        let name = '' + v;
         let entry = {
             'path': path,
             'value':v,
@@ -138,15 +138,15 @@ export function makeTipLrtChart(element, data, size, symptoms){
         .append('path')
         .attr('class','axisLines')
         .attr('d',d=>d.path)
-        .attr('stroke-width',1)
-        .attr('stroke','black')
-        .attr('stroke-opacity',.5)
+        .attr('stroke-width',2)
+        .attr('stroke','white')
+        .attr('stroke-opacity',1)
         .attr('fill','none');
     tipSvg.selectAll('text').filter('.xAxisText')
         .data(axisLines).enter()
         .append('text').attr('class','xAxisText')
         .attr('x',d=>d.x)
-        .attr('y',h-radius)
+        .attr('y',h)
         .attr('text-anchor','middle')
         .attr('font-size',fontSize)
         .attr('textWidth',textWidth)

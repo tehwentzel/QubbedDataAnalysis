@@ -84,6 +84,7 @@ function App() {
   const [additiveCluster, setAdditiveCluster] = useState(false);
   
   //which symptoms we're including in the plots
+  //currently used for dropdown outcome selection + the tooltip for individual patients
   const [symptomsOfInterest,setSymptomsOfInterest] = useState([
     'drymouth',
     // 'salivary_mean',
@@ -232,7 +233,7 @@ function App() {
       })
   },[])
 
-  const tipChartSize = [150,80];
+  const tipChartSize = [170,120];
   const tipSymptomChartSize = [160,15];//height is for each symptom here
   const makeTTipChart = (e,d,key) => makeTipChart(e,d,tipChartSize, svgPaths, plotVar, doseColor,doseScale, key);
   const makeTTipLrtChart = (e,d) => makeTipLrtChart(e,d, tipSymptomChartSize, symptomsOfInterest);

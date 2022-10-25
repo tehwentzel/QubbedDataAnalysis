@@ -415,9 +415,7 @@ export default function RuleViewD3(props){
                     dots.on('mouseover',function(e){
                         let d = d3.select(this).datum();
                         let tipText = 'patient: ' + d.id + '</br>' 
-                            + d.organ + '-' + d.name + ':' + d.value + '</br>'
-                            + props.mainSymptom + ': ' + d.outcome + '</br>'
-                            + 'in target group: ' + d.targetClass +'</br>';
+                            + d.name + ':' + d.value + '</br>';
                         tTip.html(tipText);
                         setBrushGroup(parseInt(d.endGroup));
                         props.makeTTipChart(tTip,d);
