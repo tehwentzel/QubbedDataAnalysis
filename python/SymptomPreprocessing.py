@@ -88,13 +88,14 @@ def format_symptoms(df,
             'subsite',
             't_stage','n_stage',
             'is_ajcc_8th_edition',
-            'hpv','rt','ic','sxprimary',
+            'hpv','rt','ic',
             'concurrent','performance_score',
             'os','followup_days','chemotherapy',
             'M6_mbs_digest','baseline_mbs_digest',
             'Local_control','Regional_control',
             'Technique',
             'status_at_enrollememt',
+            'sxprimary','rt_dose','rt_fraction',
             'ic_prior_to_enrollment','rt_prior_to_enrollment',
             'concurrent_prior_to_enrollment','sx_prior_to_enrollment',
             'baseline_height','baseline_weight',
@@ -116,7 +117,17 @@ def format_symptoms(df,
         scols = sorted(scols,key = lambda x: symptom_weektime(x))
         values = df.loc[:,scols].values.tolist()
         new_df['symptoms_'+s] = values
-        
+    def format_dose(x):
+        if np.isnan(x):
+            return 0
+        if x > 1000:
+            x = x/1000
+        if x > 100:
+            x = x/100
+        return np.rint(x)
+    new_df['rt_dose'] = new_df['rt_dose'].apply(format_dose)
+    new_df['dose_70'] = new_df['rt_dose'].apply(lambda x: x > 69.5)
+    new_df['surgery'] = new_df['sx_primary'].apply(lambda x: x in [1,2,3,4])
     new_df = add_bmi_stuff(new_df)
     return new_df
 
