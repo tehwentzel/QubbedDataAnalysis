@@ -159,10 +159,11 @@ function App() {
   //returns color based on index bascially
   const categoricalColors = (i) => {
     let colors = [
-    '#d95f02',
-    '#7570b3',
-    '#1ecbe1',
-    '#1b9e77',
+    '#386cb0',
+    '#fdc086',
+    // '#1ecbe1',
+    '#7fc97f',
+    '#ffff99',
     // '#e7298a',
     '#e6ab02',
     '#999999',

@@ -172,34 +172,50 @@ export default function RuleViewD3(props){
 
             const finalX = getX('outcome');
             const finalXLine = splitData[splitData.length-1].x + tRectW/2;
-            let finalSplitEntry = {
-                'feature': 'group',
-                'organ': 'rule',
-                'name': 'group',
-                'x': finalX,
-                'threshold': nFeatures,
-                'thresholdY': finalYScale(nFeatures-.5),
-                'path': lineFunc([[finalXLine,yRange[0]+yPadding],[finalXLine,yRange[1]-yPadding]]),
-                'dasharray':'10,10',
-                'color':'#911b17'
-            }
-            splitData.push(finalSplitEntry);
+            // let finalSplitEntry = {
+            //     'feature': 'group',
+            //     'organ': 'rule',
+            //     'name': 'group',
+            //     'x': finalX,
+            //     'threshold': nFeatures,
+            //     'thresholdY': finalYScale(nFeatures-.5),
+            //     'path': lineFunc([[finalXLine,yRange[0]+yPadding],[finalXLine,yRange[1]-yPadding]]),
+            //     'dasharray':'10,10',
+            //     'color':'#911b17'
+            // }
+            // splitData.push(finalSplitEntry);
 
             //sort rules
             splitData.sort((a,b) => a.x - b.x);
 
             //adding on stuff for the last group split
             let finalSplitLabels = [];
-            for(let n = 1; n <= nFeatures; n += 1){
+            for(let n = 1; n <= nFeatures + 1; n += 1){
+                let bottomY = finalYScale(n - 1.5);
                 let y = finalYScale(n - .5);
-                let pPoints = [
-                    [finalXLine,y],
-                    [finalX+stepWidth/2,y]
-                ]
-                let text = "strata " + n;
+                // let pPoints = [
+                //     [finalXLine,y],
+                //     [finalX+stepWidth/2,y]
+                // ]
+                let isLast = n > nFeatures;
+                let text = "Failed at rule " + n;
+                if(isLast){
+                    text = 'Predicted Class';
+                }
+                let boxX = finalXLine;
+                let boxWidth = (finalX + stepWidth/2) - finalXLine;
+                let boxY = y;
+                let boxHeight = y - bottomY;
                 let entry = {
-                    path: lineFunc(pPoints),
+                    // path: lineFunc(pPoints),
                     text: text,
+                    x: boxX,
+                    y: boxY,
+                    width: boxWidth,
+                    height: boxHeight,
+                    color: isLast? targetColor: nonTargetColor,
+                    opacity: .2,
+                    isLast: isLast,
                 }
                 finalSplitLabels.push(entry);
             }
@@ -354,15 +370,60 @@ export default function RuleViewD3(props){
                 .attr('height',tRectH)
                 .attr('fill','black')
 
-            svg.selectAll('path').filter('.finalGroupLine').remove();
-            svg.selectAll('path').filter('.finalGroupLine')
+            const groupMargin = 2;
+            const roundedness = 20;
+            svg.selectAll('rect').filter('.finalGroupRect').remove();
+            svg.selectAll('rect').filter('.finalGroupRect')
                 .data(finalSplitLabels).enter()
-                .append('path').attr('class','finalGroupLine')
-                .attr('d',d=>d.path)
-                .attr('stroke','black')
-                .attr('stroke-width',2)
-                .attr('stroke-dasharray','5,5')
-                .attr('stroke-opacity',.9);
+                .append('rect').attr('class','finalGroupRect')
+                .attr('x', d=>d.x)
+                .attr('y',d=>d.y + groupMargin)
+                .attr('width', d=>d.width)
+                .attr('height',d=>Math.abs(d.height) - groupMargin)
+                .attr('fill',d=>d.color)
+                .attr('rx',roundedness)
+                .attr('ry',roundedness)
+                .attr('opacity',.25);
+
+            svg.selectAll('text').filter('.finalGroupText').remove();
+            svg.selectAll('text').filter('.finalGroupText')
+                .data(finalSplitLabels).enter()
+                .append('text').attr('class','finalGroupText')
+                .attr('x',d=> d.x + (d.width/2))
+                .attr('y',d=>d.y + groupMargin + xLabelSize)
+                .attr('font-size',xLabelSize*1.1)
+                .attr('text-anchor','middle')
+                .text(d=>d.text)
+            
+            svg.selectAll('text').filter('.prTitle').remove();
+            svg.selectAll('text').filter('prTitle')
+                .data(finalSplitLabels).enter()
+                .append('text').attr('class','prTitle')
+                .attr('x',d=> d.x + (d.width*.3))
+                .attr('y',d=>d.y + Math.abs(d.height))
+                .attr('font-size',xLabelSize)
+                .attr('text-anchor','middle')
+                .text(d=> d.isLast? 'False +':'True -');
+
+            svg.selectAll('text').filter('.fTitle').remove();
+            svg.selectAll('text').filter('fTitle')
+                .data(finalSplitLabels).enter()
+                .append('text').attr('class','fTitle')
+                .attr('x',d=> d.x + (d.width*.75))
+                .attr('y',d=>d.y + Math.abs(d.height))
+                .attr('font-size',xLabelSize)
+                .attr('text-anchor','middle')
+                .text(d=> d.isLast? 'True +':'False -');
+
+            // svg.selectAll('path').filter('.finalGroupLine').remove();
+            // svg.selectAll('path').filter('.finalGroupLine')
+            //     .data(finalSplitLabels).enter()
+            //     .append('path').attr('class','finalGroupLine')
+            //     .attr('d',d=>d.path)
+            //     .attr('stroke','black')
+            //     .attr('stroke-width',2)
+            //     .attr('stroke-dasharray','5,5')
+            //     .attr('stroke-opacity',.9);
             
             setPointData(patientDots);
             if(patientPaths.length > 0){

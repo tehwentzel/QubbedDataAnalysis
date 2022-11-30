@@ -1,5 +1,5 @@
 import * as constants from './Constants';
-const querystring = require('querystring');
+const querystring = require('querystring-es3');
 
 export default class DataService {
 
