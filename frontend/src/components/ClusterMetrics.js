@@ -22,7 +22,7 @@ export default function ClusterMetrics(props){
     //I dont think I use this
     const [metricData,setMetricData] = useState(null);
 
-    const [metricThresholds,setMetricThresholds] = useState([0,-1,5,-5]);
+    const [metricThresholds,setMetricThresholds] = useState([-3,3,5,-5]);
     const thresholdOptions = [-7,-5,-3,-1,0,3,5,7];
 
     var fetchMetrics = async(cData,dates,lrtConfounders,thresholds,symptoms)=>{
@@ -114,10 +114,10 @@ export default function ClusterMetrics(props){
     return ( 
         <div ref={ref} className={'fillSpace noGutter'}>
             <Row md={12} className = {'noGutter fillSpace'}>
-                <Col md={12} style={{'height':'calc(100% - 1.6em)'}} className={'noGutter'}>
+                <Col md={12} style={{'height':'calc(100% - 1.6em)'}}>
                     {vizComponents}     
                 </Col>
-                <Col md={12} className={'noGutter'} style={{'height':'1.6em'}}>
+                <Col md={12} style={{'height':'2em'}}>
                         <Button
                             style={{'width': 'auto'}}
                             variant={''}

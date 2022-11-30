@@ -7,11 +7,11 @@ export default function ClusterMetricsD3(props){
     const d3Container = useRef(null);
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     const [rectsDrawn,setRectsDrawn] = useState(false);
-    const yMarginTop = 10;
+    const yMarginTop = Math.min(40,height/10);
     const yMarginBottom = Math.min(40,height/10);
-    const xMargin = 10;
+    const xMargin = 30;
     const barMargin = 2;
-    const chartMargin = 10;
+    const chartMargin = 40;
 
     const binaryMetric = 'odds_ratio';
     const linearMetric = 'aic_diff';
@@ -232,11 +232,11 @@ export default function ClusterMetricsD3(props){
                 .attr('x',d=>d.x + barWidth/2)
                 .attr('text-anchor','middle')
                 .attr('y',getTextY)
-                .style('font-size',barWidth/2)
+                .style('font-size',Math.min(25,barWidth/2.2))
                 .html(d=>formatNum(d.value));
 
             svg.selectAll('text').filter('.title').remove();
-            const titleSize = Math.max(10,Math.min(barWidth/2,yMarginBottom/2));
+            const titleSize = Math.max(15,Math.min(barWidth/1.5,yMarginBottom/1.5));
             
             let titleText = svg.selectAll('text').filter('.title')
                 .data(titleData).enter().append('text')
