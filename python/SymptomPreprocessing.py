@@ -117,18 +117,31 @@ def format_symptoms(df,
         scols = sorted(scols,key = lambda x: symptom_weektime(x))
         values = df.loc[:,scols].values.tolist()
         new_df['symptoms_'+s] = values
+    
+    def fix_dose_frac(df):
+        temp = df.copy()
+        for i,row in temp.iterrows():
+            if np.nan_to_num(row['rt_fraction']) > np.nan_to_num(row['rt_dose']):
+                tdose = row['rt_dose']
+                tfrac = row['rt_fraction']
+                temp.loc[i,'rt_dose'] = tfrac
+                temp.loc[i,'rt_fraction'] = tdose
+        return temp
+    
     def format_dose(x):
         if np.isnan(x):
             return 0
-        if x > 1000:
-            x = x/1000
-        if x > 100:
-            x = x/100
+        while x > 100:
+            x = x/10
         return np.rint(x)
+    
+    new_df = fix_dose_frac(new_df)
     new_df['rt_dose'] = new_df['rt_dose'].apply(format_dose)
     new_df['dose_70'] = new_df['rt_dose'].apply(lambda x: x > 69.5)
-    new_df['surgery'] = new_df['sx_primary'].apply(lambda x: x in [1,2,3,4])
+#     new_df['surgery'] = new_df['sxprimary'].apply(lambda x: x in [1,2,3,4])
     new_df = add_bmi_stuff(new_df)
+    new_df['surgery'] = new_df['id'].apply(lambda x: int(x) in Const.mdasi_surgery)
+    new_df['surgery_alone'] = new_df['id'].apply(lambda x: int(x) in Const.mdasi_surgery_alone)
     return new_df
 
 def add_bmi_stuff(df):
