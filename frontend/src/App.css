@@ -2,7 +2,7 @@ body{
   --control-panel-height: 6.5em;
   --right-panel-width: 49vw;
   --left-panel-width: 49vw;
-  --section-height: calc((95vh - 4em - 150px)/2);
+  --section-height: calc((95vh - 4em - 130px)/2);
   --ul-height: calc(30vh - 3.5em);
   --ll-height: calc(70vh - 3.5em);
   --ur-height: calc(55vh - 3.5em);

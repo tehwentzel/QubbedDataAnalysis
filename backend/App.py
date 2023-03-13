@@ -195,6 +195,13 @@ def get_dose_cluster_json():
     if len(covars) <= 0:
         covars = None
 
+    for i,f in enumerate(cluster_features):
+        if f == 'mean':
+            cluster_features[i] = 'mean_dose'
+        if f == 'max': 
+            cluster_features[i] = 'max_dose'
+        if f == 'min':
+            cluster_features[i] = 'min_dose'
     # print('cluster symptoms',symptoms)
     ddict = get_cluster_json(data,
         organ_list=organ_list,

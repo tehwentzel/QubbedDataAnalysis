@@ -690,6 +690,7 @@ def select_single_organ_cluster_effects(df,
     
     if features is None:
         features = ['V40','V45','V50','V55']
+    print('features',features)
     if dvh_steps > 0:
         fsets = get_dvh_windows(df,features,n_steps=dvh_steps)
     else:

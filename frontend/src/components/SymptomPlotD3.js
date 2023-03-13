@@ -26,6 +26,12 @@ export default function SymptomPlotD3(props){
         [8,9,10],
     ]
 
+    // const symptomBins = [
+    //     [0],
+    //     [1,2,3,4],
+    //     [5,6,7,8,9,10],
+    // ]
+
     function getSymptomLevel(sVal){
         for(let i in symptomBins){
             i = parseInt(i);
@@ -369,7 +375,7 @@ export default function SymptomPlotD3(props){
                     let radius = scale(i);
                     currLegendY += radius;
                     let count = (active)? i*nActive: i*nInactive;
-                    let text = count.toFixed(0) + ' (' + 100*i.toFixed(2) + '%)';
+                    let text = count.toFixed(0) + ' (' + (100*i).toFixed(0) + '%)';
                     let entry = {
                         x: legendX + (maxR - radius),
                         radius: radius,

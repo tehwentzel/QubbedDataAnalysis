@@ -10,6 +10,21 @@ export default class DataService {
         })
     }
 
+    fixFeatures(array){
+        if(array === undefined | array === null){
+            return array
+        }
+        let newArray = [];
+        const vMap = {'mean': 'mean_dose','min': 'min_dose','max': 'max_dose'}
+        for(let i in array){
+            if(vMap[array[i]] !== undefined){
+                newArray[i] = vMap[array[i]]
+            } else{
+                newArray[i] = array[i];
+            }
+        }
+        return newArray
+    }
     getParamList(pObj){
         let newParams = {}
         let empty= true;
@@ -85,7 +100,7 @@ export default class DataService {
             'clusterData': clusterData,
             'organs': organs,
             'symptoms': symptoms,
-            'clusterFeatures': organFeatures,
+            'clusterFeatures': this.fixFeatures(organFeatures),
             'threshold': threshold,
             'cluster': cluster,
             'max_depth': maxDepth,
@@ -155,13 +170,13 @@ export default class DataService {
         try{
             var params = {
                 'organs': organs,
-                'features': clusterFeatures,
+                'features': this.fixFeatures(clusterFeatures),
             };
             let qString = '/doses'
             qString += this.getParamList(params)
             const dDataResponse = await this.api.get(qString);
-            // console.log('dose data');
-            // console.log(dDataResponse);
+            console.log('dose data',params);
+            console.log(dDataResponse);
             return dDataResponse;
         } catch(error){
             console.log(error)
@@ -173,7 +188,7 @@ export default class DataService {
             var params = {
                 'organs': organs,
                 'nClusters':nClusters,
-                'clusterFeatures':clusterFeatures,
+                'clusterFeatures':this.fixFeatures(clusterFeatures),
                 'clusterType':clusterType,
                 'confounders':lrtConfounders,
                 'symptoms':symptoms,
@@ -198,7 +213,7 @@ export default class DataService {
                 symptom:symptom,
                 clusterType:clusterType,
                 nClusters:nClusters,
-                features:features,
+                features:this.fixFeatures(features),
                 baseOrgans:baseOrgans,
                 confounders:confounders,
                 thresholds:thresholds,

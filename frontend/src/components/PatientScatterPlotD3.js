@@ -95,7 +95,8 @@ export default function PatientScatterPlotD3(props){
 
     useEffect(function formatData(){
         if(props.doseData != undefined & props.clusterData !== undefined){
-            
+            console.log('updating data');
+            setFormattedData(undefined);
             function formatData(d){
                 let newD = Object.assign(d,{})
             
@@ -155,7 +156,7 @@ export default function PatientScatterPlotD3(props){
             setFormattedData(dataPoints);
 
         }
-    },[props.clusterData,props.doseData,props.endpointDates])
+    },[props.clusterData,props.doseData,props.endpointDates,props.clusterOrgans])
 
     useEffect(function drawPoints(){
         if(svg !== undefined & formattedData !== undefined & height > 0 & width > 0 & props.xVar !== undefined & props.yVar !== undefined){
@@ -302,7 +303,7 @@ export default function PatientScatterPlotD3(props){
                 .attr('fill', d => d.color);
             
         }
-    },[svg,height,width,props.clusterData,formattedData,props.xVar,props.yVar,props.sizeVar])
+    },[svg,height,width,props.clusterData,formattedData,props.xVar,props.yVar,props.sizeVar,props.clusterOrgans])
 
     useEffect(function makeShape(){
         if(formattedData !== undefined & dotsDrawn & props.sizeVar !== undefined){
@@ -403,10 +404,11 @@ export default function PatientScatterPlotD3(props){
                 .attr('font-weight',d=>d.fontWeight)
                 .text(d=> d.text)
         }
-    },[svg,props.clusterData,formattedData,dotsDrawn,props.sizeVar,props.xVar,props.yVar]);
+    },[svg,props.clusterData,formattedData,dotsDrawn,props.sizeVar,props.xVar,props.yVar,props.clusterOrgans]);
 
     useEffect(function brush(){
         if(formattedData !==undefined & dotsDrawn){
+            svg.selectAll('scatterPoint').remove();
             let scatterGroup = svg.selectAll('.scatterPoint').data(formattedData);
             scatterGroup.exit().remove();
             

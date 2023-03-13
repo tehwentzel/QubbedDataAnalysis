@@ -16,7 +16,8 @@ export default function RuleViewD3(props){
     const yMargin = 10;
     
     const xLabelSize = 13;
-    const R = (props.rule === undefined)? 3.5: 6/(1+props.rule.features.length**.5);
+    const RScale = Math.min(height/70,width/65)
+    const R = (props.rule === undefined)? RScale/2.1: RScale/(1+props.rule.features.length**.5);
     const yPadding = 20*R;
     const splitAxes = false;
     const oThreshold = props.ruleThreshold;
@@ -25,8 +26,10 @@ export default function RuleViewD3(props){
     //if ther rules are predicting a cluster, use cluster color + grey
     //otherwise use red + blueish (adjusted to make seeing the outlines easier)
     const targetIsCluster = (props.ruleTargetCluster !== undefined & props.ruleTargetCluster >= 0);
-    const targetColor = targetIsCluster? props.categoricalColors(props.ruleTargetCluster):'red';
-    const nonTargetColor = targetIsCluster? '#D8D8D8':'#2166ac';
+    // const targetColor = targetIsCluster? props.categoricalColors(props.ruleTargetCluster):'#e9a3c9';
+    // const nonTargetColor = targetIsCluster? '#D8D8D8':'#a1d76a';
+    const targetColor = targetIsCluster? props.categoricalColors(props.ruleTargetCluster):'#a1d76a';
+    const nonTargetColor = '#D8D8D8';
     const outcomeStrokeWidth = .7*R;
     const strokeWidth = .1*R;
 
@@ -157,7 +160,7 @@ export default function RuleViewD3(props){
                         'threshold': threshold,
                         'thresholdY': getY(threshold),
                         'path': lineFunc(axisPoints),
-                        'dasharray': '',
+                        // 'dasharray': '',
                         'color':'#424242',
                     }
                     splitData.push(splitEntry);
@@ -166,9 +169,11 @@ export default function RuleViewD3(props){
             }
 
             //stuff for the final groups we get
+            //this offset term is trial and error idk why it's needed it makes no sense to me
+            const finalOffset = (rFeatures.length > 2)? 10: 25;
             const finalYScale = d3.scaleLinear()
                 .domain([0,nFeatures])
-                .range([yRange[0]-(yPadding/4),yRange[1]+(yPadding/4)]);
+                .range([height - yMargin - yPadding - finalOffset, yMargin + yPadding + finalOffset]);
 
             const finalX = getX('outcome');
             const finalXLine = splitData[splitData.length-1].x + tRectW/2;
@@ -191,21 +196,17 @@ export default function RuleViewD3(props){
             //adding on stuff for the last group split
             let finalSplitLabels = [];
             for(let n = 1; n <= nFeatures + 1; n += 1){
-                let bottomY = finalYScale(n - 1.5);
-                let y = finalYScale(n - .5);
-                // let pPoints = [
-                //     [finalXLine,y],
-                //     [finalX+stepWidth/2,y]
-                // ]
+                let topY = finalYScale(n - 1.5);
+                let y = finalYScale(n-.5);
                 let isLast = n > nFeatures;
-                let text = "Failed at rule " + n;
+                let text = "Failed at rule " + (n);
                 if(isLast){
                     text = 'Predicted Class';
                 }
                 let boxX = finalXLine;
                 let boxWidth = (finalX + stepWidth/2) - finalXLine;
                 let boxY = y;
-                let boxHeight = y - bottomY;
+                let boxHeight = Math.abs(y - topY);
                 let entry = {
                     // path: lineFunc(pPoints),
                     text: text,
@@ -332,7 +333,7 @@ export default function RuleViewD3(props){
                 .attr('d',d=>d.path)
                 .attr('stroke',d=>d.color)
                 .attr('stroke-width',3)
-                .attr('stroke-dasharray',d=>d.dasharray)
+                // .attr('stroke-dasharray',d=>d.dasharray)
                 .attr('stroke-opacity',.9);
 
             const makeLabel = (d) => {
@@ -391,7 +392,7 @@ export default function RuleViewD3(props){
                 .append('text').attr('class','finalGroupText')
                 .attr('x',d=> d.x + (d.width/2))
                 .attr('y',d=>d.y + groupMargin + xLabelSize)
-                .attr('font-size',xLabelSize*1.1)
+                .attr('font-size',R*6)
                 .attr('text-anchor','middle')
                 .text(d=>d.text)
             
@@ -401,9 +402,9 @@ export default function RuleViewD3(props){
                 .append('text').attr('class','prTitle')
                 .attr('x',d=> d.x + (d.width*.3))
                 .attr('y',d=>d.y + Math.abs(d.height))
-                .attr('font-size',xLabelSize)
+                .attr('font-size',R*6)
                 .attr('text-anchor','middle')
-                .text(d=> d.isLast? 'False +':'True -');
+                .text(d=> d.isLast? 'FP':'TN');
 
             svg.selectAll('text').filter('.fTitle').remove();
             svg.selectAll('text').filter('fTitle')
@@ -411,9 +412,9 @@ export default function RuleViewD3(props){
                 .append('text').attr('class','fTitle')
                 .attr('x',d=> d.x + (d.width*.75))
                 .attr('y',d=>d.y + Math.abs(d.height))
-                .attr('font-size',xLabelSize)
+                .attr('font-size',R*6)
                 .attr('text-anchor','middle')
-                .text(d=> d.isLast? 'True +':'False -');
+                .text(d=> d.isLast? 'TP':'FN');
 
             // svg.selectAll('path').filter('.finalGroupLine').remove();
             // svg.selectAll('path').filter('.finalGroupLine')

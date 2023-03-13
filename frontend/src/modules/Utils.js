@@ -221,11 +221,11 @@ export default class Utils {
 
     static moveTTip(tTip, tipX, tipY){
         var tipBBox = tTip.node().getBoundingClientRect();
-        if(tipBBox.width + tipX > window.innerWidth){
-            tipX = tipX - 10 - tipBBox.width;
+        while(tipBBox.width + tipX > window.innerWidth){
+            tipX = tipX - 10 ;
         }
-        if(tipBBox.height + tipY > window.innerHeight){
-            tipY = tipY- 10 - tipBBox.height;
+        while(tipBBox.height + tipY > window.innerHeight){
+            tipY = tipY - 10 ;
         }
         tTip.style('left', tipX + 'px')
             .style('top', tipY + 'px')
@@ -234,8 +234,8 @@ export default class Utils {
     }
 
     static moveTTipEvent(tTip, event){
-        var tipX = event.pageX + 10;
-        var tipY = event.pageY + 10;
+        var tipX = event.pageX + 30;
+        var tipY = event.pageY -20;
         this.moveTTip(tTip,tipX,tipY);
     }
 

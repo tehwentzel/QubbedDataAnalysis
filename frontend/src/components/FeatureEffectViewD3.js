@@ -130,8 +130,9 @@ export default function FeatureEffectViewD3(props){
                 }).on('mouseout', function(e){
                     Utils.hideTTip(tTip);
                 }).on('contextmenu', function(e){
+                    e.preventDefault();
                     let d = d3.select(this).datum();
-                    e.stopPropagation();
+                    // e.stopPropagation();
                     if(d !== undefined){
                         props.toggleClusterFeature(d.name);
                         Utils.hideTTip(tTip);

@@ -10,6 +10,7 @@ import { Spinner } from 'react-bootstrap';
 import Dropdown from 'react-bootstrap/Dropdown';
 import DropdownButton from 'react-bootstrap/DropdownButton';
 import Button from 'react-bootstrap/Button';
+import { Fragment } from 'react';
 
 import * as d3 from 'd3';
 
@@ -163,8 +164,8 @@ function App() {
     '#fdc086',
     // '#1ecbe1',
     '#7fc97f',
-    '#ffff99',
-    // '#e7298a',
+    // '#ffff99',
+    '#e7298a',
     '#e6ab02',
     '#999999',
     '#666666'
@@ -178,7 +179,7 @@ function App() {
 
   const parameterColors = {
     current: 'brown',
-    cue: 'blue',
+    cue: 'teal',
     both: 'black',
     none: 'white',
   }
@@ -304,7 +305,7 @@ function App() {
     if(!clusterDataLoading & clusterData !== undefined){
       fetchDoseData(clusterOrgans,clusterFeatures)
     }
-  },[clusterOrgans,clusterFeatures])
+  },[clusterOrgans,clusterFeatures,clusterData,clusterDataLoading])
 
   // useEffect(function clearCue(){
   //   setClusterOrganCue(new Array());
@@ -489,7 +490,7 @@ function App() {
   function makeScatter(){
       if(clusterData != undefined & doseData != undefined){
           return (
-              <>
+              <Fragment key={clusterOrgans.join('')+ clusterFeatures.join('')}>
                   <PatientScatterPlotD3
                       doseData={doseData}
                       doseColor={doseColor}
@@ -509,7 +510,7 @@ function App() {
                       makeTTipChart={makeTTipChart}
                       makeTTipLrtChart={makeTTipLrtChart}
                   ></PatientScatterPlotD3>
-              </>
+              </Fragment>
           )
       } else{
           return (<Spinner 
@@ -620,7 +621,7 @@ function App() {
               'width':'100%',
               'height':'calc(var(--cluster-height) + 6em)'
               }}>
-              <Col md={4} style={{'height':'100%','marginTop':'2em'}} className={'shadow'}>
+              <Col md={4} style={{'height':'100%','marginTop':'1em'}} className={'shadow'}>
                 {makeEffectPlot()}
               </Col>
               <Col md={8} style={{'height':'100%'}} md={8}>
@@ -632,7 +633,7 @@ function App() {
               'marginTop':'2em',
               'width':'100%',
               'margin':'2vw!important',
-              'height':'calc(95% - var(--cluster-height) - 6em - 2em)',
+              'height':'calc(100% - var(--cluster-height) - 6em - 2em)',
               }}>
               <Col 
               className={'shadow'}
