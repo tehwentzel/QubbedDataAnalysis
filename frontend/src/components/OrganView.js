@@ -51,13 +51,8 @@ export default function OrganView(props){
     const maxNeighbors = 3;//limit the # of neighbors shown for now for performance
 
     useEffect(() => {
-        // if(!props.organData){return;}
-        var organs;
-        if(props.organData){
-            organs = props.organData.organs;
-        } else{
-            organs = constants.ORGANS_TO_SHOW;
-        }
+        if(!props.organData){return;}
+        const organs = props.organData.organs;
         var meshes = {};
         for(let organ of organs){
             loader.load('models/' + organ + '.vtk', (geometry) => {
@@ -164,8 +159,6 @@ export default function OrganView(props){
         } catch{
             console.log('problem getting neighbors', props.organClusters.patients);
         }
-        // console.log("neighbors",pList.map(x=>x.id))
-        // console.log(pList.map(x=>x.similarity))
         const cameraPositionZ = 500;
 
         const getOrganModel = function(organName, scale=1){

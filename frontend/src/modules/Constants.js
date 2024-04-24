@@ -6,8 +6,8 @@ export const ORGANS_TO_SHOW = ['Esophagus',
 'Lt_Brachial_Plexus',
 'Rt_Brachial_Plexus',
 'Cricopharyngeal_Muscle',
-'Lt_thyroid_lobe',
-'Rt_thyroid_lobe',
+// 'Lt_thyroid_lobe',
+// 'Rt_thyroid_lobe',
 'Cricoid_cartilage',
 'IPC',
 'MPC',
@@ -40,14 +40,15 @@ export const ORGANS_TO_SHOW = ['Esophagus',
 'Extended_Oral_Cavity',
 'Mandible',
 'Hard_Palate',
-'Lt_Posterior_Seg_Eyeball',
-'Rt_Posterior_Seg_Eyeball',
-'Lt_Anterior_Seg_Eyeball',
-'Rt_Anterior_Seg_Eyeball',
+// 'Lt_Posterior_Seg_Eyeball',
+// 'Rt_Posterior_Seg_Eyeball',
+// 'Lt_Anterior_Seg_Eyeball',
+// 'Rt_Anterior_Seg_Eyeball',
 'Lower_Lip',
 'Upper_Lip',
 'Glottic_Area',
         ]
+
 export const ORGAN_NAME_MAP = {
     "Cricoid": "Cricoid_cartilage",
     'Musc_Digastric_LA': 'Lt_Ant_Digastric_M',
@@ -101,3 +102,5 @@ export const ORGAN_RENDER_ORDER = {
     "Larynx": -10,
     "Suppraglottic_Larynx": -9
 }
+
+export const DVH_KEYS = ['mean_dose','max_dose','V5','V10','V15','V20','V25','V30','V35','V40','V45','V50','V55','V60','V65','V70','V75','V80']

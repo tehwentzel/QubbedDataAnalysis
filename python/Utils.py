@@ -2,6 +2,7 @@ import simplejson
 import numpy as np
 from Constants import Const
 import datetime
+import pandas as pd
 
 def iterable(obj):
     try:
@@ -68,3 +69,12 @@ def load_organ_centroids():
     with open(Const.data_dir + 'organ_centroid.json','r') as f:
         test = simplejson.load(f)
     return test
+
+def onehotify(df,ignore=None):
+    df = df.copy()
+    if ignore is None:
+        ignore = set([])
+    subdf = pd.concat([pd.get_dummies(df[c],prefix=c) for c in df.columns if c not in ignore],axis=1)
+    if ignore is not None:
+        return pd.concat([subdf,df[ignore]],axis=1)
+    return subdf

@@ -100,7 +100,7 @@ class Similarity(ABC):
     def sim_to_pdist(self,sim):
         return self.condense_matrix(self.sim_to_dist(sim))
     
-    def get_similarity_matrix(self, distances, volumes, multithread = True, condensed = False):
+    def get_similarity_matrix(self, distances, volumes=None, multithread = True, condensed = False):
         self.fit_data(distances,volumes)
         assert(self.x_items > 1)
         if self.n_jobs > 1 and multithread:
@@ -139,8 +139,12 @@ class TssimSimilarity(Similarity):
         for i, adjacency in enumerate(self.adjacency_list):
             d1 =  self.dists[p1]
             d2 = self.dists[p2]
-            v1 = self.vols[p1]
-            v2 = self.vols[p2]
+            if self.vols is not None:
+                v1 = self.vols[p1]
+                v2 = self.vols[p2]
+            else:
+                v1 = None,
+                v2 =None
             sim = Metrics.local_tssim(d1,d2,v1,v2)
             sims[i] = sim
         return np.nanmean(sims)
