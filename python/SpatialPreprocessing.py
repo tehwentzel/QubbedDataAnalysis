@@ -196,7 +196,7 @@ class RadDataset():
         print('adding nan values for missing organs')
         df = self.add_missing_organs(df) 
         print('adding histograms')
-        hist_cols = [c for c in df.columns if (re.match('[DV]\d+',c) is not None)]
+        hist_cols = [c for c in df.columns if (re.match(r'[DV]\d+',c) is not None)]
         df[hist_cols] = df[hist_cols].astype('float16')
         return df.drop(['index'],axis=1)
             
@@ -206,7 +206,7 @@ class RadDataset():
         for organ in self.organ_list:
             if organ not in rois:
                 entry = pd.Series([pid,'missing',organ],index=['id','Structure','ROI'])
-                pdf = pdf.append(entry,ignore_index=True)
+                pdf = pd.concat([pdf,entry],ignore_index=True)
         return pdf
     
     def add_missing_organs(self,df):
@@ -252,7 +252,7 @@ class RadDataset():
         good_cols = []
         dvh=self.dvh_df
         for c in dvh.columns:
-            match = re.match(key+'(\d+)', c)
+            match = re.match(key+r'(\d+)', c)
             if match is not None:
                 use = True
                 if steps is not None and match.group(1) is not None:
@@ -369,7 +369,7 @@ class RadDataset():
                 return values
     
 def get_dvhcol_pos(x):
-    m = re.match('[DV]'+'(\d+)',x)
+    m = re.match('[DV]'+r'(\d+)',x)
     if m is not None:
         return int(m.group(1))
     else:
