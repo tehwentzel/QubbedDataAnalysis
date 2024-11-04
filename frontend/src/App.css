@@ -213,7 +213,7 @@ svg > path, svg > circle{
 
 .largeButton, .largeButton > *{
   padding: .2em!important;
-  font-size: 1em!important;
+  font-size: .9em!important;
 }
 
 .dropdown{
@@ -245,10 +245,10 @@ svg > path, svg > circle{
 }
 
 .viewTitle{
-  font-size: 1em;
+  font-size: .8em;
   font-weight: bold;
   font-style: italic;
-  font-family:Georgia;
+  font-family:sans-serif;
   overflow-y: visible!important;
 }
 
@@ -297,7 +297,7 @@ svg > path, svg > circle{
 
 .sceneTitle{
   width: 100%!important;
-  font-size: 1em;
+  font-size: .9em;
   width: 50%;
   font-weight: bold;
   padding: 0em;

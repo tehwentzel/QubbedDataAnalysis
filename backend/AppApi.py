@@ -85,7 +85,7 @@ def reorder_clusters(df,cname,by='moderate_6wk_symptoms',organ_list=None):
     return df2
 
 def get_df_dose_cols(df,key='DV'):
-    return [c for c in df.columns if re.match('[' + key + ']\d+',c) is not None]
+    return [c for c in df.columns if re.match('[' + key + r']\d+',c) is not None]
 
 def get_df_symptom_cols(df):
     return [c for c in df.columns if 'symptoms_' in c if 'original' not in c]
@@ -607,7 +607,7 @@ def dvh_num(string,key='V'):
         return 99
     if string == 'max_dose':
         return 100
-    match = re.match(key+"(\d+).*",string)
+    match = re.match(key+r"(\d+).*",string)
     if match is not None:
         return int(match.groups()[0])
     return 0

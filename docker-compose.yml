@@ -1,0 +1,48 @@
+networks:
+  example:
+    driver: bridge
+
+services:
+  proxy:
+    container_name: proxy
+    image: nginx
+    restart: always
+    ports:
+      - 443:443
+      - 80:80
+    volumes:
+      # - ./docker/proxy/service-example/nginx.conf:/etc/nginx/nginx.conf
+      - ./data/_.evl.uic.edu.key:/etc/ssl/evl.key
+      - ./data/_.evl.uic.edu.crt:/etc/ssl/evl.crt
+      - ./docker/proxy/https-forwarding.conf:/etc/nginx/conf.d/https-forwarding.conf
+    networks: 
+      - example
+    depends_on:
+      - dassfrontend
+      - dassbackend
+  dassfrontend:
+    container_name: dassfrontend
+    restart: unless-stopped
+    image: node:20.11.1-alpine3.19
+    ports:
+      - 9000:9000
+    volumes:
+      - ./:/workspace/QubbedDataAnalysis
+      - ./docker/frontend/init.sh:/usr/local/bin/init.sh
+    entrypoint: sh -c "sh /usr/local/bin/init.sh"
+    networks:
+      - example
+  dassbackend:
+    container_name: dassbackend
+    restart: unless-stopped
+    build:
+      context: ./docker/backend
+      dockerfile: Dockerfile
+    ports:
+      - 8000:8000
+    volumes:
+      - ./:/workspace/QubbedDataAnalysis
+      - ./docker/backend/init.sh:/usr/local/bin/init.sh
+    entrypoint: sh -c "sh /usr/local/bin/init.sh"
+    networks: 
+      - example

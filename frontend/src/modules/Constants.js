@@ -1,4 +1,5 @@
 
+//replace this with website.evl.uic.edu/api/ if deploying n an evl server
 export const API_URL = 'http://127.0.0.1:8000/';//this is a bad way to do this.  Whatever the flask server is set to
 
 export const ORGANS_TO_SHOW = ['Esophagus',
