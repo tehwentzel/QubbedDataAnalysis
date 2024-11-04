@@ -9,7 +9,7 @@ CORS(app)
 print('code yay')
 
 # data = load_dose_symptom_data(file='unfiltered_dose_symptoms_merged.csv')
-data = load_dose_symptom_data(file='dose_symptoms_merged_paper.csv')
+data = load_dose_symptom_data(file='dose_symptoms_merged.csv')
 
 def as_float(item):
     if item is None:
