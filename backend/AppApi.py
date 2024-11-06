@@ -64,7 +64,7 @@ def add_sd_dose_clusters(sddf,
                              )
     return new_df
 
-def reorder_clusters(df,cname,by='moderate_6wk_symptoms',organ_list=None):
+def reorder_clusters(df,cname,by='mean_dose',organ_list=None):
     df = df.copy()
     df2 = df.copy()
     severities = {}
@@ -255,7 +255,6 @@ def get_cluster_lrt(df,clust_key = 'dose_clusters',
                       ]
     if thresholds is None:
         thresholds = [-5,-1,0,5]
-    
     
     tdose_cols = [c.replace('total_','') for c in confounders if ('total_' in c)]
     if len(tdose_cols) > 0:
@@ -812,7 +811,7 @@ def parallel_cluster_lrt(args):
 
 def get_sample_cluster_metrics_input():
     with open(Const.data_dir+'cluster_post_test.json','r') as f:
-        post_data= simplejson.load(f)
+        post_data= json.load(f)
     return post_data
 
 def extract_dose_vals(df,organs,features,include_limits = False):
@@ -926,7 +925,7 @@ def evaluate_rule(rule, y):
     upper = y[r]
     lower = y[~r]
     entry = {k:v for k,v in rule.items()}
-    entry['info'] = mutual_info_classif(r.values.reshape(-1,1),y.values.ravel(),
+    entry['info'] = mutual_info_classif(r.values.reshape(-1,1),y.values.astype(int).ravel(),
                                         random_state=1,discrete_features=True,n_neighbors=5)[0]
     if lower.mean().values[0] > 0:
         entry['odds_ratio'] = upper.mean().values[0]/lower.mean().values[0]

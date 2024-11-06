@@ -55,9 +55,9 @@ def symptom_weektime(string):
         return 1
     elif 'endrt' in s:
         return 7
-    week_regex = re.match("wk(\d+)",s)
-    postweek_regex = re.match('wk(\d+)post',s)
-    month_regex = re.match('m(\d+)',s)
+    week_regex = re.match(r"wk(\d+)",s)
+    postweek_regex = re.match(r'wk(\d+)post',s)
+    month_regex = re.match(r'm(\d+)',s)
     if postweek_regex is not None:
         return 7 + int(postweek_regex.group(1))
     elif week_regex is not None:
@@ -68,7 +68,7 @@ def symptom_weektime(string):
 
 def get_symptom(string):
     s = string.lower().strip()
-    regex = re.match('.*mdasi_([a-z]+)',s)
+    regex = re.match(r'.*mdasi_([a-z]+)',s)
     if regex is not None:
         return regex.group(1)
     #because someone decided changing the name scheme for activity was a good idea
@@ -229,6 +229,7 @@ def flat_mdasi_df(df, columns = [], symptoms = None):
             timestep = svals[:,i]
             name = sym+'_t'+str(int(i))
             val_df[name] = timestep
+            val_df = val_df.copy()
     val_df.index = df.id
     return val_df
 
@@ -278,13 +279,13 @@ def train_symptom_autoencoder(x_numpy,
         loss.backward()
         losses.append(loss.item())
         optimizer.step()
-        torch.cuda.empty_cache()
+        # torch.cuda.empty_cache()
         early_stopping(loss.item(), autoencoder)
         print(epoch,'loss:',loss,end='\r')
         if early_stopping.early_stop:
             print('training stopped on epoch', epoch - patience)
             break
-    autoencoder.load_state_dict(torch.load(model_path))
+    autoencoder.load_state_dict(torch.load(model_path,weights_only=False))
     print()
     return autoencoder.eval(), early_stopping.get_loss_history()
     
@@ -299,7 +300,8 @@ def impute_symptom_values(df,
     if model_path is None:
         model_path = get_symptom_denoiser_path()
     flat_df = flat_mdasi_df(df,additional_vars)
-    x = flat_df.values
+    x = flat_df.astype(np.float32).values
+    print(x)
     scol_pos = [i for i,c in enumerate(flat_df.columns) if 'symptom' in c]
     loss_idx = None
     if limit_loss:
@@ -308,7 +310,7 @@ def impute_symptom_values(df,
         #will fail if I cahnged the model parameters
         try:
             ae= AE.BasicDenoiser(x.shape[1])
-            ae.load_state_dict(torch.load(model_path))
+            ae.load_state_dict(torch.load(model_path,weights_only=False))
             ae = ae.eval()
         except Exception as e:
             print('training failed')
@@ -325,7 +327,7 @@ def impute_symptom_values(df,
     return new_df
 
 def get_flat_symptom(x):
-    match = re.match('symptoms_(.+)_t(\d+)',x)
+    match = re.match(r'symptoms_(.+)_t(\d+)',x)
     if match is not None:
         return match.group(1), int(match.group(2))
     return None,None
@@ -352,9 +354,9 @@ def unflatten_symptom_df(flat_df,original_df=None):
     return pd.DataFrame(unflat_df)
 
             
-def impute_symptom_df(df):
+def impute_symptom_df(df,**kwargs):
     #imputes nan symptom values using a basic neural net
-    imputed_flattened_df = impute_symptom_values(df, use_trained=True)
+    imputed_flattened_df = impute_symptom_values(df, **kwargs)
     imputed_df = unflatten_symptom_df(imputed_flattened_df,df)
     return imputed_df
 
