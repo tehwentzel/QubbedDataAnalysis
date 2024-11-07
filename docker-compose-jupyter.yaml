@@ -1,0 +1,10 @@
+services:
+  dass_jupyter:
+    container_name: dass_jupyter
+    build:
+      context: ./
+      dockerfile: docker/python/Dockerfile
+    ports:
+      - 8888:8888
+    volumes:
+      - ./:/usr/src/app/

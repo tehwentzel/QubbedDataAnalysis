@@ -245,7 +245,7 @@ def train_autoencoder(autoencoder, x, model_path,
         if early_stopping.early_stop:
             print('training stopped on epoch', epoch - patience)
             break
-    autoencoder.load_state_dict(torch.load(model_path))
+    autoencoder.load_state_dict(torch.load(model_path,weights_only=False))
     if plot_hist:
         print('initial_loss', nan_mse_loss(torch.zeros(x.shape),x))
         print('best loss', early_stopping.best_score)
