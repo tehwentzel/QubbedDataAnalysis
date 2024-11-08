@@ -11,7 +11,6 @@ from Constants import Const
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 
 from xml.dom import minidom
-from svgpath2mpl import parse_path
 import matplotlib.patches as mpatches
 import matplotlib.path as mpath
 import matplotlib.transforms as mplt
@@ -232,65 +231,3 @@ def load_organ_paths(files=None,olist=None):
         except Exception as e:
             print(e)
     return merged_dict
-
-#these were an attempt at centering the group of svg paths
-#the code works in theory if you use it as a point cloud and apply a transform
-#but in whatever coordinate system svg uses it makes it all messed up
-#so just do the centering once in inscape
-def parse_mpath_points(path):
-    #gets a pointlist from an svg path
-    #assuming format m x,y x2,y2 ... z
-    path = path.split(' ')
-    points = []
-    for p in path:
-        plist = p.split(',')
-        if len(plist) == 2:
-            points.append([float(i) for i in plist])
-    return points
-
-def transform_mpath_points(path,offset):
-    #gets a pointlist from an svg path
-    #assuming format m x,y x2,y2 ... z
-    path = path.split(' ')
-    newpath = ''
-    for p in path:
-        if len(newpath) > 0:
-            newpath += ' '
-        plist = p.split(',')
-        if len(plist) == 2:
-            vals = np.array([float(i) for i in plist])
-            vals = vals+offset
-            newpath += ','.join([str(i) for i in vals])
-        else:
-            newpath += p
-        
-    return newpath
-
-def points_to_mpath(pointlist):
-    string = 'm'
-    for p in pointlist:
-        point = ','.join([str(i) for i in p])
-        string += ' ' + point
-    string += ' z'
-    return string
-
-def get_centered_svgpaths(file,as_path=True):
-    paths = load_organ_svg_file(file)
-    opaths = {o:parse_mpath_points(v) for o,v in paths.items()}
-    all_points = np.vstack([np.array(v) for v in opaths.values()])
-    center = (all_points.max(axis=0) + all_points.min(axis=0))/2
-    center = all_points.mean(axis=0)
-    center = np.array([-center[1],center[0]])
-#     return {k:transform_mpath_points(v,-center) for k,v in paths.items()}
-    centered = {k:(np.array(v)).tolist() for k,v in opaths.items()}
-    if as_path:
-        centered = {k: points_to_mpath(v) for k,v in centered.items()}
-    return centered
-
-def center_scale_path(path,scale):
-    bbox = path.get_extents()
-    left = (1-scale)*(bbox.x0 + bbox.x1)/2
-    up = (1-scale)*(bbox.y0 + bbox.y1)/2
-    tform = mplt.Affine2D().scale(scale) + mplt.Affine2D().translate(left,up) 
-    path2 = mplt.TransformedPath(path,tform)
-    return path2.get_fully_transformed_path()
